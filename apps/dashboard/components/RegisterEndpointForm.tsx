@@ -1,7 +1,5 @@
-// components/RegisterEndpointForm.tsx
-
 import { useState } from 'react';
-import { supabase } from '../lib/supabase'; // your Supabase client
+import { supabase } from '../../lib/supabase'; // adjust path if needed
 import { usePrivy } from '@privy-io/react-auth';
 
 export default function RegisterEndpointForm() {
@@ -16,11 +14,11 @@ export default function RegisterEndpointForm() {
     metadata: {}
   });
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.wallet?.address) {
       alert('Connect your wallet first');
@@ -44,20 +42,53 @@ export default function RegisterEndpointForm() {
       console.error(error);
       alert('Failed to register endpoint');
     } else {
-      console.log('Registered:', data);
       alert('Endpoint registered successfully');
+      console.log('Registered:', data);
+      setForm({
+        endpointUrl: '',
+        price: '',
+        currency: 'USDC',
+        scheme: 'exact',
+        network: 'base',
+        facilitatorUrl: 'https://facilitator.cdp.coinbase.com',
+        metadata: {}
+      });
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <input name="endpointUrl" type="text" placeholder="/api/data" onChange={handleChange} required />
-      <input name="price" type="number" step="0.0001" placeholder="0.01" onChange={handleChange} required />
-      <select name="scheme" onChange={handleChange}>
+      <input
+        name="endpointUrl"
+        type="text"
+        placeholder="/api/data"
+        value={form.endpointUrl}
+        onChange={handleChange}
+        required
+        className="w-full border p-2"
+      />
+      <input
+        name="price"
+        type="number"
+        step="0.0001"
+        placeholder="0.01"
+        value={form.price}
+        onChange={handleChange}
+        required
+        className="w-full border p-2"
+      />
+      <select
+        name="scheme"
+        value={form.scheme}
+        onChange={handleChange}
+        className="w-full border p-2"
+      >
         <option value="exact">Exact</option>
         <option value="upto">Upto</option>
       </select>
-      <button type="submit">Register Endpoint</button>
+      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+        Register Endpoint
+      </button>
     </form>
   );
 }

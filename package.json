@@ -1,1 +1,21 @@
-
+{
+  "name": "x402-wrapper",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@privy-io/react-auth": "^3.4.1",
+    "@supabase/supabase-js": "^2.76.1",
+    "next": "^16.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.1",
+    "@types/react": "^19.2.2"
+  }
+}

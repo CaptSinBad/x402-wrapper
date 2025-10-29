@@ -1,12 +1,22 @@
-// components/SellerEndpointsList.tsx
-
 import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { usePrivy } from '@privy-io/react-auth';
+
+type SellerEndpoint = {
+  id: string;
+  endpoint_url: string;
+  price: number;
+  currency: string;
+  scheme: string;
+  network: string;
+  facilitator_url: string;
+  metadata: any;
+  seller_wallet: string;
+};
 
 export default function SellerEndpointsList() {
   const { user } = usePrivy();
-  const [endpoints, setEndpoints] = useState([]);
+  const [endpoints, setEndpoints] = useState<SellerEndpoint[]>([]);
 
   useEffect(() => {
     const fetchEndpoints = async () => {
@@ -17,26 +27,35 @@ export default function SellerEndpointsList() {
         .select('*')
         .eq('seller_wallet', user.wallet.address);
 
-      if (error) console.error(error);
-      else setEndpoints(data);
+      if (error) {
+        console.error('Error fetching endpoints:', error);
+      } else {
+        setEndpoints(data as SellerEndpoint[]);
+      }
     };
 
     fetchEndpoints();
-  }, [user]);
+  }, [user?.wallet?.address]);
+
+  if (!user?.wallet?.address) {
+    return <p className="text-gray-500">Connect your wallet to view your endpoints.</p>;
+  }
+
+  if (endpoints.length === 0) {
+    return <p className="text-gray-500">No endpoints registered yet.</p>;
+  }
 
   return (
-    <div className="mt-6">
-      <h2 className="text-lg font-semibold mb-2">Your Registered Endpoints</h2>
-      <ul className="space-y-2">
-        {endpoints.map((ep) => (
-          <li key={ep.id} className="border p-4 rounded">
-            <div><strong>URL:</strong> {ep.endpoint_url}</div>
-            <div><strong>Price:</strong> {ep.price} {ep.currency}</div>
-            <div><strong>Scheme:</strong> {ep.scheme}</div>
-            <div><strong>Network:</strong> {ep.network}</div>
-          </li>
-        ))}
-      </ul>
+    <div className="space-y-4">
+      {endpoints.map((ep) => (
+        <div key={ep.id} className="border p-4 rounded shadow">
+          <p><strong>URL:</strong> {ep.endpoint_url}</p>
+          <p><strong>Price:</strong> {ep.price} {ep.currency}</p>
+          <p><strong>Scheme:</strong> {ep.scheme}</p>
+          <p><strong>Network:</strong> {ep.network}</p>
+          <p><strong>Facilitator:</strong> {ep.facilitator_url}</p>
+        </div>
+      ))}
     </div>
   );
 }

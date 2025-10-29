@@ -1,4 +1,3 @@
-// apps/dashboard/pages/_app.tsx
 import { PrivyProvider } from '@privy-io/react-auth';
 import type { AppProps } from 'next/app';
 
