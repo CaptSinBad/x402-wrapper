@@ -1,0 +1,13 @@
+{
+  "name": "@x402-wrapper/sdk-client",
+  "version": "0.1.0",
+  "description": "Buyer SDK for x402-wrapper (payAndFetch + helpers)",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "keywords": ["x402", "payment", "sdk", "payAndFetch"],
+  "license": "MIT"
+}
