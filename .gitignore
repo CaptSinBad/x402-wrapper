@@ -1,1 +1,11 @@
 node_modules
+# Local env files
+.env.local
+.env.production
+
+# Build / editor artifacts
+.next
+.vercel
+dist
+tsconfig.tsbuildinfo
+.DS_Store

@@ -22,15 +22,20 @@ export default function SellerEndpointsList() {
     const fetchEndpoints = async () => {
       if (!user?.wallet?.address) return;
 
-      const { data, error } = await supabase
-        .from('seller_endpoints')
-        .select('*')
-        .eq('seller_wallet', user.wallet.address);
+      try {
+        const resp = await fetch('/api/seller_endpoints', {
+          method: 'GET',
+          credentials: 'same-origin'
+        });
 
-      if (error) {
-        console.error('Error fetching endpoints:', error);
-      } else {
-        setEndpoints(data as SellerEndpoint[]);
+        const result = await resp.json();
+        if (!resp.ok) {
+          console.error('Error fetching endpoints:', result?.error || resp.statusText);
+        } else {
+          setEndpoints(result.data as SellerEndpoint[]);
+        }
+      } catch (err) {
+        console.error('Error fetching endpoints:', err);
       }
     };
 
