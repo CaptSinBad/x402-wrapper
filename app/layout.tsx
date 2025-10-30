@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <div>
             {/* Privy connect handled in /dashboard pages where PrivyProvider is configured; this is a convenience link */}
-            <Link href="/dashboard"><a style={{ ...buttonStyle }}>Connect / Open Dashboard</a></Link>
+            <Link href="/dashboard" style={buttonStyle}>Connect / Open Dashboard</Link>
           </div>
         </header>
 
