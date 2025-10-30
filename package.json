@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest",
-    "worker": "node scripts/settlementWorker.js"
+    "worker": "node scripts/settlementWorker.js",
+    "migrate": "node scripts/run-migrations.js"
   },
   "dependencies": {
     "@privy-io/react-auth": "^3.4.1",
