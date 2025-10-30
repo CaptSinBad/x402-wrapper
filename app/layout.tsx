@@ -6,11 +6,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body style={{ fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial', padding: 0, margin: 0 }}>
         <header style={{ background: '#0f172a', color: '#fff', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <Link href="/"><a style={{ color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 18 }}>xSynesis</a></Link>
+            <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontWeight: 700, fontSize: 18 }}>xSynesis</Link>
             <nav style={{ display: 'flex', gap: 8 }}>
-              <Link href="/dashboard"><a style={navLink}>Dashboard</a></Link>
-              <Link href="/pay-demo"><a style={navLink}>Pay Demo</a></Link>
-              <Link href="/settlements"><a style={navLink}>Settlements</a></Link>
+              <Link href="/dashboard" style={navLink}>Dashboard</Link>
+              <Link href="/pay-demo" style={navLink}>Pay Demo</Link>
+              <Link href="/settlements" style={navLink}>Settlements</Link>
             </nav>
           </div>
 
