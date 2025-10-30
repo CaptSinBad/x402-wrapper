@@ -46,10 +46,23 @@ jobs:
 
       - name: Apply DB migrations
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PGPASSWORD: postgres
         run: |
-          psql -h localhost -U postgres -d x402db -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
-          psql -h localhost -U postgres -d x402db -f db/migrations/001_init.sql
+          # If no DATABASE_URL secret is provided, fall back to the local postgres service
+          if [ -z "$DATABASE_URL" ]; then
+            export DATABASE_URL="postgres://postgres:postgres@localhost:5432/x402db"
+          fi
+          node scripts/run-migrations.js
+
+      - name: DB readiness check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            export DATABASE_URL="postgres://postgres:postgres@localhost:5432/x402db"
+          fi
+          node scripts/check-db-ready.js
 
       - name: Typecheck
         run: npx tsc --noEmit
