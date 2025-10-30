@@ -1,6 +1,6 @@
 // pages/api/resource/[...slug].ts
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabaseServer } from '../../../../lib/supabaseServer';
+import { getSellerEndpointByUrl } from '../../../../lib/dbClient';
 
 const FACILITATOR_PROXY = process.env.NEXT_PUBLIC_FACILITATOR_URL
   ? '/api/facilitator/verify'
@@ -11,23 +11,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const resourcePath = '/' + slug.join('/');
 
   // Look up a registered endpoint for this resource
-  const { data: endpoints, error } = await supabaseServer
-    .from('seller_endpoints')
-    .select('*')
-    .eq('endpoint_url', resourcePath)
-    .limit(1);
-
-  if (error) {
-    console.error('db error', error);
-    return res.status(500).json({ error: 'internal' });
-  }
-
-  if (!endpoints || endpoints.length === 0) {
-    // Not monetized — you can either proxy an internal resource, or return 404
-    return res.status(404).json({ error: 'not_found' });
-  }
-
-  const endpoint = endpoints[0];
+  const endpoint = await getSellerEndpointByUrl(resourcePath);
+  if (!endpoint) return res.status(404).json({ error: 'not_found' });
 
   // If payment header missing -> return 402 + PaymentRequirements
   const xPaymentHeader = req.headers['x-payment'] as string | undefined;

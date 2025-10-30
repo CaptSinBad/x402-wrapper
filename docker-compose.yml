@@ -1,0 +1,26 @@
+version: '3.8'
+
+# Minimal docker-compose for running the web and worker services.
+# For local development with Postgres, use the included override file:
+#   docker-compose -f docker-compose.yml -f docker-compose.override.yml up --build
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env.client
+    ports:
+      - '3000:3000'
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    env_file:
+      - .env.server
+    restart: unless-stopped
+
+volumes: {}
