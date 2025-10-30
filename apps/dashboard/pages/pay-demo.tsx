@@ -1,15 +1,37 @@
 import React, { useState } from 'react';
 import { createPaymentHeader } from '../../../sdk/client/src/example';
 
+const defaultFakeRequirements = {
+  amount: 100,
+  asset: 'USDC',
+  network: 'testnet',
+  seller: 'demo-seller',
+};
+
 const PayDemoPage: React.FC = () => {
   const [status, setStatus] = useState<string>('idle');
   const [requirements, setRequirements] = useState<any>(null);
   const [response, setResponse] = useState<any>(null);
+  const [fakeMode, setFakeMode] = useState<boolean>(true);
+  const [fakeReqInput, setFakeReqInput] = useState<string>(JSON.stringify(defaultFakeRequirements, null, 2));
 
   async function requestResource() {
     setStatus('requesting');
     setRequirements(null);
     setResponse(null);
+
+    if (fakeMode) {
+      // Simulate a 402 response with editable requirements
+      try {
+        const parsed = JSON.parse(fakeReqInput);
+        setRequirements(parsed);
+        setStatus('payment_required (fake)');
+      } catch (e: any) {
+        setStatus('error');
+        setResponse({ error: 'Invalid JSON in fake requirements' });
+      }
+      return;
+    }
 
     try {
       const res = await fetch('/api/paid/resource');
@@ -32,6 +54,18 @@ const PayDemoPage: React.FC = () => {
   async function simulatePayment() {
     if (!requirements) return;
     setStatus('simulating_payment');
+    setResponse(null);
+
+    if (fakeMode) {
+      // In fake mode simulate success/failure deterministically
+      await new Promise((r) => setTimeout(r, 600));
+      // Simple heuristic: if amount <= 0 fail, else succeed
+      const ok = !requirements.amount || Number(requirements.amount) > 0;
+      setResponse({ success: ok, settledAmount: requirements.amount ?? 0, note: 'Simulated by fake-mode' });
+      setStatus(ok ? 'paid (fake)' : 'payment_failed (fake)');
+      return;
+    }
+
     try {
       const header = createPaymentHeader(requirements);
       const res = await fetch('/api/paid/resource', { headers: { 'X-PAYMENT': header } });
@@ -45,14 +79,31 @@ const PayDemoPage: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: 24, maxWidth: 900 }}>
       <h1>Pay-demo</h1>
-      <p>Demonstrates the protected resource flow using the demo SDK.</p>
+      <p>Demonstrates the protected resource flow using the demo SDK. Use fake-mode to run locally without network calls.</p>
 
       <div style={{ marginBottom: 12 }}>
-        <button onClick={requestResource}>Request protected resource</button>
+        <label style={{ marginRight: 12 }}>
+          <input type="checkbox" checked={fakeMode} onChange={(e) => setFakeMode(e.target.checked)} />{' '}
+          Fake-mode (no network)
+        </label>
+      </div>
+
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+        <button onClick={requestResource}>1) Request protected resource</button>
         <button onClick={simulatePayment} disabled={!requirements} style={{ marginLeft: 8 }}>
-          Simulate payment
+          2) Simulate / Submit payment
+        </button>
+        <button
+          onClick={() => {
+            setStatus('idle');
+            setRequirements(null);
+            setResponse(null);
+          }}
+          style={{ marginLeft: 8 }}
+        >
+          Reset
         </button>
       </div>
 
@@ -60,19 +111,36 @@ const PayDemoPage: React.FC = () => {
         <strong>Status:</strong> {status}
       </div>
 
-      {requirements && (
-        <div style={{ marginTop: 12 }}>
-          <h3>Payment requirements (402 response)</h3>
-          <pre style={{ background: '#f6f8fa', padding: 12 }}>{JSON.stringify(requirements, null, 2)}</pre>
+      <div style={{ marginTop: 12, display: 'flex', gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <h3>Fake requirements (editable)</h3>
+          <textarea
+            value={fakeReqInput}
+            onChange={(e) => setFakeReqInput(e.target.value)}
+            rows={8}
+            style={{ width: '100%', fontFamily: 'monospace' }}
+          />
+          <div style={{ fontSize: 12, color: '#666', marginTop: 6 }}>
+            Edit the simulated 402 response. Must be valid JSON. Example: amount, asset, network.
+          </div>
         </div>
-      )}
 
-      {response && (
-        <div style={{ marginTop: 12 }}>
-          <h3>Response</h3>
-          <pre style={{ background: '#f6f8fa', padding: 12 }}>{JSON.stringify(response, null, 2)}</pre>
+        <div style={{ flex: 1 }}>
+          {requirements && (
+            <div>
+              <h3>Payment requirements</h3>
+              <pre style={{ background: '#f6f8fa', padding: 12 }}>{JSON.stringify(requirements, null, 2)}</pre>
+            </div>
+          )}
+
+          {response && (
+            <div style={{ marginTop: 12 }}>
+              <h3>Response</h3>
+              <pre style={{ background: '#f6f8fa', padding: 12 }}>{JSON.stringify(response, null, 2)}</pre>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
