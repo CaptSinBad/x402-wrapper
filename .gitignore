@@ -9,3 +9,8 @@ node_modules
 dist
 tsconfig.tsbuildinfo
 .DS_Store
+
+# Don't accidentally commit local envs
+.env.local
+.env.server
+.env.client

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { supabaseServer } from '../../../../lib/supabaseServer';
+import { insertPaymentLog } from '../../../../lib/dbClient';
 import { verify as facilitatorVerify } from '../../../../../core/facilitator';
 import { FacilitatorVerifyRequest } from '../../../../lib/validators';
 
@@ -20,23 +20,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Delegate to core facilitator client which handles timeouts/retries
     const json = await facilitatorVerify(parsed.data as any);
 
-    // Log verification attempt into Supabase table `payment_logs` (best-effort)
+    // Log verification attempt into payment_logs (best-effort)
     try {
-      await supabaseServer.from('payment_logs').insert([
-        {
-          endpoint_id: body?.paymentRequirements?.endpoint_id ?? null,
-          payer_address: (json as any)?.payer ?? null,
-          tx_hash: (json as any)?.txHash ?? null,
-          amount: body?.paymentRequirements?.maxAmountRequired ?? null,
-          asset: body?.paymentRequirements?.asset ?? null,
-          network: body?.paymentRequirements?.network ?? null,
-          success: (json as any)?.isValid === true,
-          response: json,
-        },
-      ]);
+      await insertPaymentLog({
+        endpoint_id: body?.paymentRequirements?.endpoint_id ?? null,
+        payer_address: (json as any)?.payer ?? null,
+        tx_hash: (json as any)?.txHash ?? null,
+        amount: body?.paymentRequirements?.maxAmountRequired ?? null,
+        asset: body?.paymentRequirements?.asset ?? null,
+        network: body?.paymentRequirements?.network ?? null,
+        success: (json as any)?.isValid === true,
+        response: json,
+      });
     } catch (logErr) {
       console.error('failed to write verify log', logErr);
-      // don't fail the request if logging fails
     }
 
     return res.status(200).json(json);

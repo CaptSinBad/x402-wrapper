@@ -1,0 +1,62 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: x402db
+    ports:
+      - '5432:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env.client
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    env_file:
+      - .env.server
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  migrate:
+    image: postgres:15
+    env_file:
+      - .env.server
+    environment:
+      PGPASSWORD: postgres
+    volumes:
+      - ./:/workdir
+    depends_on:
+      - postgres
+    entrypoint: ["/bin/bash", "-lc", "\
+      echo 'Waiting for Postgres...'; \
+      until pg_isready -h postgres -U postgres; do sleep 1; done; \
+      echo 'Applying pgcrypto extension'; \
+      psql -h postgres -U postgres -d x402db -c \"CREATE EXTENSION IF NOT EXISTS pgcrypto;\"; \
+      echo 'Applying migrations'; \
+      psql -h postgres -U postgres -d x402db -f /workdir/db/migrations/001_init.sql; \
+      echo 'Migrations applied'; \
+    "]
+
+volumes:
+  db-data:
