@@ -15,9 +15,9 @@ export default function Home() {
 			<section style={{ background: '#f6f8fa', padding: 16, borderRadius: 8 }}>
 				<h2 style={{ marginTop: 0 }}>Quick start</h2>
 				<ol>
-					<li>Open <Link href="/pay-demo"><a>Pay Demo</a></Link> to try the protected resource flow (use Fake-mode for local).</li>
-					<li>Go to <Link href="/dashboard"><a>Dashboard</a></Link> to register endpoints (connect wallet via Privy).</li>
-					<li>Check <Link href="/settlements"><a>Settlements</a></Link> for worker processed rows.</li>
+					<li>Open <Link href="/pay-demo">Pay Demo</Link> to try the protected resource flow (use Fake-mode for local).</li>
+					<li>Go to <Link href="/dashboard">Dashboard</Link> to register endpoints (connect wallet via Privy).</li>
+					<li>Check <Link href="/settlements">Settlements</Link> for worker processed rows.</li>
 				</ol>
 			</section>
 		</div>

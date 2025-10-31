@@ -15,17 +15,20 @@ const defaultFakeRequirements = {
 const PayDemoPage: React.FC = () => {
   const [status, setStatus] = useState<string>('idle');
   const [requirements, setRequirements] = useState<any>(null);
+  const [paymentAttempt, setPaymentAttempt] = useState<any>(null);
   const [response, setResponse] = useState<any>(null);
   const [fakeMode, setFakeMode] = useState<boolean>(true);
   const [fakeReqInput, setFakeReqInput] = useState<string>(JSON.stringify(defaultFakeRequirements, null, 2));
+  const [endpointUrl, setEndpointUrl] = useState<string>('/xlayer/test');
   const { user, authenticated } = usePrivy();
 
   async function requestResource() {
     setStatus('requesting');
     setRequirements(null);
     setResponse(null);
+    setPaymentAttempt(null);
 
-    if (fakeMode) {
+  if (fakeMode) {
       // Simulate a 402 response with editable requirements
       try {
         const parsed = JSON.parse(fakeReqInput);
@@ -39,10 +42,21 @@ const PayDemoPage: React.FC = () => {
     }
 
     try {
+      // Try create_payment_session first (if an endpoint exists in DB)
+      const createRes = await fetch('/api/create_payment_session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint_url: endpointUrl }) });
+      if (createRes.status === 201) {
+        const json = await createRes.json();
+        setRequirements(json.paymentRequirements);
+        setPaymentAttempt(json.paymentAttempt);
+        setStatus('payment_required');
+        return;
+      }
+
+      // Fallback: hit the protected resource to receive a 402 with requirements
       const res = await fetch('/api/paid/resource');
       if (res.status === 402) {
-        const json = await res.json();
-        setRequirements(json);
+        const pr = await res.json();
+        setRequirements(pr);
         setStatus('payment_required');
         return;
       }
@@ -79,7 +93,6 @@ const PayDemoPage: React.FC = () => {
         setResponse({ error: 'Please connect your wallet (Privy) to perform live payment' });
         return;
       }
-
       // requirement object is the first accept entry
       const requirement = requirements.accepts ? requirements.accepts[0] : requirements;
 
@@ -89,9 +102,12 @@ const PayDemoPage: React.FC = () => {
         walletAddress,
       });
 
-      const headerObj = { paymentPayload, paymentRequirements: requirements };
-      const header = Buffer.from(JSON.stringify(headerObj), 'utf8').toString('base64');
+      // include attempt id in requirements if present
+      const requirementsWithAttempt = { ...requirements };
+      if (paymentAttempt && paymentAttempt.id) requirementsWithAttempt.attempt_id = paymentAttempt.id;
 
+      const headerObj = { paymentPayload, paymentRequirements: requirementsWithAttempt };
+      const header = Buffer.from(JSON.stringify(headerObj), 'utf8').toString('base64');
       const res = await fetch('/api/paid/resource', { headers: { 'X-PAYMENT': header } });
       const json = await res.json().catch(() => null);
       setResponse(json);
@@ -136,6 +152,10 @@ const PayDemoPage: React.FC = () => {
       </div>
 
       <div style={{ marginTop: 12, display: 'flex', gap: 12 }}>
+        <div style={{ width: 300 }}>
+          <label>Endpoint URL for demo</label>
+          <input value={endpointUrl} onChange={(e) => setEndpointUrl(e.target.value)} style={{ width: '100%' }} />
+        </div>
         <div style={{ flex: 1 }}>
           <h3>Fake requirements (editable)</h3>
           <textarea

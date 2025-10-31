@@ -13,6 +13,8 @@ This document describes the runtime secrets required by the application and exam
 - `FACILITATOR_URL` — URL of facilitator service.
 - `FACILITATOR_KEY` — Facilitator auth key (if applicable).
 - `SENTRY_DSN` — Optional Sentry DSN for error reporting.
+- `CDP_CLIENT_KEY_ID` — Coinbase CDP client key id (front-end client key identifier).
+- `CDP_CLIENT_API_KEY` — Coinbase CDP client API key (client usage; treat as secret for CI/staging).
 
 Do NOT commit secret values to the repository. Use your CI provider's secret storage.
 
