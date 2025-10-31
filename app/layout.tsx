@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import PrivyClientProvider from './components/PrivyClientProvider';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,16 +16,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
 
           <div>
-            {/* Privy connect handled in /dashboard pages where PrivyProvider is configured; this is a convenience link */}
             <Link href="/dashboard" style={buttonStyle}>Connect / Open Dashboard</Link>
           </div>
         </header>
 
-        <main style={{ padding: 24, maxWidth: 1100, margin: '24px auto' }}>{children}</main>
+        {/* Provide Privy client-side context to the app pages that need wallet connect */}
+        <PrivyClientProvider>
+          <main style={{ padding: 24, maxWidth: 1100, margin: '24px auto' }}>{children}</main>
 
-        <footer style={{ padding: 24, textAlign: 'center', color: '#666' }}>
-          <small>© {new Date().getFullYear()} xSynesis — demo only</small>
-        </footer>
+          <footer style={{ padding: 24, textAlign: 'center', color: '#666' }}>
+            <small>© {new Date().getFullYear()} xSynesis — demo only</small>
+          </footer>
+        </PrivyClientProvider>
       </body>
     </html>
   );
