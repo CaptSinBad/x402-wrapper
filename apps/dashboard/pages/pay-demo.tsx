@@ -73,7 +73,6 @@ const PayDemoPage: React.FC = () => {
 
     try {
       // Live flow: sign using Privy/injected wallet and submit to server
-      const { user, authenticated } = usePrivy();
       const walletAddress = (user as any)?.wallet?.address;
       if (!authenticated || !walletAddress) {
         setStatus('error');
