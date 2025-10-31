@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react';
 import StepConnectWallet from './StepConnectWallet';
 import StepRegisterEndpoint from './StepRegisterEndpoint';
