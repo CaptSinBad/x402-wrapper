@@ -9,6 +9,17 @@ on:
 jobs:
   migrations-and-tests:
     runs-on: ubuntu-latest
+    env:
+      # Provide runtime secrets to steps from GitHub Secrets (do NOT store values in repo)
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+      PRIVY_APP_SECRET: ${{ secrets.PRIVY_APP_SECRET }}
+      NEXT_PUBLIC_FACILITATOR_URL: ${{ secrets.NEXT_PUBLIC_FACILITATOR_URL }}
+      FACILITATOR_KEY: ${{ secrets.FACILITATOR_KEY }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     services:
       postgres:
         image: postgres:15
@@ -46,10 +57,23 @@ jobs:
 
       - name: Apply DB migrations
         env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           PGPASSWORD: postgres
         run: |
-          psql -h localhost -U postgres -d x402db -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
-          psql -h localhost -U postgres -d x402db -f db/migrations/001_init.sql
+          # If no DATABASE_URL secret is provided, fall back to the local postgres service
+          if [ -z "$DATABASE_URL" ]; then
+            export DATABASE_URL="postgres://postgres:postgres@localhost:5432/x402db"
+          fi
+          node scripts/run-migrations.js
+
+      - name: DB readiness check
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            export DATABASE_URL="postgres://postgres:postgres@localhost:5432/x402db"
+          fi
+          node scripts/check-db-ready.js
 
       - name: Typecheck
         run: npx tsc --noEmit

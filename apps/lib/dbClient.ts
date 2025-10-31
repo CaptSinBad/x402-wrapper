@@ -53,6 +53,43 @@ async function getSellerEndpointByUrl(resourcePath: string) {
   return res.rows[0] ?? null;
 }
 
+async function getSellerEndpointById(id: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('seller_endpoints').select('*').eq('id', id).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM seller_endpoints WHERE id = $1 LIMIT 1', [id]);
+  return res.rows[0] ?? null;
+}
+
+async function insertPaymentAttempt(record: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payment_attempts').insert([record]).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const query = `INSERT INTO payment_attempts(seller_endpoint_id, payment_payload, verifier_response, status, client_ip, user_agent, created_at)
+    VALUES($1,$2,$3,$4,$5,$6,NOW()) RETURNING *`;
+  const values = [record.seller_endpoint_id || null, record.payment_payload || null, record.verifier_response || null, record.status || 'pending', record.client_ip || null, record.user_agent || null];
+  const res = await pgPool!.query(query, values);
+  return res.rows[0];
+}
+
+async function updatePaymentAttemptStatus(id: string, updates: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payment_attempts').update(updates).eq('id', id).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const keys = Object.keys(updates || {});
+  if (keys.length === 0) return null;
+  const sets = keys.map((k, i) => `${k}=$${i+2}`).join(', ');
+  const values = [id, ...keys.map(k => updates[k])];
+  const res = await pgPool!.query(`UPDATE payment_attempts SET ${sets}, updated_at=NOW() WHERE id=$1 RETURNING *`, values);
+  return res.rows[0];
+}
+
 async function listSettlements(limit = 100) {
   if (USE_SUPABASE) {
     const { data, error } = await supabase.from('settlements').select('*').order('created_at', { ascending: false }).limit(limit);
@@ -86,4 +123,5 @@ async function insertPaymentLog(log: any) {
   return res.rows[0];
 }
 
-export { insertSellerEndpoint, insertSettlement, getSellerEndpointByUrl, listSettlements, updateSettlementToQueued, insertPaymentLog };
+export { insertSellerEndpoint, insertSettlement, getSellerEndpointByUrl, getSellerEndpointById, insertPaymentAttempt, updatePaymentAttemptStatus, listSettlements, updateSettlementToQueued, insertPaymentLog };
+
