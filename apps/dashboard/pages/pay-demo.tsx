@@ -18,6 +18,7 @@ const PayDemoPage: React.FC = () => {
   const [response, setResponse] = useState<any>(null);
   const [fakeMode, setFakeMode] = useState<boolean>(true);
   const [fakeReqInput, setFakeReqInput] = useState<string>(JSON.stringify(defaultFakeRequirements, null, 2));
+  const { user, authenticated } = usePrivy();
 
   async function requestResource() {
     setStatus('requesting');
