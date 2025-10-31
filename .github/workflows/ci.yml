@@ -9,6 +9,17 @@ on:
 jobs:
   migrations-and-tests:
     runs-on: ubuntu-latest
+    env:
+      # Provide runtime secrets to steps from GitHub Secrets (do NOT store values in repo)
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_PRIVY_APP_ID: ${{ secrets.NEXT_PUBLIC_PRIVY_APP_ID }}
+      PRIVY_APP_SECRET: ${{ secrets.PRIVY_APP_SECRET }}
+      NEXT_PUBLIC_FACILITATOR_URL: ${{ secrets.NEXT_PUBLIC_FACILITATOR_URL }}
+      FACILITATOR_KEY: ${{ secrets.FACILITATOR_KEY }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     services:
       postgres:
         image: postgres:15
