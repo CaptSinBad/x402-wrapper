@@ -1,5 +1,9 @@
+"use client";
+
 import React, { useState } from 'react';
 import { createPaymentHeader } from '../../../sdk/client/src/example';
+import { createSignedPaymentHeader } from '../../lib/payAndFetch';
+import { usePrivy } from '@privy-io/react-auth';
 
 const defaultFakeRequirements = {
   amount: 100,
@@ -67,7 +71,27 @@ const PayDemoPage: React.FC = () => {
     }
 
     try {
-      const header = createPaymentHeader(requirements);
+      // Live flow: sign using Privy/injected wallet and submit to server
+      const { user, authenticated } = usePrivy();
+      const walletAddress = (user as any)?.wallet?.address;
+      if (!authenticated || !walletAddress) {
+        setStatus('error');
+        setResponse({ error: 'Please connect your wallet (Privy) to perform live payment' });
+        return;
+      }
+
+      // requirement object is the first accept entry
+      const requirement = requirements.accepts ? requirements.accepts[0] : requirements;
+
+      const paymentPayload = await createSignedPaymentHeader({
+        requirement,
+        priceAtomic: requirement.maxAmountRequired ?? '0',
+        walletAddress,
+      });
+
+      const headerObj = { paymentPayload, paymentRequirements: requirements };
+      const header = Buffer.from(JSON.stringify(headerObj), 'utf8').toString('base64');
+
       const res = await fetch('/api/paid/resource', { headers: { 'X-PAYMENT': header } });
       const json = await res.json().catch(() => null);
       setResponse(json);
