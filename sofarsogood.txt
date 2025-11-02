@@ -1,0 +1,107 @@
+Short answer: you’re building a seller-facing payment gateway + dashboard that lets merchants register paid endpoints (resources), accept x402-style payments (Coinbase x402 / EIP-3009-style signed authorizations) from buyers, verify and settle those payments with a facilitator, and view/operate settlements and analytics — plus a small buyer SDK to simplify the flow.
+
+Here’s a compact description of the end product, how it works, and what “done” looks like.
+
+## Product summary (one-liner)
+A lightweight payment orchestration platform and seller dashboard that turns any HTTP resource into a paid resource using x402-compatible signed payments, provides onboarding and endpoint management for sellers, runs verification/settlement through a facilitator, and gives sellers settlement history and analytics. Includes a buyer SDK (payAndFetch) and worker to reconcile settlement processing.
+
+## Who it’s for
+- Sellers/merchants who want to gate access to an HTTP resource (API, file, page) and collect crypto-based payments via x402-compatible facilitators.
+- Developers who want an SDK and simple REST/webhook integration to add paywalls to apps.
+- Platform operators who need a dashboard to manage endpoints, settlements and run reconciliation.
+
+## Core features (what users actually get)
+- Seller onboarding: connect wallet (Privy), register endpoints with price/asset/facilitator settings.
+- Endpoint management: list, edit, enable/disable paid endpoints.
+- Buyer SDK & demo client: `payAndFetch` + `createSignedPaymentHeader` to detect 402, sign with a wallet, and retry request with X-PAYMENT header.
+- Server side:
+  - `POST /api/create_payment_session` — creates paymentRequirements and a tracking `payment_attempt`.
+  - Payment middleware (`/api/paid/resource`) — accept X-PAYMENT header and delegate verification to facilitator.
+  - `POST /api/facilitator/webhook` — receive facilitator callbacks (verify/settle) and reconcile.
+- Background worker: process queued settlements, call facilitator `/settle`, update DB.
+- Dashboard & analytics: settlement list, logs, simple metrics (revenue, processed, pending).
+- Docs & SDK: quickstart for adding payment button to Shopify/WooCommerce/Primer and a small JS SDK for buyers.
+
+## High-level flow (buyer -> seller)
+1. Buyer requests a protected resource, server responds 402 with x402 `paymentRequirements`.
+2. Buyer client (SDK) signs a payment intent using wallet (Privy/MetaMask/Coinbase Wallet) — producing a PaymentPayload.
+3. Client encodes `{ paymentPayload, paymentRequirements }` into `X-PAYMENT` header and retries the resource.
+4. Server middleware decodes header and calls facilitator `/verify` with payload.
+5. If verify succeeds, middleware returns the protected resource; server logs attempt and optionally enqueues settlement.
+6. Worker picks up queued settlements, calls facilitator `/settle`, updates DB to `confirmed` and stores txHash.
+
+## Tech stack (what it uses today)
+- Frontend: Next.js (app + pages), React, Privy for wallet auth.
+- Backend: Node/Next API routes, optional Supabase or Postgres (`apps/lib/dbClient` supports both).
+- DB: Postgres (migrations in migrations).
+- Worker: Node script settlementWorker.js.
+- Buyer SDK: payAndFetch.ts and client (thin re-export).
+- Facilitator integration: `core/facilitator/*` and the `facilitators` npm package (installed via pnpm --ignore-scripts due to upstream packaging).
+- Tests: Vitest with integration/unit tests.
+
+## Data model (conceptual)
+- sellers (id, name, owner_email, created_at)
+- seller_endpoints (id, seller_wallet, endpoint_url, price, currency, network, scheme, facilitator_url, metadata)
+- payment_attempts (id, seller_endpoint_id, payment_payload, verifier_response, status)
+- settlements (id, payment_attempt_id, facilitator_request/response, status, tx_hash, attempts)
+- payment_logs (audit/error logs)
+- facilitators (configured facilitator entries)
+
+## Public API contract (key endpoints)
+- POST /api/create_payment_session
+  - Input: { endpoint_id | endpoint_url, client_ip? }
+  - Output: { paymentRequirements, paymentAttempt }
+  - Purpose: server-made x402 paymentRequirements (audit/tracking).
+- POST protected resource (client uses X-PAYMENT header)
+  - Header: X-PAYMENT = base64(JSON({ paymentPayload, paymentRequirements }))
+  - Server: decodes, calls facilitator verify, returns resource on success.
+- POST /api/facilitator/webhook
+  - Accepts verify/settle callbacks. Updates attempts/settlements and logs.
+
+(These are already scaffolded in the repo and can be extended as required.)
+
+## Success criteria / MVP definition
+MVP = minimal product you can operate for real sellers:
+- Seller can connect wallet, register an endpoint with price and facilitator URL.
+- Buyer SDK can perform the flow against a staging facilitator endpoint and successfully receive protected content after payment (demo via fake-mode and then live facilitator).
+- Backend persists payment attempts and settlements; worker processes settlements to `confirmed` state.
+- Webhooks update records reliably and safely.
+- CI runs migrations and tests; secrets are managed in CI/secret store (no plaintext in repo).
+
+## Security & compliance (must-haves)
+- Never commit secret keys to repo (already untracked .env.local; rotate any leaked secrets).
+- Webhook authentication: validate signatures (HMAC) or a shared secret header.
+- Restrict facilitator credentials securely in CI/secret manager.
+- Input validation on all endpoints (Zod validators already used).
+- Rate-limits / abuse protections for public endpoints.
+
+## Deployment / operations
+- Deployable as a Next.js app + worker (containerize). Use Postgres in staging/production.
+- CI: run migrations, env-validate, tests; deploy to staging with manual approval to production.
+- Monitoring: basic health check `/healthz`, logs, Sentry for errors, metrics for settlement throughput.
+
+## Risks & edge cases
+- Facilitator incompatibility (different facilitator implementations may not echo attempt IDs) — need heuristics (match by txHash/payer).
+- SDK signing differences across wallets (EIP-712 vs signer behavior) — test widely.
+- The `facilitators` npm package upstream packaging required care (postinstall build); we worked around that. Consider vendoring or pinning a built artifact.
+- Settlement failure/retries must be carefully rate-limited and idempotent.
+
+## Roadmap / recommended next steps (short list)
+1. Fix the remaining test instability and add a deterministic integration test for sign->verify (mock facilitator & wallet).
+2. Add webhook HMAC verification and document required CI secret name.
+3. Wire UI forms (RegisterEndpointForm) to the persisted endpoints (already largely done).
+4. Add health check & metrics.
+5. Harden CI: add secret-scan step, env validator, run migrations on CI.
+6. Prepare staging deploy + smoke tests, then a small pilot with a test facilitator.
+
+## What “done” looks like (operational)
+- Sellers can sign-up and create endpoints, buyers can pay and access resources.
+- All payments are recorded, settlements processed automatically, and the dashboard shows clear settlement state and basic analytics.
+- Tests, CI, and deployment pipeline validate and push code safely; secrets handled by secret manager; runbook for rotation and incident response.
+
+If you want I can:
+- Draft a short product spec / landing page copy summarizing the product for stakeholders.
+- Produce the minimal runbook and the list of exact environment variables + CI secret names to go to staging.
+- Finish the integration test and webhook HMAC implementation next.
+
+Which one of these would you like me to do first?
