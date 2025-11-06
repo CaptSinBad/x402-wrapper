@@ -1,5 +1,6 @@
 import RegisterEndpointForm from '../components/RegisterEndpointForm';
 import SellerEndpointsList from '../components/SellerEndpointsList';
+import SalesList from '../components/SalesList';
 import Link from 'next/link';
 
 export default function DashboardPage() {
@@ -21,6 +22,7 @@ export default function DashboardPage() {
       </div>
 
       <SellerEndpointsList />
+      <SalesList />
     </div>
   );
 }

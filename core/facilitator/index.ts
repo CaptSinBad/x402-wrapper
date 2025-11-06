@@ -101,7 +101,7 @@ async function getCdpClient() {
     }
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.warn('Failed to load @coinbase/x402 client:', err && (err.message || err));
+    console.warn('Failed to load @coinbase/x402 client:', err && (((err as any).message) || err));
     return null;
   }
 

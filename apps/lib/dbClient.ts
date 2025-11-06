@@ -76,6 +76,16 @@ async function insertPaymentAttempt(record: any) {
   return res.rows[0];
 }
 
+async function getPaymentAttemptById(id: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payment_attempts').select('*').eq('id', id).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM payment_attempts WHERE id = $1 LIMIT 1', [id]);
+  return res.rows[0] ?? null;
+}
+
 async function updatePaymentAttemptStatus(id: string, updates: any) {
   if (USE_SUPABASE) {
     const { data, error } = await supabase.from('payment_attempts').update(updates).eq('id', id).select();
@@ -123,5 +133,193 @@ async function insertPaymentLog(log: any) {
   return res.rows[0];
 }
 
-export { insertSellerEndpoint, insertSettlement, getSellerEndpointByUrl, getSellerEndpointById, insertPaymentAttempt, updatePaymentAttemptStatus, listSettlements, updateSettlementToQueued, insertPaymentLog };
+export { insertSellerEndpoint, insertSettlement, getSellerEndpointByUrl, getSellerEndpointById, insertPaymentAttempt, getPaymentAttemptById, updatePaymentAttemptStatus, listSettlements, updateSettlementToQueued, insertPaymentLog };
+
+// Activation code helpers
+async function createActivationCode(record: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('activation_codes').insert([record]).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const query = `INSERT INTO activation_codes(code, seller_endpoint_id, buyer_address, amount, currency, valid_from, valid_until, used, used_by, metadata, created_at, updated_at)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW(),NOW()) RETURNING *`;
+  const values = [record.code, record.seller_endpoint_id || null, record.buyer_address || null, record.amount || null, record.currency || null, record.valid_from || null, record.valid_until || null, record.used || false, record.used_by || null, record.metadata || null];
+  const res = await pgPool!.query(query, values);
+  return res.rows[0];
+}
+
+async function getActivationCodeByCode(code: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('activation_codes').select('*').eq('code', code).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM activation_codes WHERE code = $1 LIMIT 1', [code]);
+  return res.rows[0] ?? null;
+}
+
+async function markActivationCodeUsed(code: string, usedBy?: string) {
+  if (USE_SUPABASE) {
+    // only mark if not already used
+    const { data, error } = await supabase.from('activation_codes').update({ used: true, used_by: usedBy, updated_at: new Date().toISOString() }).eq('code', code).eq('used', false).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const res = await pgPool!.query(`UPDATE activation_codes SET used = TRUE, used_by = $2, updated_at = NOW() WHERE code = $1 AND used = FALSE RETURNING *`, [code, usedBy || null]);
+  return res.rows[0] ?? null;
+}
+
+export { createActivationCode, getActivationCodeByCode, markActivationCodeUsed };
+
+// Store items & reservations helpers
+async function createStoreItem(record: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('store_items').insert([record]).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const query = `INSERT INTO store_items(seller_id, slug, title, description, price_cents, currency, stock, allow_open_amount, created_at, updated_at)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,NOW(),NOW()) RETURNING *`;
+  const values = [record.seller_id, record.slug, record.title, record.description || null, record.price_cents || 0, record.currency || 'USDC', record.stock || 0, record.allow_open_amount || false];
+  const res = await pgPool!.query(query, values);
+  return res.rows[0];
+}
+
+async function getStoreItemById(id: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('store_items').select('*').eq('id', id).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM store_items WHERE id = $1 LIMIT 1', [id]);
+  return res.rows[0] ?? null;
+}
+
+async function getStoreItemBySlug(slug: string, seller_id?: string) {
+  if (USE_SUPABASE) {
+    let q = supabase.from('store_items').select('*').eq('slug', slug).limit(1);
+    if (seller_id) q = q.eq('seller_id', seller_id);
+    const { data, error } = await q;
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  if (seller_id) {
+    const res = await pgPool!.query('SELECT * FROM store_items WHERE slug = $1 AND seller_id = $2 LIMIT 1', [slug, seller_id]);
+    return res.rows[0] ?? null;
+  }
+  const res = await pgPool!.query('SELECT * FROM store_items WHERE slug = $1 LIMIT 1', [slug]);
+  return res.rows[0] ?? null;
+}
+
+// Reserve a quantity of an item atomically. Returns reservation record.
+async function reserveItem({ item_id, seller_id, qty = 1, ttlSeconds = 900 }: { item_id: string; seller_id?: string; qty?: number; ttlSeconds?: number }) {
+  const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
+  if (USE_SUPABASE) {
+    // naive supabase implementation: check then update then insert. Not fully atomic but acceptable for small scale.
+    const { data: itemData, error: itemErr } = await supabase.from('store_items').select('*').eq('id', item_id).limit(1);
+    if (itemErr) throw itemErr;
+    const item = (itemData && itemData.length) ? itemData[0] : null;
+    if (!item) throw new Error('item_not_found');
+    if (item.stock < qty) throw new Error('insufficient_stock');
+    const { data: upd, error: updErr } = await supabase.from('store_items').update({ stock: item.stock - qty, updated_at: new Date().toISOString() }).eq('id', item_id).eq('stock', item.stock).select();
+    if (updErr) throw updErr;
+    if (!upd || upd.length === 0) throw new Error('concurrent_update_failed');
+    const reservation = { item_id, seller_id: seller_id || item.seller_id, qty_reserved: qty, status: 'reserved', reserved_at: new Date().toISOString(), expires_at: expiresAt, payment_attempt_id: null };
+    const { data: resData, error: resErr } = await supabase.from('item_reservations').insert([reservation]).select();
+    if (resErr) throw resErr;
+    return resData?.[0] ?? null;
+  }
+
+  // Postgres transactional path
+  const client = await pgPool!.connect();
+  try {
+    await client.query('BEGIN');
+    const updRes = await client.query('UPDATE store_items SET stock = stock - $2, updated_at = NOW() WHERE id = $1 AND stock >= $2 RETURNING *', [item_id, qty]);
+    if (updRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      throw new Error('insufficient_stock');
+    }
+    const insertRes = await client.query(`INSERT INTO item_reservations(item_id, seller_id, reservation_key, qty_reserved, status, reserved_at, expires_at, payment_attempt_id, created_at, updated_at)
+      VALUES($1,$2,gen_random_uuid(),$3,'reserved',NOW(),$4,NULL,NOW(),NOW()) RETURNING *`, [item_id, seller_id || updRes.rows[0].seller_id, qty, expiresAt]);
+    await client.query('COMMIT');
+    return insertRes.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+async function getReservationById(id: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('item_reservations').select('*').eq('id', id).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM item_reservations WHERE id = $1 LIMIT 1', [id]);
+  return res.rows[0] ?? null;
+}
+
+// Confirm a reservation (mark confirmed). Should be called after successful settlement. Returns updated reservation.
+async function confirmReservation(id: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('item_reservations').update({ status: 'confirmed', updated_at: new Date().toISOString() }).eq('id', id).eq('status', 'reserved').select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const client = await pgPool!.connect();
+  try {
+    await client.query('BEGIN');
+    const res = await client.query(`UPDATE item_reservations SET status='confirmed', updated_at=NOW() WHERE id=$1 AND status='reserved' RETURNING *`, [id]);
+    await client.query('COMMIT');
+    return res.rows[0] ?? null;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+// Release a reservation and restore stock
+async function releaseReservation(id: string) {
+  if (USE_SUPABASE) {
+    const { data: resData, error: resErr } = await supabase.from('item_reservations').select('*').eq('id', id).limit(1);
+    if (resErr) throw resErr;
+    const reservation = (resData && resData.length) ? resData[0] : null;
+    if (!reservation) return null;
+    if (reservation.status !== 'reserved') return reservation;
+    // restore stock
+    const { data: itemData, error: itemErr } = await supabase.from('store_items').select('*').eq('id', reservation.item_id).limit(1);
+    if (itemErr) throw itemErr;
+    const item = (itemData && itemData.length) ? itemData[0] : null;
+    if (!item) return null;
+    const { data: upd, error: updErr } = await supabase.from('store_items').update({ stock: item.stock + reservation.qty_reserved, updated_at: new Date().toISOString() }).eq('id', item.id).select();
+    if (updErr) throw updErr;
+    const { data: updatedRes, error: rErr } = await supabase.from('item_reservations').update({ status: 'released', updated_at: new Date().toISOString() }).eq('id', id).select();
+    if (rErr) throw rErr;
+    return updatedRes?.[0] ?? null;
+  }
+  const client = await pgPool!.connect();
+  try {
+    await client.query('BEGIN');
+    const res = await client.query('SELECT * FROM item_reservations WHERE id = $1 FOR UPDATE', [id]);
+    if (res.rowCount === 0) { await client.query('ROLLBACK'); return null; }
+    const reservation = res.rows[0];
+    if (reservation.status !== 'reserved') { await client.query('COMMIT'); return reservation; }
+    await client.query('UPDATE store_items SET stock = stock + $2, updated_at = NOW() WHERE id = $1', [reservation.item_id, reservation.qty_reserved]);
+    const upd = await client.query("UPDATE item_reservations SET status='released', updated_at=NOW() WHERE id=$1 RETURNING *", [id]);
+    await client.query('COMMIT');
+    return upd.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export { createStoreItem, getStoreItemById, getStoreItemBySlug, reserveItem, getReservationById, confirmReservation, releaseReservation };
 

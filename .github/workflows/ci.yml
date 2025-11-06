@@ -23,8 +23,21 @@ jobs:
           corepack enable
           corepack prepare pnpm@8.8.0 --activate
 
+      - name: Install native build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 python3-dev make g++
+
       - name: Install dependencies (frozen lockfile)
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile 2>&1 | tee pnpm-install.log
+
+      - name: Fail if pnpm ignored build scripts
+        run: |
+          if grep -q "Ignored build scripts" pnpm-install.log; then
+            echo "pnpm reported ignored build scripts. Ensure required native build tools are installed or approve required build scripts. See: https://pnpm.io/cli/approve-builds";
+            cat pnpm-install.log
+            exit 1
+          fi
 
       - name: Validate environment variables
         run: node scripts/env-validate.js
@@ -61,7 +74,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: x402db
+          POSTGRES_DB: x402
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 5
         ports:
@@ -71,13 +84,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Use Node.js
+      - name: Use Node.js (with pnpm)
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install native build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 python3-dev make g++
+
+      - name: Enable corepack and ensure pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@8.8.0 --activate
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile 2>&1 | tee pnpm-install.log
+
+      - name: Fail if pnpm ignored build scripts
+        run: |
+          if grep -q "Ignored build scripts" pnpm-install.log; then
+            echo "pnpm reported ignored build scripts. Ensure required native build tools are installed or approve required build scripts. See: https://pnpm.io/cli/approve-builds";
+            cat pnpm-install.log
+            exit 1
+          fi
 
       - name: Install psql client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client

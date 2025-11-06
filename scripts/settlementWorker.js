@@ -156,6 +156,134 @@ async function processOne(settlement) {
       console.error('failed to write payment_logs', logErr);
     }
 
+    // After recording settlement, confirm or release reservations if present in the payment attempt
+    try {
+      // find correlated payment_attempt_id (may be stored on settlements row)
+      const correlatedAttemptId = settlement.payment_attempt_id || reqBody?.paymentRequirements?.attempt_id || null;
+      if (correlatedAttemptId) {
+        // fetch attempt payload
+        let attemptRow = null;
+        if (USE_LOCAL_PG) {
+          const r = await pgClient.query('SELECT * FROM payment_attempts WHERE id = $1 LIMIT 1', [correlatedAttemptId]);
+          attemptRow = r.rowCount ? r.rows[0] : null;
+        } else {
+          const { data: aData } = await supabase.from('payment_attempts').select('*').eq('id', correlatedAttemptId).limit(1);
+          attemptRow = (aData && aData.length) ? aData[0] : null;
+        }
+
+        const reservations = attemptRow?.payment_payload?.reservations || attemptRow?.payment_payload?.reservation_ids || null;
+        if (Array.isArray(reservations) && reservations.length > 0) {
+          for (const rid of reservations) {
+            try {
+              if (USE_LOCAL_PG) {
+                // lock reservation row
+                const rRes = await pgClient.query('SELECT * FROM item_reservations WHERE id = $1 FOR UPDATE', [rid]);
+                if (rRes.rowCount === 0) continue;
+                const reservation = rRes.rows[0];
+                if (reservation.status !== 'reserved') continue;
+
+                if (success) {
+                  // mark reservation confirmed and insert sale row
+                  await pgClient.query("UPDATE item_reservations SET status='confirmed', updated_at=NOW() WHERE id=$1", [rid]);
+                  // determine per-item price from store_items.price_cents when available
+                  let amountCents = 0;
+                  let currency = reqBody?.paymentRequirements?.asset || 'USDC';
+                    try {
+                    const itemRes = await pgClient.query('SELECT price_cents, currency, title FROM store_items WHERE id = $1 LIMIT 1', [reservation.item_id]);
+                    let itemTitle = null;
+                    if (itemRes.rowCount) {
+                      const itemRow = itemRes.rows[0];
+                      const price = Number(itemRow.price_cents || 0);
+                      const qty = Number(reservation.qty_reserved || 1);
+                      amountCents = price * qty;
+                      if (itemRow.currency) currency = itemRow.currency;
+                      itemTitle = itemRow.title || null;
+                    } else {
+                      // fallback to paymentRequirements total
+                      amountCents = reqBody?.paymentRequirements?.maxAmountRequired ? Number(reqBody.paymentRequirements.maxAmountRequired) : 0;
+                    }
+                  } catch (e) {
+                    amountCents = reqBody?.paymentRequirements?.maxAmountRequired ? Number(reqBody.paymentRequirements.maxAmountRequired) : 0;
+                  }
+                  await pgClient.query(`INSERT INTO sales(seller_id, item_id, item_title, reservation_id, payment_attempt_id, settlement_id, qty, amount_cents, currency, purchaser_address, metadata, created_at)
+                    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())`, [
+                    reservation.seller_id || null,
+                    reservation.item_id || null,
+                    itemTitle,
+                    reservation.id,
+                    correlatedAttemptId,
+                    id,
+                    reservation.qty_reserved || 1,
+                    amountCents,
+                    currency,
+                    json?.payer || null,
+                    JSON.stringify({ settledByWorker: true }),
+                  ]);
+                } else {
+                  // release: restore stock and mark released
+                  await pgClient.query('UPDATE store_items SET stock = stock + $2, updated_at = NOW() WHERE id = $1', [reservation.item_id, reservation.qty_reserved]);
+                  await pgClient.query("UPDATE item_reservations SET status='released', updated_at=NOW() WHERE id=$1", [rid]);
+                }
+              } else {
+                // Supabase path: best-effort updates
+                const { data: rData } = await supabase.from('item_reservations').select('*').eq('id', rid).limit(1);
+                const reservation = (rData && rData.length) ? rData[0] : null;
+                if (!reservation || reservation.status !== 'reserved') continue;
+                if (success) {
+                  // confirm reservation and insert sale using per-item price when available
+                  await supabase.from('item_reservations').update({ status: 'confirmed', updated_at: new Date().toISOString() }).eq('id', rid);
+                  // fetch item price
+                  let amountCents = 0;
+                  let currency = reqBody?.paymentRequirements?.asset || 'USDC';
+                  try {
+                    const { data: itemRows } = await supabase.from('store_items').select('price_cents,currency,title').eq('id', reservation.item_id).limit(1);
+                    const itemRow = (itemRows && itemRows.length) ? itemRows[0] : null;
+                    let itemTitle = null;
+                    if (itemRow) {
+                      const price = Number(itemRow.price_cents || 0);
+                      const qty = Number(reservation.qty_reserved || 1);
+                      amountCents = price * qty;
+                      if (itemRow.currency) currency = itemRow.currency;
+                      itemTitle = itemRow.title || null;
+                    } else {
+                      amountCents = reqBody?.paymentRequirements?.maxAmountRequired ? Number(reqBody.paymentRequirements.maxAmountRequired) : 0;
+                    }
+                  } catch (e) {
+                    amountCents = reqBody?.paymentRequirements?.maxAmountRequired ? Number(reqBody.paymentRequirements.maxAmountRequired) : 0;
+                  }
+                  await supabase.from('sales').insert([{
+                    seller_id: reservation.seller_id || null,
+                    item_id: reservation.item_id || null,
+                    item_title: itemTitle || null,
+                    reservation_id: reservation.id,
+                    payment_attempt_id: correlatedAttemptId,
+                    settlement_id: id,
+                    qty: reservation.qty_reserved || 1,
+                    amount_cents: amountCents,
+                    currency,
+                    purchaser_address: json?.payer || null,
+                    metadata: { settledByWorker: true },
+                  }]);
+                } else {
+                  // restore stock
+                  const { data: itemData } = await supabase.from('store_items').select('*').eq('id', reservation.item_id).limit(1);
+                  const item = (itemData && itemData.length) ? itemData[0] : null;
+                  if (item) {
+                    await supabase.from('store_items').update({ stock: (item.stock || 0) + (reservation.qty_reserved || 1), updated_at: new Date().toISOString() }).eq('id', item.id);
+                  }
+                  await supabase.from('item_reservations').update({ status: 'released', updated_at: new Date().toISOString() }).eq('id', rid);
+                }
+              }
+            } catch (resErr) {
+              console.error('reservation processing error', rid, resErr);
+            }
+          }
+        }
+      }
+    } catch (procErr) {
+      console.error('failed to confirm/release reservations after settlement', procErr);
+    }
+
   } catch (err) {
     console.error('error processing settlement', id, err);
     const attempts = (settlement.attempts || 0) + 1;

@@ -4,6 +4,31 @@
  * Exits with non-zero code if any required var is missing.
  * Usage: node scripts/env-validate.ts
  */
+function tryLoadDotEnv() {
+  try {
+    // load dotenv only if available
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const path = require('path');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const dotenv = require('dotenv');
+    const candidates = ['.env.server', '.env.local', '.env'];
+    for (const f of candidates) {
+      const p = path.resolve(process.cwd(), f);
+      if (fs.existsSync(p)) {
+        const loaded = dotenv.parse(fs.readFileSync(p));
+        for (const k of Object.keys(loaded)) {
+          if (!process.env[k]) process.env[k] = loaded[k];
+        }
+      }
+    }
+  } catch (err) {
+    // ignore
+  }
+}
+
+tryLoadDotEnv();
 const required = [
   'DATABASE_URL',
   'FACILITATOR_URL',

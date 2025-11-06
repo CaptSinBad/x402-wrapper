@@ -36,7 +36,9 @@ afterAll(async () => {
   if (server) server.close();
 });
 
-test.skip('worker processes a queued settlement (RUN_ONCE)', async () => {
+const shouldRunIntegration = process.env.RUN_WORKER_INTEGRATION === 'true';
+
+(shouldRunIntegration ? test : test.skip)('worker processes a queued settlement (RUN_ONCE)', async () => {
   // Start a stub facilitator server
   const responses: any[] = [];
   server = http.createServer((req, res) => {
