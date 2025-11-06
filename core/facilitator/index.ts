@@ -65,6 +65,48 @@ export type SettleResponse = {
 };
 
 const FACILITATOR_URL = process.env.FACILITATOR_URL || process.env.NEXT_PUBLIC_FACILITATOR_URL;
+const CDP_API_KEY_ID = process.env.CDP_API_KEY_ID;
+const CDP_API_KEY_SECRET = process.env.CDP_API_KEY_SECRET;
+
+let _cdpClient: any | null = null;
+
+async function getCdpClient() {
+  if (!CDP_API_KEY_ID || !CDP_API_KEY_SECRET) return null;
+  if (_cdpClient) return _cdpClient;
+
+  try {
+    const mod = await import('@coinbase/x402');
+
+    // library may export createClient or default factory. Try common shapes.
+    if (mod.createClient && typeof mod.createClient === 'function') {
+      _cdpClient = mod.createClient({ apiKeyId: CDP_API_KEY_ID, apiKeySecret: CDP_API_KEY_SECRET });
+      return _cdpClient;
+    }
+
+    if (mod.default && typeof mod.default.createClient === 'function') {
+      _cdpClient = mod.default.createClient({ apiKeyId: CDP_API_KEY_ID, apiKeySecret: CDP_API_KEY_SECRET });
+      return _cdpClient;
+    }
+
+    // some packages export a default function that returns a client
+    if (typeof mod.default === 'function') {
+      _cdpClient = mod.default({ apiKeyId: CDP_API_KEY_ID, apiKeySecret: CDP_API_KEY_SECRET });
+      return _cdpClient;
+    }
+
+    // last resort: use module as client if it already exposes verify/settle
+    if ((mod as any).verify || (mod as any).settle) {
+      _cdpClient = mod;
+      return _cdpClient;
+    }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn('Failed to load @coinbase/x402 client:', err && (err.message || err));
+    return null;
+  }
+
+  return null;
+}
 
 if (!FACILITATOR_URL) {
   // We'll allow runtime to proceed but server routes should check and error if missing.
@@ -108,12 +150,39 @@ async function postJSON<TReq, TRes>(path: string, body: TReq, opts?: { timeoutMs
 }
 
 export async function verify(req: VerifyRequest): Promise<VerifyResponse> {
+  // If Coinbase CDP credentials are present, prefer the CDP client for mainnet flows.
+  if (CDP_API_KEY_ID && CDP_API_KEY_SECRET) {
+    try {
+      const coinbase = await import('@coinbase/x402');
+      // The Coinbase client may expose a simple verify API — adapt if their API differs.
+      if (coinbase && coinbase.default && typeof coinbase.default.verify === 'function') {
+        return await coinbase.default.verify(req as any) as VerifyResponse;
+      }
+    } catch (err) {
+      // If dynamic import fails (package not installed), fallback to HTTP path below.
+      // eslint-disable-next-line no-console
+      console.warn('Coinbase CDP client not available, falling back to HTTP facilitator');
+    }
+  }
+
   if (!FACILITATOR_URL) throw new Error('FACILITATOR_URL not configured');
   const path = `${FACILITATOR_URL.replace(/\/$/, '')}/verify`;
   return await postJSON<VerifyRequest, VerifyResponse>(path, req, { timeoutMs: 8000, retries: 1 });
 }
 
 export async function settle(req: SettleRequest): Promise<SettleResponse> {
+  if (CDP_API_KEY_ID && CDP_API_KEY_SECRET) {
+    try {
+      const coinbase = await import('@coinbase/x402');
+      if (coinbase && coinbase.default && typeof coinbase.default.settle === 'function') {
+        return await coinbase.default.settle(req as any) as SettleResponse;
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('Coinbase CDP client not available, falling back to HTTP facilitator');
+    }
+  }
+
   if (!FACILITATOR_URL) throw new Error('FACILITATOR_URL not configured');
   const path = `${FACILITATOR_URL.replace(/\/$/, '')}/settle`;
   return await postJSON<SettleRequest, SettleResponse>(path, req, { timeoutMs: 20000, retries: 2 });

@@ -99,9 +99,4 @@ MVP = minimal product you can operate for real sellers:
 - All payments are recorded, settlements processed automatically, and the dashboard shows clear settlement state and basic analytics.
 - Tests, CI, and deployment pipeline validate and push code safely; secrets handled by secret manager; runbook for rotation and incident response.
 
-If you want I can:
-- Draft a short product spec / landing page copy summarizing the product for stakeholders.
-- Produce the minimal runbook and the list of exact environment variables + CI secret names to go to staging.
-- Finish the integration test and webhook HMAC implementation next.
 
-Which one of these would you like me to do first?
