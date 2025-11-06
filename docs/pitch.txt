@@ -1,0 +1,32 @@
+x402-wrapper — Seller & Investor Pitch
+
+What it is
+A lightweight payments gateway and dashboard that lets anyone (small shops, creators, events, and sellers) accept crypto-native payments easily. Buyers sign payments client-side; optional facilitator integrations (like Coinbase CDP) handle settlement so sellers don’t manage on-chain complexity.
+
+Why sellers will use it (plain language)
+- Simple setup: create a product or endpoint, set a price, and get a payment link or QR code — no blockchain expertise required.
+- No double-sells: items are reserved at checkout and only marked sold after trusted settlement, reducing inventory headaches.
+- Works with existing stores: supports physical items, digital downloads, and services. Activation codes let you run promos, giveaways, or free downloads.
+- Low ops burden: optional facilitator handles verification and settlement; the seller dashboard shows sales, exports CSVs, and keeps a historical snapshot (title, price) of sold items.
+- Flexible: supports exact-price items and open-amount donations/tips. Integrates with modern web stacks (Next.js) and Postgres for reliable records.
+
+How it meets seller needs
+- Speed: quick onboarding and payment flow — minutes to setup a checkout.
+- Reliability: Postgres-backed reservations plus worker-confirmed settlements avoid lost stock and conflicting orders.
+- Usability: human-friendly sales reporting and CSV export for bookkeeping and reconciliation.
+- Safety: webhook HMAC verification and idempotent settlement handling protect against replay or duplicate callbacks.
+
+Why investors should care (brief)
+- Market need: many small merchants want easier, lower-fee crypto-native payments but lack tooling. This product targets a large long-tail market (local stores, creators, digital goods sellers).
+- Differentiator: combines on-site reservations, facilitator-backed settlement, and seller-facing reporting — built for practical merchant workflows rather than DeFi primitives alone.
+- Low friction to scale: modular facilitator adapters (HTTP fallback + optional Coinbase CDP) let us onboard sellers quickly while improving settlement reliability.
+- Revenue paths: transaction fees, premium seller features (subscriptions, analytics), activation-code monetization, and enterprise integrations.
+
+Ask / next steps
+- Sellers: try it with a simple product — we provide quick docs and a one-command Docker flow to run locally for testing.
+- Investors: consider a short pilot budget to cover integration with a payment facilitator and go-to-market for 50–100 pilot sellers.
+
+Contact
+- Repo & demo: https://github.com/hmichaelsonpixel/x402-wrapper
+- Branch with current work: ci/add-workflow-cdp
+
