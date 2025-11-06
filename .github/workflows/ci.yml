@@ -68,6 +68,8 @@ jobs:
       NEXT_PUBLIC_FACILITATOR_URL: ${{ secrets.NEXT_PUBLIC_FACILITATOR_URL }}
       FACILITATOR_KEY: ${{ secrets.FACILITATOR_KEY }}
       SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+      # Enable worker integration test in CI (will run migrations + integration worker test)
+      RUN_WORKER_INTEGRATION: 'true'
     services:
       postgres:
         image: postgres:15
