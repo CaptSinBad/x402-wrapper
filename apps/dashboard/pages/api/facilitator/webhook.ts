@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import crypto from 'crypto';
-import { updatePaymentAttemptStatus, insertSettlement, insertPaymentLog } from '../../../../lib/dbClient';
+import { updatePaymentAttemptStatus, insertSettlement, insertPaymentLog, getPaymentAttemptById, confirmReservation, releaseReservation } from '../../../../lib/dbClient';
 import { FacilitatorVerifyRequest, FacilitatorSettleRequest } from '../../../../lib/validators';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -57,15 +57,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const s = FacilitatorSettleRequest.safeParse(body);
     if (s.success) {
-      // Enqueue settlement for worker to process
+      // Try to correlate with a payment_attempt and process reservations
+      const attemptId = (body?.paymentRequirements as any)?.attempt_id || null;
+      // determine success flag if present in facilitator payload
+      const successFlag = (body as any)?.isValid === true || (body as any)?.success === true || (body as any)?.status === 'confirmed' || (body as any)?.status === 'settled';
+
       try {
-        await insertSettlement({ payment_attempt_id: null, facilitator_request: body, facilitator_response: null, status: 'queued' });
+        // enqueue settlement for worker to process; attach attemptId when known
+        await insertSettlement({ payment_attempt_id: attemptId || null, facilitator_request: body, facilitator_response: null, status: 'queued' });
       } catch (e) {
         console.error('failed to enqueue settlement from webhook', e);
       }
 
+      // If we have a correlated payment attempt, update it and confirm/release reservations
+      if (attemptId) {
+        try {
+          // update payment attempt status to verified/settled
+          await updatePaymentAttemptStatus(attemptId, { verifier_response: body, status: successFlag ? 'verified' : 'failed' });
+        } catch (e) { /* noop */ }
+
+        try {
+          const attempt = await getPaymentAttemptById(attemptId);
+          const reservations = attempt?.payment_payload?.reservations || attempt?.payment_payload?.reservation_ids || null;
+          if (Array.isArray(reservations) && reservations.length > 0) {
+            for (const rid of reservations) {
+              try {
+                if (successFlag) {
+                  await confirmReservation(rid);
+                } else {
+                  await releaseReservation(rid);
+                }
+              } catch (err) {
+                // log and continue
+                console.error('reservation confirm/release error', rid, err);
+              }
+            }
+          }
+        } catch (e) {
+          console.error('failed to process reservations for attempt', attemptId, e);
+        }
+      }
+
       try {
-        await insertPaymentLog({ level: 'info', message: 'facilitator_settle_callback', meta: {}, response: body });
+        await insertPaymentLog({ level: 'info', message: 'facilitator_settle_callback', meta: { attemptId: attemptId || null }, response: body });
       } catch (e) { /* noop */ }
 
       return res.status(200).json({ ok: true });

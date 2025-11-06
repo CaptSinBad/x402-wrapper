@@ -8,6 +8,7 @@ export function requirePayment(handler: NextApiHandler): NextApiHandler {
     const r = req as WithPaymentReq;
 
     const xPaymentHeader = req.headers['x-payment'] as string | undefined;
+    const activationCodeHeader = (req.headers['x-activation-code'] || req.headers['x-activation']) as string | undefined;
     if (!xPaymentHeader) {
       // Respond with payment requirements for client to act on.
       const paymentRequirements = {
@@ -30,6 +31,37 @@ export function requirePayment(handler: NextApiHandler): NextApiHandler {
 
       res.status(402).json(paymentRequirements);
       return;
+    }
+
+    // If an activation code header is present, attempt to redeem and allow access
+    if (activationCodeHeader) {
+      try {
+        // activation code header may be a plain code or base64 JSON { code, buyer }
+        let code = activationCodeHeader;
+        let buyer: string | undefined;
+        try {
+          const decoded = Buffer.from(activationCodeHeader, 'base64').toString('utf8');
+          const parsed = JSON.parse(decoded);
+          if (parsed && parsed.code) {
+            code = parsed.code;
+            buyer = parsed.buyer || parsed.buyer_address || undefined;
+          }
+        } catch (_) {
+          // not JSON/base64, treat header as raw code
+        }
+
+        // dynamic import to avoid circular import issues
+        const db = await import('../apps/lib/dbClient');
+  const used = await db.markActivationCodeUsed(code, buyer || undefined);
+        if (!used) return res.status(402).json({ isValid: false, invalidReason: 'activation_code_invalid_or_used' });
+
+        // attach a fake verify result to allow downstream handlers
+        r.paymentVerify = { isValid: true, payer: buyer || used.used_by || used.buyer_address || null, activationCode: used };
+        return handler(r, res);
+      } catch (err) {
+        console.error('activation code middleware error', err);
+        return res.status(500).json({ error: 'activation_code_error', detail: String(err) });
+      }
     }
 
     // Decode header (expected base64 JSON) and call facilitator.verify
