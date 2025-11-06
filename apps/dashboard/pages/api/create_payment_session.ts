@@ -20,6 +20,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const facilitatorCfg = loadFacilitatorConfig();
     const facilitatorBase = endpoint.facilitator_url || process.env.FACILITATOR_URL || facilitatorCfg.baseUrl;
 
+    const payToVal = (endpoint.metadata && endpoint.metadata.payTo) || process.env.SELLER_ADDRESS;
+
     const paymentRequirements = {
       x402Version: 1,
       scheme: endpoint.scheme || 'exact',
@@ -28,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       resource: endpoint.endpoint_url,
       description: (endpoint.metadata && endpoint.metadata.description) || `Payment to access ${endpoint.endpoint_url}`,
       mimeType: 'application/json',
-      payTo: (endpoint.metadata && endpoint.metadata.payTo) || process.env.SELLER_ADDRESS || null,
+      payTo: payToVal || undefined,
       maxTimeoutSeconds: Number(process.env.PAYMENT_MAX_TIMEOUT || 60),
       asset: endpoint.currency || 'USDC',
       extra: endpoint.metadata || {},

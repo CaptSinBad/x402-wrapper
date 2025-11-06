@@ -9,8 +9,11 @@ const required = [
   'FACILITATOR_URL',
   'NETWORK',
   'NEXT_PUBLIC_PRIVY_APP_ID',
-  // 'CDP_CLIENT_KEY_ID',
-  // 'CDP_CLIENT_API_KEY',
+  // Webhook secret required to validate facilitator callbacks
+  'FACILITATOR_WEBHOOK_SECRET',
+  // Coinbase CDP credentials (required if using CDP/mainnet flows)
+  'CDP_API_KEY_ID',
+  'CDP_API_KEY_SECRET',
 ];
 
 const missing = [];

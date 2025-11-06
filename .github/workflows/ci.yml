@@ -4,6 +4,41 @@ on:
   push:
     branches: [ main ]
   pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (with pnpm cache)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Enable corepack and ensure pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@8.8.0 --activate
+
+      - name: Install dependencies (frozen lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate environment variables
+        run: node scripts/env-validate.js
+
+      - name: Run unit tests
+        run: pnpm test
+        env:
+          CI: true
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
     branches: [ main ]
 
 jobs:
