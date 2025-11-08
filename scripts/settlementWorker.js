@@ -94,8 +94,27 @@ async function processOne(settlement) {
 
     const json = await resp.json();
 
-    const success = json?.success === true || json?.isValid === true; // facilitator response shape may vary
+    let success = json?.success === true || json?.isValid === true; // facilitator response shape may vary
     const txHash = json?.transaction || json?.txHash || null;
+
+    // Optional on-chain verification: when enabled, double-check the tx exists
+    // and either pays the seller or includes an ERC20 Transfer to the seller.
+    if (process.env.VERIFY_ONCHAIN === 'true' && txHash) {
+      try {
+        const verifier = require('./onchainVerifier');
+        const payTo = reqBody?.paymentRequirements?.payTo || reqBody?.paymentRequirements?.pay_to || reqBody?.paymentRequirements?.endpoint_id || null;
+        // prefer explicit payTo from paymentRequirements
+        const sellerAddr = reqBody?.paymentRequirements?.payTo || reqBody?.paymentRequirements?.pay_to || reqBody?.paymentRequirements?.payTo || null;
+        const verifyRes = await verifier.verifyOnchain(txHash, { payTo: sellerAddr });
+        if (!verifyRes.ok) {
+          console.error('onchain verification failed', verifyRes);
+          // if facilitator reported success but on-chain verification failed, mark as failed
+          success = false;
+        }
+      } catch (e) {
+        console.error('onchain verification error', e);
+      }
+    }
 
     if (USE_LOCAL_PG) {
       await pgClient.query(
