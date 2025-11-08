@@ -10,8 +10,13 @@ async function handler(req: NextApiRequest & { sellerWallet?: string }, res: Nex
 
   try {
     const db = await import('../../../../lib/dbClient');
-    // enforce seller_id to be the authenticated seller's wallet when not provided
-    const sellerId = body.seller_id || req.sellerWallet || null;
+    // enforce that if a seller_id is provided it must match the authenticated seller
+    const authSeller = req.sellerWallet || null;
+    if (body.seller_id && authSeller && String(body.seller_id).toLowerCase() !== String(authSeller).toLowerCase()) {
+      return res.status(403).json({ error: 'seller_id_mismatch' });
+    }
+    // always set seller_id to the authenticated seller when available
+    const sellerId = authSeller || body.seller_id || null;
     const rec = {
       token,
       seller_id: sellerId,

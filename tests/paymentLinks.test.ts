@@ -45,13 +45,22 @@ describe('payment links admin API (protected)', () => {
 
   it('honors explicit seller_id if provided (but we still may want to validate in prod)', async () => {
     const { default: handler } = await import('../apps/dashboard/pages/api/payment_links/create');
+    // If seller_id does not match authenticated seller, we should reject
     const payload = { token: 'gift', price_cents: 100, seller_id: '0xother' };
+    const req = mockReq(payload);
+    const res = mockRes();
+    await handler(req, res);
+    expect(res._status).toBe(403);
+  });
+
+  it('accepts explicit seller_id when it matches authenticated seller', async () => {
+    const { default: handler } = await import('../apps/dashboard/pages/api/payment_links/create');
+    const payload = { token: 'gift', price_cents: 100, seller_id: '0xsellerabc' };
     const req = mockReq(payload);
     const res = mockRes();
     await handler(req, res);
     expect(res._status).toBe(201);
     const arg = mockCreatePaymentLink.mock.calls[0][0];
-    // current behavior: uses provided seller_id if present
-    expect(arg.seller_id).toBe('0xother');
+    expect(arg.seller_id).toBe('0xsellerabc');
   });
 });
