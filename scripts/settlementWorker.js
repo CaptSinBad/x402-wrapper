@@ -34,7 +34,7 @@ if (USE_LOCAL_PG) {
   const pgHost = process.env.PG_HOST || process.env.POSTGRES_HOST || 'postgres';
   const pgUser = process.env.PG_USER || process.env.POSTGRES_USER || 'postgres';
   const pgPassword = process.env.PG_PASSWORD || process.env.POSTGRES_PASSWORD || 'postgres';
-  const pgDatabase = process.env.PG_DATABASE || process.env.POSTGRES_DB || 'x402db';
+  const pgDatabase = process.env.PG_DATABASE || process.env.POSTGRES_DB || 'x402';
   const pgPort = Number(process.env.PG_PORT || process.env.POSTGRES_PORT || 5432);
 
   pgClient = new PgClient({ host: pgHost, user: pgUser, password: pgPassword, database: pgDatabase, port: pgPort });

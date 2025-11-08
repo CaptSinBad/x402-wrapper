@@ -1,24 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import crypto from 'crypto';
 import { createActivationCode, getSellerEndpointById } from '../../../../lib/dbClient';
-import { verifyPrivySession } from '../../../../lib/verifyPrivySession';
+import { requireSellerAuth } from '../../../../lib/requireSellerAuth';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    // Authenticate seller via Privy token (Authorization header or cookie)
-    const authHeader = req.headers.authorization || req.headers.Authorization;
-    let token: string | undefined;
-    if (authHeader && typeof authHeader === 'string') token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    if (!token) token = req.cookies['privy-id-token'] || req.cookies['privy_id_token'];
-    if (!token) return res.status(401).json({ error: 'Missing auth token' });
-
-    const user = await verifyPrivySession(token);
-    if (!user) return res.status(401).json({ error: 'Invalid token' });
-    const sellerWallet = (user as any)?.wallet?.address;
-    if (!sellerWallet) return res.status(400).json({ error: 'User has no wallet address' });
-
     const body = req.body || {};
     const { seller_endpoint_id, amount, currency, valid_until, metadata } = body;
 
@@ -27,6 +15,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Ensure seller owns the endpoint
     const endpoint = await getSellerEndpointById(String(seller_endpoint_id));
     if (!endpoint) return res.status(404).json({ error: 'seller_endpoint_not_found' });
+
+    // sellerWallet attached by middleware
+    const sellerWallet = (req as any).sellerWallet;
     if ((endpoint.seller_wallet || '').toLowerCase() !== String(sellerWallet).toLowerCase()) {
       return res.status(403).json({ error: 'forbidden' });
     }
@@ -51,3 +42,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'server_error', detail: String(err) });
   }
 }
+
+export default requireSellerAuth(handler);

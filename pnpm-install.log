@@ -1,0 +1,100 @@
+ WARN  using --force I sure hope you know what you are doing
+ WARN  Ignoring not compatible lockfile at /workspaces/x402-wrapper/pnpm-lock.yaml
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Progress: resolved 17, reused 9, downloaded 0, added 0
+Progress: resolved 119, reused 17, downloaded 0, added 0
+Progress: resolved 197, reused 18, downloaded 0, added 0
+Progress: resolved 412, reused 98, downloaded 0, added 0
+Progress: resolved 494, reused 122, downloaded 0, added 0
+Progress: resolved 581, reused 146, downloaded 0, added 0
+Progress: resolved 632, reused 179, downloaded 0, added 0
+Progress: resolved 685, reused 216, downloaded 0, added 0
+Progress: resolved 748, reused 282, downloaded 0, added 0
+Progress: resolved 772, reused 349, downloaded 0, added 0
+Progress: resolved 820, reused 399, downloaded 0, added 0
+Progress: resolved 938, reused 534, downloaded 0, added 0
+ WARN  9 deprecated subdependencies found: @paulmillr/qr@0.2.1, @walletconnect/ethereum-provider@2.21.1, @walletconnect/sign-client@2.21.0, @walletconnect/sign-client@2.21.1, @walletconnect/universal-provider@2.21.0, @walletconnect/universal-provider@2.21.1, abab@2.0.6, domexception@4.0.0, source-map@0.8.0-beta.0
+Packages: +947
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 941, reused 775, downloaded 0, added 0
+Progress: resolved 941, reused 941, downloaded 0, added 10
+Progress: resolved 941, reused 941, downloaded 0, added 126
+Progress: resolved 941, reused 941, downloaded 0, added 143
+Progress: resolved 941, reused 941, downloaded 0, added 146
+Progress: resolved 941, reused 941, downloaded 0, added 153
+Progress: resolved 941, reused 941, downloaded 0, added 158
+Progress: resolved 941, reused 941, downloaded 0, added 179
+Progress: resolved 941, reused 941, downloaded 0, added 225
+Progress: resolved 941, reused 941, downloaded 0, added 227
+Progress: resolved 941, reused 941, downloaded 0, added 228
+Progress: resolved 941, reused 941, downloaded 0, added 237
+Progress: resolved 941, reused 941, downloaded 0, added 249
+Progress: resolved 941, reused 941, downloaded 0, added 250
+Progress: resolved 941, reused 941, downloaded 0, added 256
+Progress: resolved 941, reused 941, downloaded 0, added 280
+Progress: resolved 941, reused 941, downloaded 0, added 288
+Progress: resolved 941, reused 941, downloaded 0, added 304
+Progress: resolved 941, reused 941, downloaded 0, added 305
+Progress: resolved 941, reused 941, downloaded 0, added 314
+Progress: resolved 941, reused 941, downloaded 0, added 333
+Progress: resolved 941, reused 941, downloaded 0, added 341
+Progress: resolved 941, reused 941, downloaded 0, added 342
+Progress: resolved 941, reused 941, downloaded 0, added 351
+Progress: resolved 941, reused 941, downloaded 0, added 366
+Progress: resolved 941, reused 941, downloaded 0, added 385
+Progress: resolved 941, reused 941, downloaded 0, added 417
+Progress: resolved 941, reused 941, downloaded 0, added 418
+Progress: resolved 941, reused 941, downloaded 0, added 435
+Progress: resolved 941, reused 941, downloaded 0, added 457
+Progress: resolved 941, reused 941, downloaded 0, added 497
+Progress: resolved 941, reused 941, downloaded 0, added 504
+Progress: resolved 941, reused 941, downloaded 0, added 506
+Progress: resolved 941, reused 941, downloaded 0, added 512
+Progress: resolved 941, reused 941, downloaded 0, added 522
+Progress: resolved 941, reused 941, downloaded 0, added 527
+Progress: resolved 941, reused 941, downloaded 0, added 535
+Progress: resolved 941, reused 941, downloaded 0, added 536
+Progress: resolved 941, reused 941, downloaded 0, added 541
+Progress: resolved 941, reused 941, downloaded 0, added 542
+Progress: resolved 941, reused 941, downloaded 0, added 543
+Progress: resolved 941, reused 941, downloaded 0, added 544
+Progress: resolved 941, reused 941, downloaded 0, added 545
+Progress: resolved 941, reused 941, downloaded 0, added 546
+Progress: resolved 941, reused 941, downloaded 0, added 547
+Progress: resolved 941, reused 941, downloaded 0, added 548
+Progress: resolved 941, reused 941, downloaded 0, added 549
+Progress: resolved 941, reused 941, downloaded 0, added 557
+Progress: resolved 941, reused 941, downloaded 0, added 558
+Progress: resolved 941, reused 941, downloaded 0, added 592
+Progress: resolved 941, reused 941, downloaded 0, added 626
+Progress: resolved 941, reused 941, downloaded 0, added 676
+Progress: resolved 941, reused 941, downloaded 0, added 702
+Progress: resolved 941, reused 941, downloaded 0, added 732
+Progress: resolved 941, reused 941, downloaded 0, added 780
+Progress: resolved 941, reused 941, downloaded 0, added 781
+Progress: resolved 941, reused 941, downloaded 0, added 802
+Progress: resolved 941, reused 941, downloaded 0, added 839
+Progress: resolved 941, reused 941, downloaded 0, added 845
+Progress: resolved 941, reused 941, downloaded 0, added 846
+Progress: resolved 941, reused 941, downloaded 0, added 861
+Progress: resolved 941, reused 941, downloaded 0, added 907
+Progress: resolved 941, reused 941, downloaded 0, added 908
+Progress: resolved 941, reused 941, downloaded 0, added 947, done
+
+ WARN  Issues with peer dependencies found
+.
+├─┬ @privy-io/react-auth 3.6.0
+│ ├── ✕ unmet peer @solana/kit@^3.0.3: found 2.3.0 in x402
+│ └─┬ lucide-react 0.383.0
+│   └── ✕ unmet peer react@"^16.5.1 || ^17.0.0 || ^18.0.0": found 19.2.0
+└─┬ @coinbase/x402 0.7.1
+  └─┬ x402 0.7.1
+    └─┬ wagmi 2.19.2
+      └─┬ @wagmi/connectors 6.1.3
+        └─┬ @walletconnect/ethereum-provider 2.21.1
+          └─┬ @reown/appkit 1.7.8
+            └─┬ valtio 1.13.2
+              └─┬ use-sync-external-store 1.2.0
+                └── ✕ unmet peer react@"^16.8.0 || ^17.0.0 || ^18.0.0": found 19.2.0
+
+Done in 1m 34s

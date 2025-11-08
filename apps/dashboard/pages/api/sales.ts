@@ -1,25 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { verifyPrivySession } from '../../../lib/verifyPrivySession';
+import { requireSellerAuth } from '../../../lib/requireSellerAuth';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) return res.status(500).json({ error: 'Server misconfiguration' });
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-  // Authenticate seller via Privy token (cookie or Authorization header)
-  const authHeader = req.headers.authorization || req.headers.Authorization;
-  let token: string | undefined;
-  if (authHeader && typeof authHeader === 'string') token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  if (!token) token = req.cookies['privy-id-token'] || req.cookies['privy_id_token'];
-  if (!token) return res.status(401).json({ error: 'Missing auth token' });
-
-  const user = await verifyPrivySession(token);
-  if (!user) return res.status(401).json({ error: 'Invalid token' });
-  const sellerWallet = (user as any)?.wallet?.address;
-  if (!sellerWallet) return res.status(400).json({ error: 'User has no wallet address' });
+  // sellerWallet is attached by requireSellerAuth
+  const sellerWallet = (req as any).sellerWallet;
 
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -57,3 +48,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+
+export default requireSellerAuth(handler);

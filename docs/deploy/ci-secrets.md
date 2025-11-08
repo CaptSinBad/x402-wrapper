@@ -13,8 +13,8 @@ This document describes the runtime secrets required by the application and exam
 - `FACILITATOR_URL` — URL of facilitator service.
 - `FACILITATOR_KEY` — Facilitator auth key (if applicable).
 - `SENTRY_DSN` — Optional Sentry DSN for error reporting.
-- `CDP_CLIENT_KEY_ID` — Coinbase CDP client key id (front-end client key identifier).
-- `CDP_CLIENT_API_KEY` — Coinbase CDP client API key (client usage; treat as secret for CI/staging).
+- `CDP_API_KEY_ID` — Coinbase CDP API key identifier (server-side key id).
+- `CDP_API_KEY_SECRET` — Coinbase CDP API key secret (server-side). These are required if you plan to enable the optional Coinbase CDP adapter.
 
 Do NOT commit secret values to the repository. Use your CI provider's secret storage.
 
@@ -39,7 +39,22 @@ Then in your workflow you can reference them as environment variables. Example s
     node scripts/check-db-ready.js
 ```
 
-If you prefer the matrix job to bring up a local Postgres service (as in current `ci.yml`), leave the service as-is and run the migration runner against `postgres://postgres:postgres@localhost:5432/x402db`.
+If you prefer the matrix job to bring up a local Postgres service (as in current `ci.yml`), leave the service as-is and run the migration runner against `postgres://postgres:postgres@localhost:5432/x402`.
+
+## PNPM build-scripts in CI
+
+On CI you may see `pnpm` log lines like "Ignored build scripts: <package>" and the workflow in this repo fails the run when that happens. This occurs when a dependency declares a `prepare`/`install` script that pnpm won't run automatically in some CI contexts. You have two options:
+
+- Approve the builds in CI by running `pnpm approve-builds` before `pnpm install` (non-interactive via echo):
+
+```bash
+echo -e "@coinbase/x402\nfacilitators" | pnpm approve-builds
+pnpm install --frozen-lockfile
+```
+
+- Or pin/replace the dependency versions that require native build steps with prebuilt alternatives.
+
+Choose the approach that matches your CI security policy. The first option is simplest for dev teams; the second is safer for strict CI environments.
 
 ## Local developer flow
 

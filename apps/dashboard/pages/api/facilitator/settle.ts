@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { insertSettlement } from '../../../../lib/dbClient';
+import { insertSettlement, insertPaymentLog, getOpenSettlementByPaymentAttempt } from '../../../../lib/dbClient';
 import { settle as facilitatorSettle } from '../../../../../core/facilitator';
 import { FacilitatorSettleRequest } from '../../../../lib/validators';
 
@@ -20,6 +20,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Enqueue settlement record for background worker to process. This avoids
     // doing on-request external network calls and provides retries/observability.
     try {
+      // Deduplicate: if the parsed data includes a payment attempt id and
+      // there is already an open settlement for that attempt, avoid enqueueing again.
+      const attemptId = (parsed.data as any)?.paymentRequirements?.attempt_id || null;
+      let shouldInsert = true;
+      if (attemptId) {
+        try {
+          const existing = await getOpenSettlementByPaymentAttempt(attemptId);
+          if (existing) {
+            shouldInsert = false;
+          }
+        } catch (e) {
+          console.error('failed to check existing settlement for attempt', attemptId, e);
+        }
+      }
+
+      if (!shouldInsert) {
+        try { await insertPaymentLog({ level: 'info', message: 'facilitator_settle_callback_duplicate', meta: { attemptId }, response: parsed.data }); } catch (e) { /* noop */ }
+        return res.status(200).json({ success: true, queued: false, message: 'duplicate' });
+      }
+
       const created = await insertSettlement({
         payment_attempt_id: null,
         facilitator_request: parsed.data,
