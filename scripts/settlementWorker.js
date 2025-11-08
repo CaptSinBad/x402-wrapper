@@ -102,10 +102,12 @@ async function processOne(settlement) {
     if (process.env.VERIFY_ONCHAIN === 'true' && txHash) {
       try {
         const verifier = require('./onchainVerifier');
-        const payTo = reqBody?.paymentRequirements?.payTo || reqBody?.paymentRequirements?.pay_to || reqBody?.paymentRequirements?.endpoint_id || null;
-        // prefer explicit payTo from paymentRequirements
-        const sellerAddr = reqBody?.paymentRequirements?.payTo || reqBody?.paymentRequirements?.pay_to || reqBody?.paymentRequirements?.payTo || null;
-        const verifyRes = await verifier.verifyOnchain(txHash, { payTo: sellerAddr });
+        // derive expected verification params from paymentRequirements when available
+        const paymentReq = reqBody?.paymentRequirements || {};
+        const sellerAddr = paymentReq?.payTo || paymentReq?.pay_to || null;
+        const expectedAmount = paymentReq?.maxAmountRequired || paymentReq?.amount || null; // facilitator may echo or we use original maxAmountRequired
+        const expectedAsset = paymentReq?.asset || null;
+        const verifyRes = await verifier.verifyOnchain(txHash, { payTo: sellerAddr, expectedAmount, expectedAsset });
         if (!verifyRes.ok) {
           console.error('onchain verification failed', verifyRes);
           // if facilitator reported success but on-chain verification failed, mark as failed
