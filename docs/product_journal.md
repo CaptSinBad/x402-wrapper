@@ -73,6 +73,12 @@ Important files (examples):
 - `scripts/settlementWorker.js` was updated to read the `title` from `store_items` when confirming reservations and persist `item_title` into the `sales` record (Postgres and Supabase flows). The worker still computes per-item amount from `store_items.price_cents` when available, falling back to `paymentRequirements.maxAmountRequired`.
 - `apps/dashboard/pages/api/sales.ts` and `apps/dashboard/components/SalesList.tsx` were updated so the dashboard shows a human-friendly `item_title` (falls back to `item_id` if no title available). The CSV export includes an `item_title` column.
 
+Additional recent engineering activity (11/08/2025):
+- Implemented Option A on-chain verification (best-effort) in `scripts/onchainVerifier.js` and wired the worker to pass expectedAmount when available. This makes the worker optionally cross-check a facilitator-provided txHash against the expected payee and amount before marking a settlement confirmed.
+- Added a reservation reaper worker implementation as `scripts/reservationReaper2.js`. The reaper supports both Postgres (transactional FOR UPDATE SKIP LOCKED) and Supabase best-effort paths and exports `doOneIteration()` for one-shot runs or scheduling.
+- Note: during edits a corrupted `scripts/reservationReaper.js` file was left in the tree; the new file is `scripts/reservationReaper2.js` and the corrupted file should be cleaned up/removed in a follow-up commit.
+- Commit: recent changes were committed on branch `main` (local commit id c88e5c8) including the verifier, settlement worker wiring, and the reaper script. Unit tests passed locally after these changes.
+
 ### CI / package manager findings
 - A CI-style frozen `pnpm install` was executed against the branch and the install reported: `Ignored build scripts: @coinbase/x402, facilitators. Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.`
 - This indicates that some upstream packages require build/postinstall scripts (native builds or other actions). On CI we must either approve these builds, provide build toolchain, vendor a prebuilt artifact, or pin to a version that doesn't require native build steps. This is currently being triaged as "Decide remediation for upstream `facilitators` package".
