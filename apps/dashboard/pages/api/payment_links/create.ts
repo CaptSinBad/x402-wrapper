@@ -1,18 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
+import { requireSellerAuth } from '../../../../lib/requireSellerAuth';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest & { sellerWallet?: string }, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Basic admin guard could be added here; for now assume authenticated in dev
   const body = req.body || {};
   const token = body.token || null;
   if (!token) return res.status(400).json({ error: 'missing_token' });
 
   try {
     const db = await import('../../../../lib/dbClient');
+    // enforce seller_id to be the authenticated seller's wallet when not provided
+    const sellerId = body.seller_id || req.sellerWallet || null;
     const rec = {
       token,
-      seller_id: body.seller_id || null,
+      seller_id: sellerId,
       item_id: body.item_id || null,
       endpoint_id: body.endpoint_id || null,
       price_cents: body.price_cents || null,
@@ -28,3 +30,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'server_error' });
   }
 }
+
+export default requireSellerAuth(handler as any) as any;

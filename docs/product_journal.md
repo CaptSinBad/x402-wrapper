@@ -126,6 +126,16 @@ Journal TODOs (immediate actionable items)
 - TODO: Add `payment_links` schema and link resolver page. (Assigned to: product + engineering)
 - TODO: Schedule CI run and triage pnpm ignored build-scripts. (Assigned to: engineering / devops)
 
+Next immediate engineering task (planned)
+
+- TODO: Protect the Payment Links admin API with RBAC/Privy server-side checks. Implementation notes:
+  - File to change: `apps/dashboard/pages/api/payment_links/create.ts` — wrap the default export with `requireSellerAuth` or `requireAuth` so only authenticated sellers can create links for their account.
+  - Use existing helpers: `apps/lib/requireSellerAuth.ts` and `apps/lib/verifyPrivySession.ts` (server-side verification). Ensure the created `payment_links.seller_id` is validated against the authenticated seller's wallet or ID.
+  - Add unit tests: mock Privy verification and assert unauthorized requests are rejected and that authorized requests create link records.
+  - Security: do not enable this API unprotected in staging/production until Privy envs and secrets are configured.
+
+These updates will be implemented next (RBAC first), then we will continue with the merchant-facing POS polish and production hardening.
+
 These steps are intentionally ordered so you can produce a high-impact demo (dev-settle + QR/pos stub) quickly and then lock down safety (reaper, RBAC, worker hardening) before opening to pilots.
 
 ## 7) Implementation notes & conventions
