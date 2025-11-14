@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { verifyPrivySession } from '../../../lib/verifyPrivySession';
+import { requireSellerAuth } from '../../../lib/requireSellerAuth';
 import { SellerEndpointBody } from '../../../lib/validators';
 
 type Body = {
@@ -13,7 +13,7 @@ type Body = {
   metadata?: Record<string, unknown>;
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+async function handler(req: NextApiRequest, res: NextApiResponse) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
@@ -25,19 +25,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   if (req.method === 'POST') {
-    // Try to retrieve token from Authorization header or common cookie names
-    const authHeader = req.headers.authorization || req.headers.Authorization;
-    let token: string | undefined;
-    if (authHeader && typeof authHeader === 'string') token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    if (!token) token = req.cookies['privy-id-token'] || req.cookies['privy_id_token'];
-
-    if (!token) return res.status(401).json({ error: 'Missing auth token' });
-
-    // Verify token server-side
-    const user = await verifyPrivySession(token);
-    if (!user) return res.status(401).json({ error: 'Invalid token' });
-
-
     // Validate request body with zod
     const parsed = SellerEndpointBody.safeParse(req.body);
     if (!parsed.success) {
@@ -47,8 +34,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const body = parsed.data;
 
     try {
+      // sellerWallet is attached by requireSellerAuth
+      const sellerWallet = (req as any).sellerWallet || null;
       const insertBody = {
-        seller_wallet: (user as any)?.wallet?.address || null,
+        seller_wallet: sellerWallet,
         endpoint_url: body.endpointUrl,
         price: typeof body.price === 'string' ? parseFloat(String(body.price)) : body.price,
         currency: body.currency || 'USDC',
@@ -73,20 +62,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'GET') {
-    // Return endpoints for authenticated seller
-    const authHeader = req.headers.authorization || req.headers.Authorization;
-    let token: string | undefined;
-    if (authHeader && typeof authHeader === 'string') token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    if (!token) token = req.cookies['privy-id-token'] || req.cookies['privy_id_token'];
-
-    if (!token) return res.status(401).json({ error: 'Missing auth token' });
-
-    const user = await verifyPrivySession(token);
-    if (!user) return res.status(401).json({ error: 'Invalid token' });
-
-    const sellerWallet = (user as any)?.wallet?.address;
-    if (!sellerWallet) return res.status(400).json({ error: 'User has no wallet address' });
-
+    // sellerWallet is attached by requireSellerAuth
+    const sellerWallet = (req as any).sellerWallet;
     try {
       const { data, error } = await supabase.from('seller_endpoints').select('*').eq('seller_wallet', sellerWallet);
       if (error) {
@@ -103,3 +80,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return res.status(405).json({ error: 'Method not allowed' });
 }
+
+export default requireSellerAuth(handler);

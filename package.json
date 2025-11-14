@@ -9,7 +9,11 @@
     "start": "next start",
     "test": "vitest",
     "worker": "node scripts/settlementWorker.js",
-    "migrate": "node scripts/run-migrations.js"
+    "migrate": "node scripts/run-migrations.js",
+    "db:up": "bash scripts/db-up.sh",
+    "db:down": "bash scripts/db-down.sh",
+    "db:migrate": "bash scripts/db-migrate.sh",
+    "test:integration": "RUN_WORKER_INTEGRATION=true USE_LOCAL_PG=true pnpm exec vitest run"
   },
   "dependencies": {
     "@privy-io/react-auth": "^3.4.1",
@@ -19,6 +23,8 @@
     "facilitators": "^0.0.7",
     "next": "^16.0.0",
     "pg": "^8.11.0",
+    "qrcode": "^1.5.1",
+  "ethers": "^6.9.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "zod": "^3.22.2"
@@ -29,6 +35,8 @@
     "@types/pg": "^8.15.6",
     "@types/react": "^19.2.2",
     "jsdom": "^22.0.0",
-    "vitest": "^1.1.7"
+    "vitest": "^1.1.7",
+    "typescript": "^5.9.3",
+    "tsup": "^8.5.0"
   }
 }

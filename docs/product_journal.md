@@ -1,216 +1,232 @@
-# x402-wrapper — Product Journal
+# xsynesis — Product Journal (cleaned)
 
-Date: 2025-11-06
-Branch: ci/add-workflow-cdp
+Date: 2025-11-12
+Branch: main
 
-This journal documents what the product is, tools used to build it, the codebase structure and key files, current status of development, and the roadmap / next steps.
+This cleaned product journal summarizes: what the product is, what we implemented, current status, remaining gaps, and the recommended next steps. It's concise and actionable — use this as the single source-of-truth for product + engineering planning.
 
-## 1) Product summary
+## Executivset -a; source .env.postgres; set +a
+node scripts/run-migrations.jse summary
 
-x402-wrapper is a seller-facing payment gateway and dashboard for "x402"-style signed payments. It lets sellers register paid HTTP endpoints (resources) or store items, set pricing models (per-request, one-time, subscription), generate activation codes (promo/coupon or bypass codes), and accept buyer payments via client-side EIP-712 signing or facilitator-backed settlement (optional Coinbase CDP adapter). A worker handles settlements. The product aims to make accepting crypto-native payments as easy as PayPal but simpler for merchants.
 
-Core features:
-- Seller endpoints (resource URL) registration with pricing metadata
-- Buyer SDK for signing payment payloads (EIP-712) and submitting `X-PAYMENT`
-- Facilitator integration for verify/settle flows (HTTP or optional `@coinbase/x402` CDP)
-- Webhook HMAC verification for facilitator callbacks
-- Activation codes (generate, redeem, short-lived bypass)
-- Store items + reservations (added) for exact-price checkout and inventory guarantees
-- Settlement worker to execute facilitator settlement requests
 
-## 2) Tools & technologies used
+xsynesis is being built as a Stripe-like payments platform using Coinbase x402 (CDP) as the facilitator layer. Our aim is to provide sellers with first-class primitives similar to Stripe Connect: payment links, POS/QR flows, payouts/offramp, and simple onboarding — all powered by x402 settlement rails where appropriate.
 
-- Framework: Next.js (app + pages), React, TypeScript
-- Test runner: Vitest
-- Validation: Zod
-- DB: Postgres (primary), Supabase optional (code supports both paths)
-- Package manager: pnpm
-- CI: GitHub Actions (workflow added for install + env-validate + tests)
-- Facilitation: custom HTTP facilitator adapter + optional Coinbase CDP (`@coinbase/x402`) dynamic import
-- Cryptography/Signing: EIP-712 typed data (buyer SDK in `sdk/client`)
-- Dev tooling: node scripts for migrations and env validation
+The codebase already contains the core backend primitives (reservations, payment attempts, settlements queue, worker, payouts/offramp and a buyer SDK). The Coinbase x402 CDP integration (see `core/facilitator`) is the primary facilitator adapter for settlement flows. Recent work implemented a public link resolver and a basic pay flow, standardized API surfaces to pages-based endpoints, and added an offramp (payouts) feature and a dev-settle simulator. Remaining work focuses on admin UX (payment links management), RBAC, idempotency, worker hardening, and CI packaging.
 
-## 3) Codebase overview (high level, key files)
+Quick status: dev-settle ✓, public link resolver & pay flow ✓, payment-links schema + admin CRUD ✓, payouts/offramp ✓, RBAC/Privy ✓, idempotency ✓, reservation reaper ✗, CI pnpm triage ✗.
 
-Top-level folders:
-- `app/` — Next.js app routes and components (server & client pages)
-- `apps/dashboard/` — Seller dashboard and API routes (legacy pages-based dashboard exists)
-- `core/` — facilitator adapters and core logic
-- `db/` — migrations and schema
-- `scripts/` — migration runner, env-validate, worker
-- `sdk/` — buyer SDK (client) for signing and pay-and-fetch helper
-- `lib/` — middleware and helpers used across the app
-- `tests/` — Vitest tests
+## What we have (high level)
 
-Important files (examples):
-- `apps/lib/dbClient.ts` — central DB helper (Postgres + Supabase branches) and now includes activation-code and store reservation helpers
-- `apps/dashboard/pages/api/create_payment_session.ts` — builds paymentRequirements and (now) reserves items when `items` provided
-- `apps/dashboard/pages/api/facilitator/webhook.ts` — facilitator webhook with HMAC verification (handles settlement callbacks)
-- `scripts/settlementWorker.js` — worker to process `settlements` queue
-- `db/migrations/001_init.sql` — initial schema
-- `db/migrations/002_pricing_and_activation_codes.sql` — pricing fields + activation_codes table
-- `db/migrations/003_store_items_and_reservations.sql` — store items + reservations (new migration)
-- `sdk/client/src/payAndFetch.ts` — buyer SDK helper for signing and sending payment headers
-- `lib/paymentMiddleware.ts` — middleware to validate incoming payments and support activation-code bypass
-- `types/coinbase-x402.d.ts` — type shim added to resolve TS build issues for optional `@coinbase/x402` package
+- Core primitives: reservations, payment_attempts, settlements queue, settlement worker, and the atomic helper `confirmReservationAndCreateSale` (exists in `apps/lib/dbClient.ts`). Both Postgres and Supabase code paths are implemented; Postgres path uses transactions for atomicity.
+- Buyer SDK: EIP-712 signing helper and pay-and-fetch utilities in `sdk/client` and `sdk/*` examples (x402 client wrappers like `x402-fetch`/`x402-axios` are expected to work with the resolver).
+- Facilitator/settlement wiring: the worker calls a configured `FACILITATOR_URL` (`/settle` endpoint). The repo is ready to use Coinbase CDP via `@coinbase/x402` (examples and helper imports exist), but xsynesis currently posts to a configurable facilitator URL — Option B will wire `@coinbase/x402` directly into verify/settle helpers and the worker when CDP env vars are present.
+- Payment links: schema present (`db/migrations/006_payment_links.sql`), helpers in `apps/lib/dbClient.ts` (`createPaymentLink`, `getPaymentLinkByToken`, `listPaymentLinksBySeller`, `getPaymentLinkById`, `updatePaymentLink`, `expirePaymentLink`), admin create API (`apps/dashboard/pages/api/payment_links/create.ts`), list/update/expire endpoints (`apps/dashboard/pages/api/payment_links/list.ts`, `update.ts`, `expire.ts`), dashboard UI component (`PaymentLinksManager.tsx`), and a public resolver API (`apps/dashboard/pages/api/link/[token].ts`) plus client page (`app/link/[token]/page.tsx`). Persistent idempotency via `idempotency_keys` table (`db/migrations/008_idempotency_keys.sql`) for replay protection on link POSTs.
+- Dev-settle simulator: dev-only flows and controls exist; the public UI currently prompts using dev-settle to complete a sale in development.
+- Offramp / payouts: migration (`db/migrations/007_payouts.sql`), DB helpers (`createPayout`, `listPayouts` in `apps/lib/dbClient.ts`), pages API and a basic dashboard panel implemented.
+- API surface: dashboard/admin endpoints standardized to Next.js pages APIs and protected wiring exists (`apps/lib/requireSellerAuth.ts`, `apps/lib/verifyPrivySession.ts`). All seller-scoped admin endpoints are now wrapped with `requireSellerAuth` and include authorization checks (seller ownership validation).
 
-## 4) What’s implemented so far (as of this journal)
+## Key files (where to look)
 
-- Webhook HMAC verification + unit tests (facilitator webhook)
-- CI workflow file added (install + env-validate + tests)
-- Env validation updated to require `FACILITATOR_WEBHOOK_SECRET`, `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET` and load `.env.server` locally for build-time envs
-- Optional Coinbase CDP adapter wired in `core/facilitator/` with dynamic import
-- Pricing fields added to `seller_endpoints`; paymentRequirements updated in `create_payment_session`
-- Activation codes: migration, DB helpers, generate & redeem endpoints
-- Payment middleware updated to accept `x-activation-code` header and redeem codes
-- Store items & reservations: migration and DB helpers added
-- Reservation flow wired into `create_payment_session` (reserves stock when `items` present and attaches reservation ids to `payment_attempt`)
-- Tests: unit tests pass locally (Vitest); one worker integration test skipped
-- Branch `ci/add-workflow-cdp` created and pushed (PR pending to run CI)
+- `apps/lib/dbClient.ts` — canonical DB helpers (Postgres + Supabase dual-path). Contains create/get helpers for payment_links, payment_attempts, settlements, payouts, and reservation helpers including `confirmReservationAndCreateSale`.
+- `apps/dashboard/pages/api/link/[token].ts` — public resolver (GET) and POST that creates a payment_attempt (Idempotency not yet persisted).
+- `app/link/[token]/page.tsx` — public client page resolving a link and allowing a buyer to create a payment attempt.
+- `apps/dashboard/pages/api/payment_links/create.ts` — admin create endpoint for links (needs RBAC wrapping).
+- `db/migrations/006_payment_links.sql` — payment_links schema (present).
+- `db/migrations/007_payouts.sql` — payouts schema (present).
+- `scripts/settlementWorker.js` — settlement worker logic (claim semantics need hardening).
 
-### Recent updates (item_title snapshot & sales reporting)
-- Sales table now includes an `item_title` column to snapshot the human-friendly item title at time of settlement. This preserves the historical name even if sellers later change item titles.
-- `scripts/settlementWorker.js` was updated to read the `title` from `store_items` when confirming reservations and persist `item_title` into the `sales` record (Postgres and Supabase flows). The worker still computes per-item amount from `store_items.price_cents` when available, falling back to `paymentRequirements.maxAmountRequired`.
-- `apps/dashboard/pages/api/sales.ts` and `apps/dashboard/components/SalesList.tsx` were updated so the dashboard shows a human-friendly `item_title` (falls back to `item_id` if no title available). The CSV export includes an `item_title` column.
+## What was done recently
 
-### CI / package manager findings
-- A CI-style frozen `pnpm install` was executed against the branch and the install reported: `Ignored build scripts: @coinbase/x402, facilitators. Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.`
-- This indicates that some upstream packages require build/postinstall scripts (native builds or other actions). On CI we must either approve these builds, provide build toolchain, vendor a prebuilt artifact, or pin to a version that doesn't require native build steps. This is currently being triaged as "Decide remediation for upstream `facilitators` package".
+- **Task 7 (RBAC / Privy server-side gating):** Completed systemwide RBAC enforcement for admin endpoints.
+  - Audited all admin endpoints and identified 10 seller-scoped endpoints.
+  - Fixed `admin/settlements` endpoint to use `requireSellerAuth` (was using `requireAuth`).
+  - All seller-scoped admin endpoints now protected:
+    - Payment links: `list`, `update`, `expire` with seller ownership validation
+    - Activation codes: `generate` with endpoint ownership validation
+    - Payouts: `list`, `create`, `update` with seller ownership validation
+    - Sales: `list` with seller-scoped filtering
+    - Settlements: `list`, `retry` with Privy authentication required
+  - Created comprehensive RBAC test suite (`tests/admin_rbac.test.ts`) with 13 tests covering:
+    - Authentication checks (401 without valid Privy token)
+    - Authorization checks (403 for non-owners)
+    - Happy paths for authorized sellers
+  - All tests use proper Privy mocking with realistic response shapes
+  - Full test suite: 49 tests passing, no regressions
 
-## 4.1) Additional seller scenarios (new ideas)
+- **Task 4 (Payment Links Admin & Idempotency):** Completed admin CRUD endpoints and dashboard UI.
+  - Exported payment link CRUD helpers from `apps/lib/dbClient.ts`: `listPaymentLinksBySeller`, `getPaymentLinkById`, `updatePaymentLink`, `expirePaymentLink`.
+  - Created three admin pages API endpoints: `GET /api/payment_links/list` (returns seller's links), `POST /api/payment_links/update` (update metadata/price/currency/expiry with ownership validation), `POST /api/payment_links/expire` (mark link as expired).
+  - Added React component `PaymentLinksManager.tsx` for dashboard UI (list, inline edit, expire actions).
+  - Created dashboard page `/payment_links` to mount manager component.
+  - Implemented persistent idempotency via `idempotency_keys` table (migration 008) with dedup logic in public resolver.
+  - Added comprehensive test suite (7 tests) validating Privy authentication, authorization (seller ownership), and CRUD operations.
+  - All tests passing, no regressions (36 tests total).
+- Added `payment_links` schema and DB helpers; implemented admin create API and public resolver (`GET` + `POST`) that creates `payment_attempts` for a token. Public client page `app/link/[token]/page.tsx` was added and wired to POST attempts.
+- Implemented payouts/offramp end-to-end surface: migration, DB helpers, pages APIs, and a basic `PayoutsPanel` UI.
+- Added dev-settle simulator and dev-only dashboard controls to simulate settlement flows without an external facilitator (gated by env flag).
+- Standardized server-side admin/public APIs to Next.js pages routes to avoid import resolution fragility with app-router server helpers; removed conflicting app-router API routes where necessary.
+- Implemented dual DB runtime paths (Supabase vs Postgres) across `apps/lib/dbClient.ts` and updated worker (`scripts/settlementWorker.js`) to support both. Worker currently posts to a configured `FACILITATOR_URL` and processes settle responses, confirming reservations and creating `sales` when successful.
+- Added Privy server-side verification helper (`apps/lib/verifyPrivySession.ts`) and `requireSellerAuth` middleware for protecting admin APIs.
 
-- Books (physical and digital): Merchants selling books can list physical and digital formats (PDF/eBook). Buyers browsing the store can purchase a physical copy (reserve stock, pay, and have shipping handled by the seller) or immediately receive a digital download after settlement. Activation codes can be used to issue free copies, previews, or promotional downloads.
-- Digital goods and downloads: single-use license keys, timed access, or downloadable content delivered after confirmed settlement.
-- Service bookings: time-slot reservations (e.g., classes, appointments) where a reservation is held on checkout and confirmed on payment settlement.
-- Donations and tipping: open-amount QR flows for community fundraising and flexible tips at market stalls.
+## Remaining gaps / risks (focused)
 
-These scenarios are compatible with the reservation and activation-code models implemented in the codebase. We'll track each as potential follow-up features (delivery workflows, digital asset hosting, license key issuance, shipping integrations).
+- Persistent idempotency for payment attempts: ✓ implemented via `idempotency_keys` table.
+- RBAC / server-side Privy verification for admin APIs: ✓ implemented and tested.
+- Reservation reaper: background job to release expired reservations — not finalized.
+- Worker hardening: ensure safe claim semantics and idempotency when processing settlements (important for money-moving flows).
+- CI packaging: `pnpm` ignored build-scripts warnings need triage (approve builds, pin, or vendor) to avoid CI flakes.
 
-## 5) Remaining gaps / risks
+## Short roadmap (next priorities)
 
-High priority gaps:
-- Seller auth / access control: admin APIs (create endpoints, generate activation codes, manage items) need server-side seller authentication (Privy integration) and RBAC.
-- Webhook -> reservation confirmation: webhook must mark reservations as confirmed/sold on successful settlement, and release on failure.
-- Reservation reaper: background job to release expired reservations.
-- Seller UI: minimal CRUD pages for items, activation codes, endpoints, and settlements.
-- Buyer UI: payment pages that support exact-price item checkout and open-amount keypad, plus QR generation endpoints.
-- CI/packaging risk: pnpm logs show ignored build-scripts warnings for some upstream packages; PR CI must be run and triaged (may require approving builds or pinning vendor binaries).
+1) ✅ Payment Links admin & idempotency — **COMPLETED**.
+   - Admin CRUD endpoints (list, update, expire) with seller ownership validation.
+   - Dashboard UI component for managing links.
+   - Persistent idempotency via `idempotency_keys` table.
+   - Comprehensive test suite (7 tests) with Privy auth validation.
 
-Operational risks:
-- Supabase path lacks strong atomic guarantees for reservations; Postgres transactional path is implemented and preferred for production.
-- Idempotency and reconciliation: ensure webhook handling is idempotent and add reconciliation for missing webhooks.
+2) ✅ RBAC / Privy server-side gating — **COMPLETED**.
+   - All seller-scoped admin endpoints protected with `requireSellerAuth`.
+   - Authorization checks enforce seller ownership across all resources.
+   - Comprehensive test suite (13 tests) validating auth and authorization.
+   - Full system test suite: 49 tests passing, no regressions.
 
-## 6) Roadmap & recommended next steps (prioritized)
+3) Worker & reaper hardening (next):
+   - Ensure worker claims via UPDATE ... RETURNING or SELECT FOR UPDATE SKIP LOCKED.
+   - Add reservation reaper scheduling and tests.
+   - Validate idempotent settlement processing.
 
-Immediate (high impact):
-1. Implement webhook settlement confirmation for reservations (mark `item_reservations` as confirmed and persist a sale record), idempotent. (2–4h)
-2. Add seller authentication/guards for admin APIs (`activation_codes/generate`, store item CRUD) with Privy server-side checks. (1 day)
-3. Reservation reaper (worker) to release expired reservations and log/notify sellers. (1–2h)
-4. CI PR run & triage upstream package build-script warnings. (0.5–1 day depending on remediation)
+4) UX polish & demos:
+   - Dashboard list of links, QR generator endpoint, `app/pos/[token]` minimal POS page.
+   - Use dev-settle for demo flows in dev.
 
-Near term (MVP seller experience):
-5. Buyer-facing checkout page and QR generator (support precise invoice for items and open-amount keypad). (1–2 days)
-6. Minimal seller UI for items (CRUD), activation codes, and settlement list. (2–3 days)
-7. Tests: concurrency tests for reservations and integration tests for sign->verify->settle. (1–2 days)
+5) CI & production readiness:
+   - Resolve pnpm packaging issues, add gated integration tests for webhook->worker->confirm flows, and create a production checklist (monitoring/backups/KYC).
 
-Longer term (production readiness):
-8. Subscriptions/recurring billing support and billing records. (multi-week)
-9. Monitoring and runbook, secrets in CI, staging deploy and smoke tests. (multi-day)
+## Concrete next actions (what I'll do now / short term)
 
-## 7) Implementation notes & conventions
+- **Next: Worker & reaper hardening (Task 8).** This is critical for safe money-moving flows. Focus on:
+  1. Ensuring worker uses safe claim semantics (SELECT FOR UPDATE SKIP LOCKED vs simple UPDATE)
+  2. Adding idempotent settlement processing (handle duplicate webhook deliveries gracefully)
+  3. Finalizing the reservation reaper (background job to release expired reservations)
+  4. Adding concurrency tests to validate race condition safety
 
-- Use `RESERVATION_TTL` env var for reservation life (default 900s = 15 min).
-- Prefer Postgres for strong transactional behavior; Supabase support is best-effort for reservations.
-- Store `reservation` ids inside `payment_attempt.payment_payload` so webhooks can correlate attempts to reservations without schema changes.
-- Use `UPDATE ... WHERE stock >= qty` pattern and `SELECT ... FOR UPDATE` in transactions to avoid double-sells.
+Product vision note:
+- xsynesis will aim for feature parity with a minimal Stripe Connect-like experience for merchants: admin link creation, managed onboarding, per-seller payout destinations, and anti-fraud/reconciliation tools. We'll phase in compliance (KYC) and provider integrations for fiat rails after an initial pilot on x402 rails.
 
-## 8) Ownership & contributors
+## How to run locally (short)
 
-- Repo owner: `hmichaelsonpixel`
-- Current branch with changes: `ci/add-workflow-cdp`
-- Important contributors / places to check for further work: `core/facilitator`, `apps/dashboard/pages/api/*`, `apps/lib/dbClient.ts`, `sdk/client`.
+1) Start a local Postgres (docker) with `.env.postgres` values and run migrations:
 
-## 9) Next action I'll take (unless you direct otherwise)
-- Implement webhook settlement confirmation to call `confirmReservation` and create sale records (idempotent), then add tests for reservation confirm/release flows.
+   set -a; source .env.postgres; set +a
+   node scripts/run-migrations.js
 
-## 10) How to run this project locally (developer instructions)
+2) Start Next dev server (bind to all interfaces):
 
-These are the exact steps your partner/developer should follow after cloning the repository to run the migrations, start a local Postgres for integration testing, and run the worker integration test locally.
+   pnpm dev -- -H 0.0.0.0 -p 3000
 
-Prereqs:
-- Docker installed (for running Postgres container)
-- Node 20 installed (or use the repo dev container)
-- corepack & pnpm available (we use pnpm in CI and locally)
+3) Run unit tests:
 
-Quick steps (copy-paste):
+   pnpm test
 
-1. Clone and checkout the feature branch:
+4) Gate integration worker tests with:
 
-```bash
-git clone <your-repo-url>
-cd x402-wrapper
-git checkout ci/add-workflow-cdp
-```
+   export RUN_WORKER_INTEGRATION=true
+   pnpm test -- -t 'worker processes a queued settlement (RUN_ONCE)'
 
-2. Enable corepack and install pnpm (if not present):
+Notes: make sure PRIVY_* envs are set when running RBAC-protected code locally.
 
-```bash
-corepack enable
-corepack prepare pnpm@8.8.0 --activate
-pnpm install --frozen-lockfile
-```
+## Files changed in recent work (high-level)
 
-3. Start a local Postgres container (this uses the same credentials in `.env.postgres`):
+- `db/migrations/006_payment_links.sql` — payment links schema.
+- `db/migrations/007_payouts.sql` — payouts schema.
+- `apps/lib/dbClient.ts` — payment links & payouts helpers, reservation helpers.
+- `apps/dashboard/pages/api/link/[token].ts` — public link resolver (GET + POST).
+- `app/link/[token]/page.tsx` — public resolver UI.
+- `apps/dashboard/pages/api/payment_links/create.ts` — admin create endpoint (needs RBAC wrapper).
+- `apps/dashboard/pages/api/payouts/*` & `apps/dashboard/components/PayoutsPanel.tsx` — payouts UI & APIs.
 
-```bash
-docker run --name x402-postgres \
-	-e POSTGRES_USER=postgres \
-	-e POSTGRES_PASSWORD=Gi7BJfYpTy7Gf2ZBXNNwUUwc9CCKxVm2 \
-	-e POSTGRES_DB=x402 \
-	-p 5432:5432 -d postgres:15
+## Contacts & ownership
 
-# wait for it to be ready (optional helper)
-for i in $(seq 1 30); do docker exec x402-postgres pg_isready -U postgres >/dev/null 2>&1 && break || sleep 1; done
-```
-
-4. Source the local env file and run migrations (this will apply db migrations found in `db/migrations`):
-
-```bash
-set -a; source .env.postgres; set +a
-node scripts/run-migrations.js
-```
-
-5. Run the worker integration test (it is gated behind `RUN_WORKER_INTEGRATION=true` to avoid running unexpectedly locally):
-
-```bash
-export RUN_WORKER_INTEGRATION=true
-pnpn test -- -t 'worker processes a queued settlement (RUN_ONCE)'
-# Note: if you use pnpm directly the command is `pnpm test -- -t 'worker processes a queued settlement (RUN_ONCE)'`
-```
-
-6. When finished, stop/remove the local postgres container:
-
-```bash
-docker stop x402-postgres && docker rm x402-postgres
-```
-
-Notes & tips:
-- The integration test creates a small HTTP stub facilitator during its run and inserts a queued `settlements` row. The worker will pick this up and update the settlement row to `confirmed`.
-- If you prefer not to use Docker, you can point the test to a remote Postgres by setting `TEST_DATABASE_URL` or the `PG_*` env vars before running the test.
-- The test is intentionally gated by `RUN_WORKER_INTEGRATION=true`. If you want CI to run the test, set that env var in the CI job (we can do this in a follow-up PR).
-
-## 11) Files changed in this work
-- `apps/dashboard/pages/api/sales.ts` — prefer `sales.item_title` snapshot and CSV export includes `item_title`.
-- `apps/dashboard/components/SalesList.tsx` — show human-friendly item title (fallback to `item_id`).
-- `db/migrations/004_sales.sql` — added `item_title` column.
-- `scripts/settlementWorker.js` — now reads `store_items.title` and persists `item_title` into `sales` rows (Postgres & Supabase flows).
-- `tests/worker.integration.test.ts` — made conditional on `RUN_WORKER_INTEGRATION=true`.
-- `.env.postgres` — aligned `DATABASE_URL` to POSTGRES_* and DB name `x402`.
-- `.github/workflows/ci.yml` — install native build tools, capture pnpm install log, and fail on ignored build scripts; CI Postgres service DB set to `x402`.
-- `docs/product_journal.md` — updated journal with recent changes and local run instructions.
-
-If you want, I can open a PR with these changes or push this branch to your remote and create the PR for you. If pushing fails due to auth, I'll provide the exact git commands for you to run locally.
+- Repo owner / primary contact: hmichaelsonpixel
+- Ask engineering to follow the top-of-list priorities: Payment Links admin, idempotency, RBAC, worker hardening.
 
 ---
 
-This journal file will be kept in the repository at `docs/product_journal.md`. Update it as milestones are completed.
+If you'd like, I can open a PR that (1) finishes the admin list for payment links, (2) adds an idempotency table + migration, and (3) wraps the admin payment link create/list APIs with `requireSellerAuth`. Tell me which of those you'd prefer I start with and I'll implement it and run tests.
+
+-- cleaned on 2025-11-12
+
+
+## 12) Offramp: in-app payouts for sellers
+
+Goal
+- Let sellers withdraw or "offramp" their collected funds directly from the dashboard using configurable payout rails (on-chain withdrawal, bank/ACH via a payments provider, or stablecoin rails). The feature reduces friction for merchants and keeps the money flow inside the product experience.
+
+Why this matters
+- Merchants need a simple way to get funds from the system to a usable destination (their on-chain wallet, a bank account, or stablecoin custodial rails). Without an in-app offramp, sellers must manually reconcile and move funds off-platform.
+
+Proposed MVP scope
+- UI: simple Payouts page in the dashboard where a seller can:
+  - See available balance (settled sales, pending holds)
+  - Request a payout and choose a payout method (on-chain wallet address, bank transfer via provider, stablecoin withdrawal)
+  - View payout history and status (requested, processing, completed, failed)
+- Backend: payouts table + APIs to create/list payouts and to mark status updates (created, processing, completed, failed). Payments execution is delegated to a payments provider or on-chain router.
+- Rails: support two immediate rails for MVP:
+  1. On-chain—send funds to seller's configured wallet (for chain-native payouts). This can be implemented as a signed tx broadcast by a custody/key manager or by instructing the seller to pull funds to their own wallet (lighter MVP).
+  2. Provider-mediated fiat payouts—integrate a payments provider (e.g., Stripe Connect, Plaid+Payrails, or a crypto custodian with bank rails) to handle bank transfers and compliance.
+
+Data model (high level)
+- `payouts` table: id, seller_id, amount_cents, currency, method (onchain|bank|stablecoin), destination (json), status, requested_at, processed_at, metadata
+- Link `payouts` to `sales` or aggregate settled balances so finance reconciliation is straightforward.
+
+Security & compliance
+- KYC/AML: gate large payouts or fiat rails behind KYC/AML checks. Implement a KYC-required flag and block payouts until verification.
+- Audit trail: store events and receipts for each payout; ensure idempotent processing (avoid double transfers).
+
+Acceptance criteria (MVP)
+- Sellers can request a payout from the dashboard and view its status.
+- A `payouts` record is created and is visible in the admin dashboard.
+- For on-chain payouts, a signed tx or transaction instruction is recorded in the `payouts` record (or a clear operator workflow exists to execute it).
+
+Next steps / integration notes
+- Add `db/migrations/00X_payouts.sql` to create the `payouts` table and a small admin API (`apps/dashboard/pages/api/payouts/*`) protected by `requireSellerAuth`.
+- Implement a simple UI `apps/dashboard/pages/payouts.tsx` that lists available balance and allows a payout request.
+- Initially implement on-chain payouts as a manual operator flow (record payout, mark processed). Then add automated execution once custody/integration is chosen.
+- Add KYC gating and compliance checks before enabling fiat rails.
+
+Related todo: I added "Offramp payouts UI & payout rails integration" to the production milestones todo list (see repo todo list).
+
+## Prioritized next steps (concrete, actionable)
+1. Implement dev-settle simulator (dev mode) — immediate demo value and useful to validate UI and confirm+sale path. (2–3 hours)
+2. Implement `payment_links` + link resolver page + QR generator (short link & POS page). (1–2 days)
+3. Small POS demo page that uses buyer SDK to sign and send an `X-PAYMENT` to the server or to broadcast a transaction. (1 day)
+4. Implement server-side RBAC/Privy gating for admin routes. (1 day)
+5. Add reservation reaper worker. (2–4 hours)
+6. Add integration test for webhook -> worker -> sale (gated). (0.5–1 day)
+7. Triage CI `pnpm` build-script warnings. (0.5–1 day)
+
+If you want me to take a single next change now, I recommend #1 (dev-settle simulator) because it gives you an immediate way to demo the "instant settlement" claim without depending on an external facilitator. I can implement it gated by `DEV_SETTLE_ENABLED=true` and wire a tiny dev-only dashboard control.
+
+## Tests & verification I’d add
+- Unit test for the new dev route (happy-path success/failure).
+- Mocked unit test proving the flow calls `confirmReservationAndCreateSale`.
+- Add or enable an integration test (gated) to show worker processing a settlement creates a sale.
+
+## Risks / production blockers to resolve before shipping
+- RBAC/Privy for seller endpoints
+- Reservation reaper (prevents stuck-reservations & inventory lock)
+- CI package build-script issue (may break installs in CI)
+- Supabase path is not strongly transactional; prefer Postgres for production
+
+## Do you want me to implement something next?
+Options:
+- “Go: dev-settle” (I’ll add a dev-only settle endpoint + small dev dashboard button, tests, and run unit tests)
+- “Go: short-link” (I’ll implement `payment_links` table + link resolver page + QR generator)
+- “Docs only” (I’ll write the team-facing document synthesizing the above into docs or a single export `docs/x402_mapping.md`)
+
+If you pick dev-settle, confirm whether the default behavior should:
+A) Immediately call `confirmReservationAndCreateSale` for all reservations associated with the provided `payment_attempt_id` (fast demo), or
+B) Insert a `settlements` row and let the worker process it (exercises worker path).
+
+I'll implement and run unit tests and report back with PASS/FAIL, file changes, and how to try it locally.

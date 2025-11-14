@@ -13,7 +13,7 @@ let pgPool: Pool | null = null;
 if (USE_SUPABASE) {
   supabase = createSupabaseClient(SUPABASE_URL!, SUPABASE_SERVICE_KEY!, { auth: { persistSession: false } });
 } else {
-  const connectionString = process.env.DATABASE_URL || `postgres://${process.env.PG_USER || 'postgres'}:${process.env.PG_PASSWORD || 'postgres'}@${process.env.PG_HOST || 'localhost'}:${process.env.PG_PORT || 5432}/${process.env.PG_DATABASE || process.env.PG_DB || 'x402db'}`;
+  const connectionString = process.env.DATABASE_URL || `postgres://${process.env.PG_USER || 'postgres'}:${process.env.PG_PASSWORD || 'postgres'}@${process.env.PG_HOST || 'localhost'}:${process.env.PG_PORT || 5432}/${process.env.PG_DATABASE || process.env.PG_DB || 'x402'}`;
   pgPool = new Pool({ connectionString });
 }
 
@@ -36,8 +36,12 @@ async function insertSettlement(record: any) {
     if (error) throw error;
     return data?.[0] ?? null;
   }
+  // Use ON CONFLICT on payment_attempt_id to avoid enqueueing duplicate
+  // settlements for the same payment attempt. This requires a unique index
+  // on payment_attempt_id (created by migrations/005_settlements_payment_attempt_unique.sql).
   const query = `INSERT INTO settlements(payment_attempt_id, facilitator_request, facilitator_response, status, attempts, last_error, next_retry_at, locked_by, locked_at, created_at, updated_at)
-    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW()) RETURNING *`;
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW())
+    ON CONFLICT (payment_attempt_id) DO UPDATE SET updated_at=NOW() RETURNING *`;
   const values = [record.payment_attempt_id || null, record.facilitator_request || null, record.facilitator_response || null, record.status || 'queued', record.attempts || 0, record.last_error || null, record.next_retry_at || null, record.locked_by || null, record.locked_at || null];
   const res = await pgPool!.query(query, values);
   return res.rows[0];
@@ -110,6 +114,16 @@ async function listSettlements(limit = 100) {
   return res.rows;
 }
 
+async function getOpenSettlementByPaymentAttempt(attemptId: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('settlements').select('*').eq('payment_attempt_id', attemptId).in('status', ['queued', 'retry', 'in_progress']).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query("SELECT * FROM settlements WHERE payment_attempt_id = $1 AND status IN ('queued','retry','in_progress') LIMIT 1", [attemptId]);
+  return res.rows[0] ?? null;
+}
+
 async function updateSettlementToQueued(id: string) {
   if (USE_SUPABASE) {
     const { data, error } = await supabase.from('settlements').update({ status: 'queued', attempts: 0, last_error: null, next_retry_at: null, updated_at: new Date().toISOString() }).eq('id', id).select();
@@ -133,7 +147,43 @@ async function insertPaymentLog(log: any) {
   return res.rows[0];
 }
 
-export { insertSellerEndpoint, insertSettlement, getSellerEndpointByUrl, getSellerEndpointById, insertPaymentAttempt, getPaymentAttemptById, updatePaymentAttemptStatus, listSettlements, updateSettlementToQueued, insertPaymentLog };
+export { insertSellerEndpoint, insertSettlement, getSellerEndpointByUrl, getSellerEndpointById, insertPaymentAttempt, getPaymentAttemptById, updatePaymentAttemptStatus, listSettlements, updateSettlementToQueued, insertPaymentLog, getOpenSettlementByPaymentAttempt };
+
+// Idempotency helpers
+async function getIdempotencyKey(idempotencyKey: string, seller_id?: string | null) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('idempotency_keys').select('*').eq('idempotency_key', idempotencyKey).eq('seller_id', seller_id || null).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM idempotency_keys WHERE idempotency_key = $1 AND seller_id IS NOT DISTINCT FROM $2 LIMIT 1', [idempotencyKey, seller_id || null]);
+  return res.rows[0] ?? null;
+}
+
+async function createIdempotencyKey(record: { idempotency_key: string; seller_id?: string | null; payment_attempt_id?: string | null }) {
+  if (USE_SUPABASE) {
+    try {
+      const { data, error } = await supabase.from('idempotency_keys').insert([record]).select();
+      if (error) throw error;
+      return data?.[0] ?? null;
+    } catch (e: any) {
+      // unique conflict - fetch existing
+      const existing = await getIdempotencyKey(record.idempotency_key, record.seller_id || null);
+      return existing;
+    }
+  }
+
+  // Postgres: attempt to insert and return existing row on conflict
+  const query = `INSERT INTO idempotency_keys(idempotency_key, seller_id, payment_attempt_id, created_at, updated_at)
+    VALUES($1,$2,$3,NOW(),NOW())
+    ON CONFLICT (idempotency_key, seller_id) DO UPDATE SET payment_attempt_id = COALESCE(idempotency_keys.payment_attempt_id, EXCLUDED.payment_attempt_id), updated_at=NOW()
+    RETURNING *`;
+  const values = [record.idempotency_key, record.seller_id || null, record.payment_attempt_id || null];
+  const res = await pgPool!.query(query, values);
+  return res.rows[0];
+}
+
+export { getIdempotencyKey, createIdempotencyKey };
 
 // Activation code helpers
 async function createActivationCode(record: any) {
@@ -210,6 +260,54 @@ async function getStoreItemBySlug(slug: string, seller_id?: string) {
   }
   const res = await pgPool!.query('SELECT * FROM store_items WHERE slug = $1 LIMIT 1', [slug]);
   return res.rows[0] ?? null;
+}
+
+// Payment links helpers
+async function createPaymentLink(record: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payment_links').insert([record]).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const query = `INSERT INTO payment_links(token, seller_id, item_id, endpoint_id, price_cents, currency, network, metadata, expires_at, created_at, updated_at)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW()) RETURNING *`;
+  const values = [record.token, record.seller_id || null, record.item_id || null, record.endpoint_id || null, record.price_cents || null, record.currency || null, record.network || null, record.metadata || null, record.expires_at || null];
+  const res = await pgPool!.query(query, values);
+  return res.rows[0];
+}
+
+async function getPaymentLinkByToken(token: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payment_links').select('*').eq('token', token).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM payment_links WHERE token = $1 LIMIT 1', [token]);
+  return res.rows[0] ?? null;
+}
+
+// Payouts helpers
+async function createPayout(record: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payouts').insert([record]).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const query = `INSERT INTO payouts(seller_id, amount_cents, currency, method, destination, status, requested_at, processed_at, metadata, created_at, updated_at)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW()) RETURNING *`;
+  const values = [record.seller_id, record.amount_cents, record.currency || 'USDC', record.method, record.destination || null, record.status || 'requested', record.requested_at || null, record.processed_at || null, record.metadata || null];
+  const res = await pgPool!.query(query, values);
+  return res.rows[0];
+}
+
+async function listPayouts(seller_id: string, limit = 100) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payouts').select('*').eq('seller_id', seller_id).order('created_at', { ascending: false }).limit(limit);
+    if (error) throw error;
+    return data;
+  }
+  const res = await pgPool!.query('SELECT * FROM payouts WHERE seller_id = $1 ORDER BY created_at DESC LIMIT $2', [seller_id, limit]);
+  return res.rows;
 }
 
 // Reserve a quantity of an item atomically. Returns reservation record.
@@ -321,5 +419,183 @@ async function releaseReservation(id: string) {
   }
 }
 
-export { createStoreItem, getStoreItemById, getStoreItemBySlug, reserveItem, getReservationById, confirmReservation, releaseReservation };
+// Atomically confirm a reservation and insert a sales row for it.
+// This ensures the confirm+sale creation happens once (idempotent): the
+// function only creates a sale when the reservation's status transitions
+// from 'reserved' -> 'confirmed'. Returns the sale row when created, or
+// null if the reservation was not in a state to be confirmed.
+async function confirmReservationAndCreateSale(reservationId: string, opts?: { payment_attempt_id?: string | null; settlement_id?: string | null; purchaser_address?: string | null }) {
+  const payment_attempt_id = opts?.payment_attempt_id || null;
+  const settlement_id = opts?.settlement_id || null;
+  const purchaser_address = opts?.purchaser_address || null;
+
+  if (USE_SUPABASE) {
+    // Supabase: best-effort atomic-ish sequence: select -> update with eq(status,'reserved') -> insert sale
+    const { data: rData, error: rErr } = await supabase.from('item_reservations').select('*').eq('id', reservationId).limit(1);
+    if (rErr) throw rErr;
+    const reservation = (rData && rData.length) ? rData[0] : null;
+    if (!reservation || reservation.status !== 'reserved') return null;
+
+    const { data: updRes, error: updErr } = await supabase.from('item_reservations').update({ status: 'confirmed', updated_at: new Date().toISOString() }).eq('id', reservationId).eq('status', 'reserved').select();
+    if (updErr) throw updErr;
+    if (!updRes || updRes.length === 0) return null;
+
+    // fetch item to compute amount/title
+    let amountCents = 0;
+    let currency = (reservation.currency || 'USDC');
+    let itemTitle = null;
+    try {
+      const { data: itemRows } = await supabase.from('store_items').select('price_cents,currency,title').eq('id', reservation.item_id).limit(1);
+      const itemRow = (itemRows && itemRows.length) ? itemRows[0] : null;
+      if (itemRow) {
+        const price = Number(itemRow.price_cents || 0);
+        const qty = Number(reservation.qty_reserved || 1);
+        amountCents = price * qty;
+        if (itemRow.currency) currency = itemRow.currency;
+        itemTitle = itemRow.title || null;
+      }
+    } catch (e) {
+      // ignore and fallback
+    }
+
+    const sale = {
+      seller_id: reservation.seller_id || null,
+      item_id: reservation.item_id || null,
+      item_title: itemTitle || null,
+      reservation_id: reservation.id,
+      payment_attempt_id,
+      settlement_id,
+      qty: reservation.qty_reserved || 1,
+      amount_cents: amountCents,
+      currency,
+      purchaser_address: purchaser_address || null,
+      metadata: { createdBy: 'confirmReservationAndCreateSale' },
+    };
+    const { data: saleData, error: saleErr } = await supabase.from('sales').insert([sale]).select();
+    if (saleErr) throw saleErr;
+    return (saleData && saleData.length) ? saleData[0] : null;
+  }
+
+  // Postgres transactional path
+  const client = await pgPool!.connect();
+  try {
+    await client.query('BEGIN');
+    const rRes = await client.query('SELECT * FROM item_reservations WHERE id = $1 FOR UPDATE', [reservationId]);
+    if (rRes.rowCount === 0) { await client.query('ROLLBACK'); return null; }
+    const reservation = rRes.rows[0];
+    if (reservation.status !== 'reserved') { await client.query('COMMIT'); return null; }
+
+    // mark confirmed
+    await client.query("UPDATE item_reservations SET status='confirmed', updated_at=NOW() WHERE id=$1", [reservationId]);
+
+    // determine per-item price and title
+    let amountCents = 0;
+    let currency = 'USDC';
+    let itemTitle = null;
+    try {
+      const itemRes = await client.query('SELECT price_cents, currency, title FROM store_items WHERE id = $1 LIMIT 1', [reservation.item_id]);
+      if (itemRes.rowCount) {
+        const itemRow = itemRes.rows[0];
+        const price = Number(itemRow.price_cents || 0);
+        const qty = Number(reservation.qty_reserved || 1);
+        amountCents = price * qty;
+        if (itemRow.currency) currency = itemRow.currency;
+        itemTitle = itemRow.title || null;
+      }
+    } catch (e) {
+      // ignore and fallback
+    }
+
+    const insertRes = await client.query(`INSERT INTO sales(seller_id, item_id, item_title, reservation_id, payment_attempt_id, settlement_id, qty, amount_cents, currency, purchaser_address, metadata, created_at)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW()) RETURNING *`, [
+      reservation.seller_id || null,
+      reservation.item_id || null,
+      itemTitle,
+      reservation.id,
+      payment_attempt_id,
+      settlement_id,
+      reservation.qty_reserved || 1,
+      amountCents,
+      currency,
+      purchaser_address || null,
+      JSON.stringify({ createdBy: 'confirmReservationAndCreateSale' }),
+    ]);
+
+    await client.query('COMMIT');
+    return insertRes.rows[0];
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+// Payment links admin helpers
+async function listPaymentLinksBySeller(sellerId: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payment_links').select('*').eq('seller_id', sellerId).order('created_at', { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  }
+  const res = await pgPool!.query('SELECT * FROM payment_links WHERE seller_id = $1 ORDER BY created_at DESC', [sellerId]);
+  return res.rows;
+}
+
+async function getPaymentLinkById(id: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payment_links').select('*').eq('id', id).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM payment_links WHERE id = $1 LIMIT 1', [id]);
+  return res.rows[0] ?? null;
+}
+
+async function updatePaymentLink(id: string, updates: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payment_links').update(updates).eq('id', id).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const keys = Object.keys(updates || {});
+  if (keys.length === 0) return null;
+  const sets = keys.map((k, i) => `${k}=$${i+2}`).join(', ');
+  const values = [id, ...keys.map(k => updates[k])];
+  const res = await pgPool!.query(`UPDATE payment_links SET ${sets}, updated_at=NOW() WHERE id=$1 RETURNING *`, values);
+  return res.rows[0] ?? null;
+}
+
+async function expirePaymentLink(id: string) {
+  return updatePaymentLink(id, { expires_at: new Date().toISOString() });
+}
+
+export { createStoreItem, getStoreItemById, getStoreItemBySlug, reserveItem, getReservationById, confirmReservation, releaseReservation, confirmReservationAndCreateSale, createPaymentLink, getPaymentLinkByToken, createPayout, listPayouts, listPaymentLinksBySeller, getPaymentLinkById, updatePaymentLink, expirePaymentLink };
+
+// Update payout status and fields
+async function updatePayout(id: string, updates: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payouts').update(updates).eq('id', id).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const keys = Object.keys(updates || {});
+  if (keys.length === 0) return null;
+  const sets = keys.map((k, i) => `${k}=$${i+2}`).join(', ');
+  const values = [id, ...keys.map(k => updates[k])];
+  const res = await pgPool!.query(`UPDATE payouts SET ${sets}, updated_at=NOW() WHERE id=$1 RETURNING *`, values);
+  return res.rows[0] ?? null;
+}
+
+async function getPayoutById(id: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payouts').select('*').eq('id', id).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM payouts WHERE id = $1 LIMIT 1', [id]);
+  return res.rows[0] ?? null;
+}
+
+export { updatePayout, getPayoutById };
 

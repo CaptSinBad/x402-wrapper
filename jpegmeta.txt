@@ -1,0 +1,90 @@
+Image:
+  Filename: x402 shortened link.jpeg
+  Permissions: rw-rw-rw-
+  Format: JPEG (Joint Photographic Experts Group JFIF format)
+  Mime type: image/jpeg
+  Class: DirectClass
+  Geometry: 1280x770+0+0
+  Units: Undefined
+  Colorspace: sRGB
+  Type: TrueColor
+  Base type: Undefined
+  Endianness: Undefined
+  Depth: 8-bit
+  Channel depth:
+    red: 8-bit
+    green: 8-bit
+    blue: 8-bit
+  Channel statistics:
+    Pixels: 985600
+    Red:
+      min: 0  (0)
+      max: 255 (1)
+      mean: 36.2259 (0.142062)
+      standard deviation: 32.3732 (0.126954)
+      kurtosis: 15.1025
+      skewness: 3.34012
+      entropy: 0.597
+    Green:
+      min: 0  (0)
+      max: 255 (1)
+      mean: 50.2795 (0.197174)
+      standard deviation: 49.187 (0.19289)
+      kurtosis: 1.64835
+      skewness: 1.54529
+      entropy: 0.633547
+    Blue:
+      min: 0  (0)
+      max: 255 (1)
+      mean: 78.0236 (0.305975)
+      standard deviation: 87.2447 (0.342136)
+      kurtosis: -0.686878
+      skewness: 1.07104
+      entropy: 0.624013
+  Image statistics:
+    Overall:
+      min: 0  (0)
+      max: 255 (1)
+      mean: 54.843 (0.215071)
+      standard deviation: 56.2683 (0.22066)
+      kurtosis: 2.48756
+      skewness: 1.91712
+      entropy: 0.618187
+  Rendering intent: Perceptual
+  Gamma: 0.454545
+  Chromaticity:
+    red primary: (0.64,0.33,0.03)
+    green primary: (0.3,0.6,0.1)
+    blue primary: (0.15,0.06,0.79)
+    white point: (0.3127,0.329,0.3583)
+  Background color: white
+  Border color: srgb(223,223,223)
+  Matte color: grey74
+  Transparent color: black
+  Interlace: JPEG
+  Intensity: Undefined
+  Compose: Over
+  Page geometry: 1280x770+0+0
+  Dispose: Undefined
+  Iterations: 0
+  Compression: JPEG
+  Quality: 80
+  Orientation: Undefined
+  Properties:
+    comment: 
+    date:create: 2025-11-08T12:26:17+00:00
+    date:modify: 2025-11-08T12:26:17+00:00
+    date:timestamp: 2025-11-08T12:35:51+00:00
+    jpeg:colorspace: 2
+    jpeg:sampling-factor: 2x2,1x1,1x1
+    signature: 6be112e18c4e9c6ace6201d4a5ae530922a2d28cd3441d1798e366c8ce6c6396
+  Artifacts:
+    filename: x402 shortened link.jpeg
+    verbose: true
+  Tainted: False
+  Filesize: 62689B
+  Number pixels: 985600
+  Pixels per second: 74.6539MB
+  User time: 0.010u
+  Elapsed time: 0:01.013
+  Version: ImageMagick 6.9.12-98 Q16 x86_64 18038 https://legacy.imagemagick.org

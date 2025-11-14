@@ -50,6 +50,30 @@ vi.mock('/workspaces/x402-wrapper/apps/lib/dbClient', () => {
     insertPaymentLog: async (log: any) => ({ id: 'log-1', ...log }),
   };
 });
+// Mirror the same mock for the repo-local path so handler dynamic imports hit the mock
+vi.mock('/workspaces/xSynesis/apps/lib/dbClient', () => {
+  return {
+    getSellerEndpointByUrl: async (url: string) => {
+      if (url === '/xlayer/test') {
+        return {
+          id: '11111111-1111-1111-1111-111111111111',
+          seller_wallet: '0xseller',
+          endpoint_url: '/xlayer/test',
+          price: 100000,
+          currency: 'USDC',
+          scheme: 'exact',
+          network: 'okx-x-layer',
+          facilitator_url: 'https://open.x402.host/xlayer',
+          metadata: { description: 'Test endpoint' },
+        };
+      }
+      return null;
+    },
+    getSellerEndpointById: async (id: string) => null,
+    insertPaymentAttempt: async (rec: any) => ({ id: 'attempt-1', ...rec }),
+    insertPaymentLog: async (log: any) => ({ id: 'log-1', ...log }),
+  };
+});
 
 // Mock facilitator config import used by handler (use absolute path so Vitest resolves it)
 vi.mock('/workspaces/x402-wrapper/core/facilitator/config', () => {

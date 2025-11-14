@@ -34,7 +34,7 @@ if (USE_LOCAL_PG) {
   const pgHost = process.env.PG_HOST || process.env.POSTGRES_HOST || 'postgres';
   const pgUser = process.env.PG_USER || process.env.POSTGRES_USER || 'postgres';
   const pgPassword = process.env.PG_PASSWORD || process.env.POSTGRES_PASSWORD || 'postgres';
-  const pgDatabase = process.env.PG_DATABASE || process.env.POSTGRES_DB || 'x402db';
+  const pgDatabase = process.env.PG_DATABASE || process.env.POSTGRES_DB || 'x402';
   const pgPort = Number(process.env.PG_PORT || process.env.POSTGRES_PORT || 5432);
 
   pgClient = new PgClient({ host: pgHost, user: pgUser, password: pgPassword, database: pgDatabase, port: pgPort });
@@ -86,16 +86,33 @@ async function processOne(settlement) {
       claimed = claimResp.data[0];
     }
 
-    const resp = await fetch(`${FACILITATOR_URL.replace(/\/$/, '')}/settle`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(reqBody),
-    });
+    // Use facilitator client which prefers Coinbase CDP when configured
+    const facilitator = require('./facilitatorClient');
+    const json = await facilitator.settle(reqBody);
 
-    const json = await resp.json();
-
-    const success = json?.success === true || json?.isValid === true; // facilitator response shape may vary
+    let success = json?.success === true || json?.isValid === true; // facilitator response shape may vary
     const txHash = json?.transaction || json?.txHash || null;
+
+    // Optional on-chain verification: when enabled, double-check the tx exists
+    // and either pays the seller or includes an ERC20 Transfer to the seller.
+    if (process.env.VERIFY_ONCHAIN === 'true' && txHash) {
+      try {
+        const verifier = require('./onchainVerifier');
+        // derive expected verification params from paymentRequirements when available
+        const paymentReq = reqBody?.paymentRequirements || {};
+        const sellerAddr = paymentReq?.payTo || paymentReq?.pay_to || null;
+        const expectedAmount = paymentReq?.maxAmountRequired || paymentReq?.amount || null; // facilitator may echo or we use original maxAmountRequired
+        const expectedAsset = paymentReq?.asset || null;
+        const verifyRes = await verifier.verifyOnchain(txHash, { payTo: sellerAddr, expectedAmount, expectedAsset });
+        if (!verifyRes.ok) {
+          console.error('onchain verification failed', verifyRes);
+          // if facilitator reported success but on-chain verification failed, mark as failed
+          success = false;
+        }
+      } catch (e) {
+        console.error('onchain verification error', e);
+      }
+    }
 
     if (USE_LOCAL_PG) {
       await pgClient.query(

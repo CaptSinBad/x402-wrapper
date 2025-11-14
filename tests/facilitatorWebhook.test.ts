@@ -19,16 +19,35 @@ function mockRes() {
   return res;
 }
 
+const mockUpdatePaymentAttemptStatus: any = vi.fn(async () => null);
+const mockInsertSettlement: any = vi.fn(async () => ({ id: 'settlement-1' }));
+const mockInsertPaymentLog: any = vi.fn(async () => ({ id: 'log-1' }));
+const mockGetPaymentAttemptById: any = vi.fn(async (id: string) => null);
+const mockConfirmReservation: any = vi.fn(async (id: string) => null);
+const mockReleaseReservation: any = vi.fn(async (id: string) => null);
+
 vi.mock('/workspaces/x402-wrapper/apps/lib/dbClient', () => ({
-  updatePaymentAttemptStatus: async () => null,
-  insertSettlement: async () => ({ id: 'settlement-1' }),
-  insertPaymentLog: async () => ({ id: 'log-1' }),
+  updatePaymentAttemptStatus: mockUpdatePaymentAttemptStatus,
+  insertSettlement: mockInsertSettlement,
+  insertPaymentLog: mockInsertPaymentLog,
+  getPaymentAttemptById: mockGetPaymentAttemptById,
+  confirmReservation: mockConfirmReservation,
+  releaseReservation: mockReleaseReservation,
+}));
+vi.mock('/workspaces/xSynesis/apps/lib/dbClient', () => ({
+  updatePaymentAttemptStatus: mockUpdatePaymentAttemptStatus,
+  insertSettlement: mockInsertSettlement,
+  insertPaymentLog: mockInsertPaymentLog,
+  getPaymentAttemptById: mockGetPaymentAttemptById,
+  confirmReservation: mockConfirmReservation,
+  releaseReservation: mockReleaseReservation,
 }));
 
 describe('facilitator webhook HMAC verification', () => {
   beforeEach(() => {
     vi.resetModules();
     process.env.FACILITATOR_WEBHOOK_SECRET = 'test-secret-123';
+    // keep module cache clean between tests
   });
 
   it('rejects requests with missing signature', async () => {
@@ -76,5 +95,7 @@ describe('facilitator webhook HMAC verification', () => {
     expect(res._status).toBe(200);
     expect(res._json).toEqual({ ok: true });
   });
+
+  
 
 });
