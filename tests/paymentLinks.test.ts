@@ -18,12 +18,22 @@ describe('payment links admin API (protected)', () => {
     vi.resetModules();
     mockCreatePaymentLink.mockClear();
     // Mock dbClient
-    vi.mock('/workspaces/x402-wrapper/apps/lib/dbClient', () => ({ createPaymentLink: mockCreatePaymentLink }));
+  vi.mock('/workspaces/x402-wrapper/apps/lib/dbClient', () => ({ createPaymentLink: mockCreatePaymentLink }));
+  vi.mock('/workspaces/xSynesis/apps/lib/dbClient', () => ({ createPaymentLink: mockCreatePaymentLink }));
     // Mock requireSellerAuth to inject sellerWallet into req and call the handler
     vi.mock('/workspaces/x402-wrapper/apps/lib/requireSellerAuth', () => ({
       requireSellerAuth: (handler: any) => {
         return async (req: any, res: any) => {
           // inject a sellerWallet as if authenticated
+          req.sellerWallet = '0xsellerabc';
+          return handler(req, res);
+        };
+      }
+    }));
+    // Mirror the requireSellerAuth mock for the repo-local import path (handler may import locally)
+    vi.mock('/workspaces/xSynesis/apps/lib/requireSellerAuth', () => ({
+      requireSellerAuth: (handler: any) => {
+        return async (req: any, res: any) => {
           req.sellerWallet = '0xsellerabc';
           return handler(req, res);
         };

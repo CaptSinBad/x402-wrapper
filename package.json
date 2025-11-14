@@ -9,7 +9,11 @@
     "start": "next start",
     "test": "vitest",
     "worker": "node scripts/settlementWorker.js",
-    "migrate": "node scripts/run-migrations.js"
+    "migrate": "node scripts/run-migrations.js",
+    "db:up": "bash scripts/db-up.sh",
+    "db:down": "bash scripts/db-down.sh",
+    "db:migrate": "bash scripts/db-migrate.sh",
+    "test:integration": "RUN_WORKER_INTEGRATION=true USE_LOCAL_PG=true pnpm exec vitest run"
   },
   "dependencies": {
     "@privy-io/react-auth": "^3.4.1",

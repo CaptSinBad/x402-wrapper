@@ -86,13 +86,9 @@ async function processOne(settlement) {
       claimed = claimResp.data[0];
     }
 
-    const resp = await fetch(`${FACILITATOR_URL.replace(/\/$/, '')}/settle`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(reqBody),
-    });
-
-    const json = await resp.json();
+    // Use facilitator client which prefers Coinbase CDP when configured
+    const facilitator = require('./facilitatorClient');
+    const json = await facilitator.settle(reqBody);
 
     let success = json?.success === true || json?.isValid === true; // facilitator response shape may vary
     const txHash = json?.transaction || json?.txHash || null;

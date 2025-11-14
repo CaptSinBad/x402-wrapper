@@ -19,6 +19,13 @@ vi.mock('/workspaces/x402-wrapper/apps/lib/verifyPrivySession', () => ({
     return null;
   })
 }));
+// Also mock the repo-local path used by the middleware implementation
+vi.mock('/workspaces/xSynesis/apps/lib/verifyPrivySession', () => ({
+  verifyPrivySession: vi.fn(async (token: string) => {
+    if (token === 'good-token') return { wallet: { address: '0xabc' }, sub: 'user-1' };
+    return null;
+  })
+}));
 
 describe('requireAuth / requireSellerAuth middleware', () => {
   it('returns 401 when token missing', async () => {

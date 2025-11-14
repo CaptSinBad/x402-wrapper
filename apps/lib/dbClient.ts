@@ -149,6 +149,42 @@ async function insertPaymentLog(log: any) {
 
 export { insertSellerEndpoint, insertSettlement, getSellerEndpointByUrl, getSellerEndpointById, insertPaymentAttempt, getPaymentAttemptById, updatePaymentAttemptStatus, listSettlements, updateSettlementToQueued, insertPaymentLog, getOpenSettlementByPaymentAttempt };
 
+// Idempotency helpers
+async function getIdempotencyKey(idempotencyKey: string, seller_id?: string | null) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('idempotency_keys').select('*').eq('idempotency_key', idempotencyKey).eq('seller_id', seller_id || null).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM idempotency_keys WHERE idempotency_key = $1 AND seller_id IS NOT DISTINCT FROM $2 LIMIT 1', [idempotencyKey, seller_id || null]);
+  return res.rows[0] ?? null;
+}
+
+async function createIdempotencyKey(record: { idempotency_key: string; seller_id?: string | null; payment_attempt_id?: string | null }) {
+  if (USE_SUPABASE) {
+    try {
+      const { data, error } = await supabase.from('idempotency_keys').insert([record]).select();
+      if (error) throw error;
+      return data?.[0] ?? null;
+    } catch (e: any) {
+      // unique conflict - fetch existing
+      const existing = await getIdempotencyKey(record.idempotency_key, record.seller_id || null);
+      return existing;
+    }
+  }
+
+  // Postgres: attempt to insert and return existing row on conflict
+  const query = `INSERT INTO idempotency_keys(idempotency_key, seller_id, payment_attempt_id, created_at, updated_at)
+    VALUES($1,$2,$3,NOW(),NOW())
+    ON CONFLICT (idempotency_key, seller_id) DO UPDATE SET payment_attempt_id = COALESCE(idempotency_keys.payment_attempt_id, EXCLUDED.payment_attempt_id), updated_at=NOW()
+    RETURNING *`;
+  const values = [record.idempotency_key, record.seller_id || null, record.payment_attempt_id || null];
+  const res = await pgPool!.query(query, values);
+  return res.rows[0];
+}
+
+export { getIdempotencyKey, createIdempotencyKey };
+
 // Activation code helpers
 async function createActivationCode(record: any) {
   if (USE_SUPABASE) {
@@ -248,6 +284,30 @@ async function getPaymentLinkByToken(token: string) {
   }
   const res = await pgPool!.query('SELECT * FROM payment_links WHERE token = $1 LIMIT 1', [token]);
   return res.rows[0] ?? null;
+}
+
+// Payouts helpers
+async function createPayout(record: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payouts').insert([record]).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const query = `INSERT INTO payouts(seller_id, amount_cents, currency, method, destination, status, requested_at, processed_at, metadata, created_at, updated_at)
+    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW(),NOW()) RETURNING *`;
+  const values = [record.seller_id, record.amount_cents, record.currency || 'USDC', record.method, record.destination || null, record.status || 'requested', record.requested_at || null, record.processed_at || null, record.metadata || null];
+  const res = await pgPool!.query(query, values);
+  return res.rows[0];
+}
+
+async function listPayouts(seller_id: string, limit = 100) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payouts').select('*').eq('seller_id', seller_id).order('created_at', { ascending: false }).limit(limit);
+    if (error) throw error;
+    return data;
+  }
+  const res = await pgPool!.query('SELECT * FROM payouts WHERE seller_id = $1 ORDER BY created_at DESC LIMIT $2', [seller_id, limit]);
+  return res.rows;
 }
 
 // Reserve a quantity of an item atomically. Returns reservation record.
@@ -471,5 +531,71 @@ async function confirmReservationAndCreateSale(reservationId: string, opts?: { p
   }
 }
 
-export { createStoreItem, getStoreItemById, getStoreItemBySlug, reserveItem, getReservationById, confirmReservation, releaseReservation, confirmReservationAndCreateSale, createPaymentLink, getPaymentLinkByToken };
+// Payment links admin helpers
+async function listPaymentLinksBySeller(sellerId: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payment_links').select('*').eq('seller_id', sellerId).order('created_at', { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  }
+  const res = await pgPool!.query('SELECT * FROM payment_links WHERE seller_id = $1 ORDER BY created_at DESC', [sellerId]);
+  return res.rows;
+}
+
+async function getPaymentLinkById(id: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payment_links').select('*').eq('id', id).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM payment_links WHERE id = $1 LIMIT 1', [id]);
+  return res.rows[0] ?? null;
+}
+
+async function updatePaymentLink(id: string, updates: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payment_links').update(updates).eq('id', id).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const keys = Object.keys(updates || {});
+  if (keys.length === 0) return null;
+  const sets = keys.map((k, i) => `${k}=$${i+2}`).join(', ');
+  const values = [id, ...keys.map(k => updates[k])];
+  const res = await pgPool!.query(`UPDATE payment_links SET ${sets}, updated_at=NOW() WHERE id=$1 RETURNING *`, values);
+  return res.rows[0] ?? null;
+}
+
+async function expirePaymentLink(id: string) {
+  return updatePaymentLink(id, { expires_at: new Date().toISOString() });
+}
+
+export { createStoreItem, getStoreItemById, getStoreItemBySlug, reserveItem, getReservationById, confirmReservation, releaseReservation, confirmReservationAndCreateSale, createPaymentLink, getPaymentLinkByToken, createPayout, listPayouts, listPaymentLinksBySeller, getPaymentLinkById, updatePaymentLink, expirePaymentLink };
+
+// Update payout status and fields
+async function updatePayout(id: string, updates: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payouts').update(updates).eq('id', id).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const keys = Object.keys(updates || {});
+  if (keys.length === 0) return null;
+  const sets = keys.map((k, i) => `${k}=$${i+2}`).join(', ');
+  const values = [id, ...keys.map(k => updates[k])];
+  const res = await pgPool!.query(`UPDATE payouts SET ${sets}, updated_at=NOW() WHERE id=$1 RETURNING *`, values);
+  return res.rows[0] ?? null;
+}
+
+async function getPayoutById(id: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('payouts').select('*').eq('id', id).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM payouts WHERE id = $1 LIMIT 1', [id]);
+  return res.rows[0] ?? null;
+}
+
+export { updatePayout, getPayoutById };
 
