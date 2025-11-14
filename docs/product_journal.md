@@ -14,14 +14,14 @@ xsynesis is being built as a Stripe-like payments platform using Coinbase x402 (
 
 The codebase already contains the core backend primitives (reservations, payment attempts, settlements queue, worker, payouts/offramp and a buyer SDK). The Coinbase x402 CDP integration (see `core/facilitator`) is the primary facilitator adapter for settlement flows. Recent work implemented a public link resolver and a basic pay flow, standardized API surfaces to pages-based endpoints, and added an offramp (payouts) feature and a dev-settle simulator. Remaining work focuses on admin UX (payment links management), RBAC, idempotency, worker hardening, and CI packaging.
 
-Quick status: dev-settle ✓, public link resolver & pay flow ✓, payment-links schema + admin CRUD (partial — create + resolver done), payouts/offramp ✓, RBAC/Privy ✗, idempotency ✗, reservation reaper ✗, CI pnpm triage ✗.
+Quick status: dev-settle ✓, public link resolver & pay flow ✓, payment-links schema + admin CRUD ✓, payouts/offramp ✓, RBAC/Privy ✗, idempotency ✓, reservation reaper ✗, CI pnpm triage ✗.
 
 ## What we have (high level)
 
 - Core primitives: reservations, payment_attempts, settlements queue, settlement worker, and the atomic helper `confirmReservationAndCreateSale` (exists in `apps/lib/dbClient.ts`). Both Postgres and Supabase code paths are implemented; Postgres path uses transactions for atomicity.
 - Buyer SDK: EIP-712 signing helper and pay-and-fetch utilities in `sdk/client` and `sdk/*` examples (x402 client wrappers like `x402-fetch`/`x402-axios` are expected to work with the resolver).
 - Facilitator/settlement wiring: the worker calls a configured `FACILITATOR_URL` (`/settle` endpoint). The repo is ready to use Coinbase CDP via `@coinbase/x402` (examples and helper imports exist), but xsynesis currently posts to a configurable facilitator URL — Option B will wire `@coinbase/x402` directly into verify/settle helpers and the worker when CDP env vars are present.
-- Payment links: schema present (`db/migrations/006_payment_links.sql`), helpers in `apps/lib/dbClient.ts` (`createPaymentLink`, `getPaymentLinkByToken`), an admin create API (`apps/dashboard/pages/api/payment_links/create.ts`), and a public resolver API (`apps/dashboard/pages/api/link/[token].ts`) plus client page (`app/link/[token]/page.tsx`). The public resolver POST creates `payment_attempts` (Idempotency-Key is currently best-effort in payload only).
+- Payment links: schema present (`db/migrations/006_payment_links.sql`), helpers in `apps/lib/dbClient.ts` (`createPaymentLink`, `getPaymentLinkByToken`, `listPaymentLinksBySeller`, `getPaymentLinkById`, `updatePaymentLink`, `expirePaymentLink`), admin create API (`apps/dashboard/pages/api/payment_links/create.ts`), list/update/expire endpoints (`apps/dashboard/pages/api/payment_links/list.ts`, `update.ts`, `expire.ts`), dashboard UI component (`PaymentLinksManager.tsx`), and a public resolver API (`apps/dashboard/pages/api/link/[token].ts`) plus client page (`app/link/[token]/page.tsx`). Persistent idempotency via `idempotency_keys` table (`db/migrations/008_idempotency_keys.sql`) for replay protection on link POSTs.
 - Dev-settle simulator: dev-only flows and controls exist; the public UI currently prompts using dev-settle to complete a sale in development.
 - Offramp / payouts: migration (`db/migrations/007_payouts.sql`), DB helpers (`createPayout`, `listPayouts` in `apps/lib/dbClient.ts`), pages API and a basic dashboard panel implemented.
 - API surface: dashboard/admin endpoints standardized to Next.js pages APIs and protected wiring exists (`apps/lib/requireSellerAuth.ts`, `apps/lib/verifyPrivySession.ts`) though not all admin endpoints are wrapped yet.
@@ -38,6 +38,14 @@ Quick status: dev-settle ✓, public link resolver & pay flow ✓, payment-links
 
 ## What was done recently
 
+- **Task 4 (Payment Links Admin & Idempotency):** Completed admin CRUD endpoints and dashboard UI.
+  - Exported payment link CRUD helpers from `apps/lib/dbClient.ts`: `listPaymentLinksBySeller`, `getPaymentLinkById`, `updatePaymentLink`, `expirePaymentLink`.
+  - Created three admin pages API endpoints: `GET /api/payment_links/list` (returns seller's links), `POST /api/payment_links/update` (update metadata/price/currency/expiry with ownership validation), `POST /api/payment_links/expire` (mark link as expired).
+  - Added React component `PaymentLinksManager.tsx` for dashboard UI (list, inline edit, expire actions).
+  - Created dashboard page `/payment_links` to mount manager component.
+  - Implemented persistent idempotency via `idempotency_keys` table (migration 008) with dedup logic in public resolver.
+  - Added comprehensive test suite (7 tests) validating Privy authentication, authorization (seller ownership), and CRUD operations.
+  - All tests passing, no regressions (36 tests total).
 - Added `payment_links` schema and DB helpers; implemented admin create API and public resolver (`GET` + `POST`) that creates `payment_attempts` for a token. Public client page `app/link/[token]/page.tsx` was added and wired to POST attempts.
 - Implemented payouts/offramp end-to-end surface: migration, DB helpers, pages APIs, and a basic `PayoutsPanel` UI.
 - Added dev-settle simulator and dev-only dashboard controls to simulate settlement flows without an external facilitator (gated by env flag).
@@ -47,8 +55,7 @@ Quick status: dev-settle ✓, public link resolver & pay flow ✓, payment-links
 
 ## Remaining gaps / risks (focused)
 
-- Admin UX for payment links: list/update/expire endpoints + dashboard UI missing (in-progress).
-- Persistent idempotency for payment attempts (replay protection via Idempotency-Key storage) — not implemented.
+- Persistent idempotency for payment attempts: ✓ implemented via `idempotency_keys` table.
 - RBAC / server-side Privy verification for admin APIs — not implemented; must be added before exposing admin endpoints in staging/production.
 - Reservation reaper: background job to release expired reservations — not finalized.
 - Worker hardening: ensure safe claim semantics and idempotency when processing settlements (important for money-moving flows).
@@ -56,13 +63,15 @@ Quick status: dev-settle ✓, public link resolver & pay flow ✓, payment-links
 
 ## Short roadmap (next priorities)
 
-1) Finish Payment Links admin & idempotency (high impact):
-   - Add list/update/expire pages API and dashboard UI.
-   - Add persistent idempotency dedupe for link POSTs (table or unique constraint keyed by idempotency-key + seller).
-   - Acceptance: admin can CRUD links; repeated POSTs with same Idempotency-Key return same attempt.
+1) ✅ Payment Links admin & idempotency — **COMPLETED**.
+   - Admin CRUD endpoints (list, update, expire) with seller ownership validation.
+   - Dashboard UI component for managing links.
+   - Persistent idempotency via `idempotency_keys` table.
+   - Comprehensive test suite (7 tests) with Privy auth validation.
 
-2) RBAC / Privy server-side gating:
-   - Protect admin APIs (payment_links, items, activation codes) with `requireSellerAuth` and unit tests that mock Privy.
+2) RBAC / Privy server-side gating (next):
+   - Protect all admin APIs (payment_links, items, activation codes, payouts) with `requireSellerAuth` and unit tests that mock Privy.
+   - Acceptance: sellers can only act on their own resources; endpoints return 401 without auth, 403 for non-owners.
 
 3) Worker & reaper hardening:
    - Ensure worker claims via UPDATE ... RETURNING or SELECT FOR UPDATE SKIP LOCKED.
@@ -72,16 +81,16 @@ Quick status: dev-settle ✓, public link resolver & pay flow ✓, payment-links
    - Dashboard list of links, QR generator endpoint, `app/pos/[token]` minimal POS page.
    - Use dev-settle for demo flows in dev.
 
-Product vision note:
-- xsynesis will aim for feature parity with a minimal Stripe Connect-like experience for merchants: admin link creation, managed onboarding, per-seller payout destinations, and anti-fraud/reconciliation tools. We'll phase in compliance (KYC) and provider integrations for fiat rails after an initial pilot on x402 rails.
-
 5) CI & production readiness:
    - Resolve pnpm packaging issues, add gated integration tests for webhook->worker->confirm flows, and create a production checklist (monitoring/backups/KYC).
 
 ## Concrete next actions (what I'll do now / short term)
 
-- Implement Payment Links admin list + idempotency (I will proceed unless you ask otherwise). This includes adding a persistent idempotency store and dashboard list UI.
-- After that: wrap admin endpoints with `requireSellerAuth` and add unit tests for RBAC.
+- **Next: RBAC / Privy server-side gating (Task 7).** This is the logical next step to protect all admin APIs and ensure sellers can only access their own resources. The Privy integration is already validated (Task 4); now we need to apply `requireSellerAuth` systematically and add authorization tests.
+- Then: Worker hardening and reservation reaper (Task 8).
+
+Product vision note:
+- xsynesis will aim for feature parity with a minimal Stripe Connect-like experience for merchants: admin link creation, managed onboarding, per-seller payout destinations, and anti-fraud/reconciliation tools. We'll phase in compliance (KYC) and provider integrations for fiat rails after an initial pilot on x402 rails.
 
 ## How to run locally (short)
 
