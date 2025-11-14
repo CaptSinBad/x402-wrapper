@@ -1,11 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { listSettlements, updateSettlementToQueued } from '../../../../lib/dbClient';
-import { requireAuth } from '../../../../lib/requireSellerAuth';
+import { requireSellerAuth } from '../../../../lib/requireSellerAuth';
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method === 'GET') {
       // list recent settlements
+      // NOTE: In production, this should be restricted to super-admins or support users.
+      // Currently returns all settlements; consider filtering by seller_id for multi-tenant isolation.
       const limit = Number(req.query.limit || 100);
       const data = await listSettlements(limit);
       return res.status(200).json({ data });
@@ -31,4 +33,4 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 }
 
-export default requireAuth(handler);
+export default requireSellerAuth(handler as any) as any;
