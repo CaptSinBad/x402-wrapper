@@ -24,6 +24,11 @@ describe('dev settle simulator', () => {
       insertSettlement: mockInsertSettlement,
       insertPaymentLog: mockInsertPaymentLog,
     }));
+    // Mirror the mock for the repo-local import path the handler may use
+    vi.mock('/workspaces/xSynesis/apps/lib/dbClient', () => ({
+      insertSettlement: mockInsertSettlement,
+      insertPaymentLog: mockInsertPaymentLog,
+    }));
   });
 
   it('returns 403 when dev mode is disabled', async () => {

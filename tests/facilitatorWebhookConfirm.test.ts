@@ -34,6 +34,15 @@ describe('facilitator webhook -> confirm reservations', () => {
       insertSettlement: async () => ({ id: 's1' }),
       getOpenSettlementByPaymentAttempt: async () => null,
     }));
+    vi.mock('/workspaces/xSynesis/apps/lib/dbClient', () => ({
+      confirmReservationAndCreateSale: mockConfirmAndCreate,
+      releaseReservation: mockRelease,
+      getPaymentAttemptById: mockGetPaymentAttempt,
+      insertPaymentLog: mockInsertPaymentLog,
+      updatePaymentAttemptStatus: async () => ({}),
+      insertSettlement: async () => ({ id: 's1' }),
+      getOpenSettlementByPaymentAttempt: async () => null,
+    }));
   });
 
   it('confirms reservations and creates sales when settle indicates success', async () => {

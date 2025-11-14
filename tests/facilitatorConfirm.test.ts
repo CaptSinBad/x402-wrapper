@@ -33,6 +33,16 @@ describe('facilitator webhook reservation confirmation', () => {
       insertSettlement: async () => ({ id: 's1' }),
       getOpenSettlementByPaymentAttempt: async () => null,
     }));
+    // Also mock the repo-local path the handler uses to import the DB client
+    vi.mock('/workspaces/xSynesis/apps/lib/dbClient', () => ({
+      confirmReservationAndCreateSale: mockConfirmAndCreate,
+      releaseReservation: mockRelease,
+      getPaymentAttemptById: mockGetPaymentAttempt,
+      insertPaymentLog: mockInsertPaymentLog,
+      updatePaymentAttemptStatus: async () => ({}),
+      insertSettlement: async () => ({ id: 's1' }),
+      getOpenSettlementByPaymentAttempt: async () => null,
+    }));
   });
 
   it('calls confirmReservationAndCreateSale for each reservation when settle indicates success', async () => {

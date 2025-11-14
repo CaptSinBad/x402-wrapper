@@ -21,11 +21,16 @@ describe('facilitator /settle deduplication', () => {
     mockInsertSettlement.mockClear();
     mockInsertPaymentLog.mockClear();
     mockGetOpen.mockClear();
-    vi.mock('/workspaces/x402-wrapper/apps/lib/dbClient', () => ({
+      vi.mock('/workspaces/x402-wrapper/apps/lib/dbClient', () => ({
       insertSettlement: mockInsertSettlement,
       insertPaymentLog: mockInsertPaymentLog,
       getOpenSettlementByPaymentAttempt: mockGetOpen,
     }));
+      vi.mock('/workspaces/xSynesis/apps/lib/dbClient', () => ({
+        insertSettlement: mockInsertSettlement,
+        getOpenSettlementByPaymentAttempt: mockGetOpen,
+        insertPaymentLog: mockInsertPaymentLog,
+      }));
   });
 
   it('skips inserting when an open settlement exists for the attempt', async () => {

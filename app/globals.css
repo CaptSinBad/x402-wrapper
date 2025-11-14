@@ -1,0 +1,62 @@
+/* Basic global styles to improve the demo UI */
+:root{
+  --bg:#f7fafc;
+  --muted:#6b7280;
+  --accent:#06b6d4;
+  --accent-dark:#036b73;
+  --card:#ffffff;
+  --header-bg:#0f172a;
+}
+
+html,body,#root{
+  height:100%;
+}
+
+body{
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  margin:0;
+  padding:0;
+  background:var(--bg);
+  color:#03203a;
+}
+
+.site-header{
+  background:var(--header-bg);
+  color:#fff;
+  padding:12px 24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.site-brand{ display:flex; align-items:center; gap:16px }
+.brand-link{ color:#fff; text-decoration:none; font-weight:700; font-size:18px }
+.site-nav{ display:flex; gap:8px }
+.nav-link{ color:#cbd5e1; text-decoration:none; padding:6px 10px; border-radius:6px }
+
+.cta{
+  background:var(--accent);
+  color:#04243a;
+  padding:8px 12px;
+  border-radius:6px;
+  text-decoration:none;
+  font-weight:600;
+}
+
+.main-container{
+  padding:24px;
+  max-width:1100px;
+  margin:24px auto;
+}
+
+.site-footer{ padding:24px; text-align:center; color:var(--muted) }
+
+/* Utility cards */
+.card{ background:var(--card); border-radius:10px; padding:16px; box-shadow:0 1px 4px rgba(3,12,34,0.06) }
+
+button{ cursor:pointer }
+
+@media (max-width:700px){
+  .site-nav{ display:none }
+  .main-container{ padding:16px }
+}

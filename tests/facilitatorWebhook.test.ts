@@ -34,6 +34,14 @@ vi.mock('/workspaces/x402-wrapper/apps/lib/dbClient', () => ({
   confirmReservation: mockConfirmReservation,
   releaseReservation: mockReleaseReservation,
 }));
+vi.mock('/workspaces/xSynesis/apps/lib/dbClient', () => ({
+  updatePaymentAttemptStatus: mockUpdatePaymentAttemptStatus,
+  insertSettlement: mockInsertSettlement,
+  insertPaymentLog: mockInsertPaymentLog,
+  getPaymentAttemptById: mockGetPaymentAttemptById,
+  confirmReservation: mockConfirmReservation,
+  releaseReservation: mockReleaseReservation,
+}));
 
 describe('facilitator webhook HMAC verification', () => {
   beforeEach(() => {
