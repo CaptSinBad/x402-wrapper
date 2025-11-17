@@ -9,7 +9,9 @@ export default function PrivyClientProvider({ children }: { children: React.Reac
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
       config={{ loginMethods: ['wallet'], appearance: { theme: 'light' } }}
     >
-      {children}
+      <React.Fragment key="privy-children">
+        {children}
+      </React.Fragment>
     </PrivyProvider>
   );
 }
