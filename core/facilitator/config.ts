@@ -21,7 +21,35 @@ export type FacilitatorConfig = {
 };
 
 const KNOWN_FACILITATORS: Record<string, FacilitatorConfig> = {
-  // public Coinbase-hosted example (discovered previously)
+  // Coinbase CDP x402 Facilitator (mainnet)
+  "coinbase-cdp": {
+    name: "Coinbase CDP (Mainnet)",
+    baseUrl: "https://api.coinbase.com/v1/x402",
+    network: "base",
+    paths: {
+      supported: "/supported",
+      test: "/test",
+      verify: "/verify",
+      settle: "/settle",
+    },
+    timeoutSeconds: 15,
+  },
+  
+  // Public x402 Facilitator (testnet)
+  "x402.org": {
+    name: "x402.org (Testnet)",
+    baseUrl: "https://x402.org/facilitator",
+    network: "base-sepolia",
+    paths: {
+      supported: "/supported",
+      test: "/test",
+      verify: "/verify",
+      settle: "/settle",
+    },
+    timeoutSeconds: 10,
+  },
+
+  // OKX X Layer (alternative testnet)
   "open.x402.host/xlayer": {
     name: "open.x402.host/xlayer",
     baseUrl: "https://open.x402.host/xlayer",
@@ -39,38 +67,48 @@ const KNOWN_FACILITATORS: Record<string, FacilitatorConfig> = {
 /**
  * Return the primary facilitator config.
  * Resolution order:
- *  - If FACILITATOR_URL env var set, use that with sane defaults.
- *  - Else, if KNOWN_FACILITATORS contains FACILITATOR_KEY env var, use it.
- *  - Else fall back to the built-in `open.x402.host/xlayer` example.
+ *  1. If FACILITATOR_URL env var set, use that with sane defaults.
+ *  2. Else, if KNOWN_FACILITATORS contains FACILITATOR_KEY env var, use it.
+ *  3. Else fall back to x402.org for testnet development.
+ * 
+ * For production (CDP):
+ *   Set FACILITATOR_URL=https://api.coinbase.com/v1/x402
+ *   and CDP_API_KEY_ID + CDP_API_KEY_SECRET
+ * 
+ * For testnet (Free):
+ *   Set FACILITATOR_URL=https://x402.org/facilitator
  */
 export function loadFacilitatorConfig(): FacilitatorConfig {
   const envUrl = process.env.FACILITATOR_URL?.trim();
   const envNetwork = process.env.NETWORK?.trim();
   const envKey = process.env.FACILITATOR_KEY?.trim();
 
+  // Priority 1: Explicit FACILITATOR_URL
   if (envUrl) {
-    // Normalize a few common patterns: allow trailing slash
-    const normalized = envUrl.replace(/\/+$/, "");
     return {
-      name: normalized,
-      baseUrl: normalized,
-      network: envNetwork || undefined,
+      name: "Custom Facilitator",
+      baseUrl: envUrl,
+      network: envNetwork || "base",
       paths: {
         supported: "/supported",
         test: "/test",
         verify: "/verify",
         settle: "/settle",
       },
-      timeoutSeconds: 10,
+      timeoutSeconds: 15,
     };
   }
 
+  // Priority 2: Known facilitator key
   if (envKey && KNOWN_FACILITATORS[envKey]) {
     return KNOWN_FACILITATORS[envKey];
   }
 
-  // default fallback
-  return KNOWN_FACILITATORS["open.x402.host/xlayer"];
+  // Priority 3: Default to x402.org for local development
+  const defaultFacilitator = KNOWN_FACILITATORS["x402.org"];
+  if (!defaultFacilitator) throw new Error("Default facilitator config not found");
+  
+  return defaultFacilitator;
 }
 
 /**

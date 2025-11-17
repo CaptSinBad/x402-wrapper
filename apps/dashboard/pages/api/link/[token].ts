@@ -9,6 +9,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const link = await db.getPaymentLinkByToken(String(token));
     if (!link) return res.status(404).json({ error: 'not_found' });
 
+    // Check if link has expired
+    if (link.expires_at) {
+      const expiresAt = new Date(link.expires_at);
+      if (expiresAt <= new Date()) {
+        return res.status(410).json({ error: 'link_expired', expires_at: link.expires_at });
+      }
+    }
+
     if (req.method === 'GET') {
       return res.status(200).json({ ok: true, link });
     }

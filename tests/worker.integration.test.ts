@@ -159,3 +159,84 @@ const shouldRunIntegration = process.env.RUN_WORKER_INTEGRATION === 'true';
   // Verify facilitator received the request
   expect(responses.length).toBeGreaterThan(0);
 });
+
+(shouldRunIntegration ? test : test.skip)('worker claim semantics prevent concurrent processing (RUN_ONCE)', async () => {
+  // This test verifies that when two workers try to claim the same settlement simultaneously,
+  // only one succeeds due to the UPDATE WHERE status condition
+  
+  // Create a settlement row
+  let settlementId = '';
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase
+      .from('settlements')
+      .insert([{
+        payment_attempt_id: `concurrency-test-${Date.now()}`,
+        facilitator_request: { test: 'data' },
+        status: 'queued',
+        attempts: 0,
+      }])
+      .select();
+    if (error) throw error;
+    settlementId = data[0].id;
+  } else {
+    const res = await pg.query(
+      `INSERT INTO settlements(payment_attempt_id, facilitator_request, status, attempts, created_at, updated_at)
+       VALUES($1, $2, $3, $4, NOW(), NOW())
+       RETURNING id`,
+      [`concurrency-test-${Date.now()}`, JSON.stringify({ test: 'data' }), 'queued', 0]
+    );
+    settlementId = res.rows[0].id;
+  }
+
+  // Simulate two workers attempting to claim the same settlement
+  const claimAttempts = async () => {
+    const workerId1 = `worker-1-${Date.now()}`;
+    const workerId2 = `worker-2-${Date.now()}`;
+
+    let claim1Success = false;
+    let claim2Success = false;
+
+    if (USE_SUPABASE) {
+      // First worker claims
+      const claimResp1 = await supabase
+        .from('settlements')
+        .update({ status: 'in_progress', locked_by: workerId1, locked_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .match({ id: settlementId, status: 'queued' })
+        .select();
+      claim1Success = claimResp1.data && claimResp1.data.length > 0;
+
+      // Second worker attempts to claim (should fail)
+      const claimResp2 = await supabase
+        .from('settlements')
+        .update({ status: 'in_progress', locked_by: workerId2, locked_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .match({ id: settlementId, status: 'queued' })
+        .select();
+      claim2Success = claimResp2.data && claimResp2.data.length > 0;
+    } else {
+      // First worker claims
+      const res1 = await pg.query(
+        `UPDATE settlements SET status='in_progress', locked_by=$1, locked_at=NOW(), updated_at=NOW() 
+         WHERE id=$2 AND status=$3 RETURNING *`,
+        [workerId1, settlementId, 'queued']
+      );
+      claim1Success = res1.rowCount > 0;
+
+      // Second worker attempts to claim (should fail because status is now 'in_progress')
+      const res2 = await pg.query(
+        `UPDATE settlements SET status='in_progress', locked_by=$1, locked_at=NOW(), updated_at=NOW() 
+         WHERE id=$2 AND status=$3 RETURNING *`,
+        [workerId2, settlementId, 'queued']
+      );
+      claim2Success = res2.rowCount > 0;
+    }
+
+    return { claim1Success, claim2Success };
+  };
+
+  const { claim1Success, claim2Success } = await claimAttempts();
+  
+  // Verify exactly one worker claimed the settlement
+  expect(claim1Success).toBe(true);
+  expect(claim2Success).toBe(false);
+});
+

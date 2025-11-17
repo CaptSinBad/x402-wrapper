@@ -11,6 +11,7 @@ Run: SUPABASE_SERVICE_KEY and NEXT_PUBLIC_SUPABASE_URL and FACILITATOR_URL must 
 
 const { createClient } = require('@supabase/supabase-js');
 const { Client: PgClient } = require('pg');
+const { triggerWebhookEvent } = require('../apps/lib/webhookDispatcher');
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
@@ -171,6 +172,59 @@ async function processOne(settlement) {
       }
     } catch (logErr) {
       console.error('failed to write payment_logs', logErr);
+    }
+
+    // Emit webhook events on success
+    if (success) {
+      try {
+        // Get seller ID from settlement or payment requirements
+        const sellerId = settlement?.seller_id || reqBody?.paymentRequirements?.pay_to || json?.payer || null;
+        const amountCents = reqBody?.paymentRequirements?.maxAmountRequired || null;
+        const asset = reqBody?.paymentRequirements?.asset || 'USDC';
+        const paymentAttemptId = settlement?.payment_attempt_id || reqBody?.paymentRequirements?.attempt_id || null;
+
+        if (sellerId) {
+          // Emit settlement.confirmed event
+          await triggerWebhookEvent(db || supabase, {
+            event_type: 'settlement.confirmed',
+            seller_id: sellerId,
+            resource_type: 'settlement',
+            resource_id: id,
+            payload: {
+              settlement_id: id,
+              payment_attempt_id: paymentAttemptId,
+              amount_cents: amountCents,
+              currency: asset,
+              status: 'confirmed',
+              tx_hash: txHash,
+              facilitator_response: json,
+            },
+            timestamp: new Date().toISOString(),
+          });
+
+          // Emit payment.completed event
+          if (paymentAttemptId) {
+            await triggerWebhookEvent(db || supabase, {
+              event_type: 'payment.completed',
+              seller_id: sellerId,
+              resource_type: 'payment_attempt',
+              resource_id: paymentAttemptId,
+              payload: {
+                payment_attempt_id: paymentAttemptId,
+                amount_cents: amountCents,
+                currency: asset,
+                purchaser_address: json?.payer || null,
+                status: 'completed',
+                tx_hash: txHash,
+              },
+              timestamp: new Date().toISOString(),
+            });
+          }
+        }
+      } catch (webhookErr) {
+        // Log but don't fail settlement on webhook errors
+        console.error('failed to emit webhook events for settlement', id, webhookErr);
+      }
     }
 
     // After recording settlement, confirm or release reservations if present in the payment attempt

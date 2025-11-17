@@ -599,3 +599,144 @@ async function getPayoutById(id: string) {
 
 export { updatePayout, getPayoutById };
 
+// ============================================================
+// Webhook functions
+// ============================================================
+
+async function createWebhookSubscription(record: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('webhook_subscriptions').insert([record]).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const query = `INSERT INTO webhook_subscriptions(seller_id, url, events, active, secret, metadata)
+    VALUES($1,$2,$3,$4,$5,$6) RETURNING *`;
+  const values = [record.seller_id, record.url, record.events || [], true, record.secret, record.metadata || {}];
+  const res = await pgPool!.query(query, values);
+  return res.rows[0];
+}
+
+async function getWebhookSubscription(id: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('webhook_subscriptions').select('*').eq('id', id).limit(1);
+    if (error) throw error;
+    return (data && data.length > 0) ? data[0] : null;
+  }
+  const res = await pgPool!.query('SELECT * FROM webhook_subscriptions WHERE id = $1 LIMIT 1', [id]);
+  return res.rows[0] ?? null;
+}
+
+async function listWebhookSubscriptions(sellerId: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('webhook_subscriptions').select('*').eq('seller_id', sellerId).order('created_at', { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  }
+  const res = await pgPool!.query('SELECT * FROM webhook_subscriptions WHERE seller_id = $1 ORDER BY created_at DESC', [sellerId]);
+  return res.rows;
+}
+
+async function updateWebhookSubscription(id: string, updates: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('webhook_subscriptions').update(updates).eq('id', id).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const keys = Object.keys(updates || {});
+  if (keys.length === 0) return null;
+  const sets = keys.map((k, i) => `${k}=$${i+2}`).join(', ');
+  const values = [id, ...keys.map(k => updates[k])];
+  const res = await pgPool!.query(`UPDATE webhook_subscriptions SET ${sets}, updated_at=NOW() WHERE id=$1 RETURNING *`, values);
+  return res.rows[0] ?? null;
+}
+
+async function deleteWebhookSubscription(id: string) {
+  if (USE_SUPABASE) {
+    const { error } = await supabase.from('webhook_subscriptions').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  }
+  const res = await pgPool!.query('DELETE FROM webhook_subscriptions WHERE id = $1', [id]);
+  return res.rowCount ?? 0 > 0;
+}
+
+async function createWebhookEvent(record: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('webhook_events').insert([record]).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const query = `INSERT INTO webhook_events(event_type, seller_id, resource_type, resource_id, payload)
+    VALUES($1,$2,$3,$4,$5) RETURNING *`;
+  const values = [record.event_type, record.seller_id, record.resource_type, record.resource_id, JSON.stringify(record.payload || {})];
+  const res = await pgPool!.query(query, values);
+  return res.rows[0];
+}
+
+async function getWebhookSubscriptionsForEvent(sellerId: string, eventType: string) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('webhook_subscriptions')
+      .select('*')
+      .eq('seller_id', sellerId)
+      .eq('active', true)
+      .or(`events.is.null,events.cs.${JSON.stringify([eventType])}`);
+    if (error) throw error;
+    return data ?? [];
+  }
+  const res = await pgPool!.query(
+    `SELECT * FROM webhook_subscriptions 
+     WHERE seller_id = $1 AND active = true AND (events IS NULL OR $2 = ANY(events))`,
+    [sellerId, eventType]
+  );
+  return res.rows;
+}
+
+async function createWebhookDelivery(record: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('webhook_deliveries').insert([record]).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const query = `INSERT INTO webhook_deliveries(webhook_subscription_id, webhook_event_id, status, next_retry_at)
+    VALUES($1,$2,$3,$4) RETURNING *`;
+  const retryAt = new Date(Date.now() + 5000); // First retry in 5 seconds
+  const values = [record.webhook_subscription_id, record.webhook_event_id, 'pending', retryAt];
+  const res = await pgPool!.query(query, values);
+  return res.rows[0];
+}
+
+async function getWebhookDeliveriesPending(limit = 10) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('webhook_deliveries')
+      .select('*')
+      .in('status', ['pending', 'retry'])
+      .lte('next_retry_at', new Date().toISOString())
+      .order('created_at', { ascending: true })
+      .limit(limit);
+    if (error) throw error;
+    return data ?? [];
+  }
+  const res = await pgPool!.query(
+    `SELECT * FROM webhook_deliveries 
+     WHERE status IN ('pending', 'retry') AND (next_retry_at IS NULL OR next_retry_at <= NOW())
+     ORDER BY created_at ASC LIMIT $1`,
+    [limit]
+  );
+  return res.rows;
+}
+
+async function updateWebhookDelivery(id: string, updates: any) {
+  if (USE_SUPABASE) {
+    const { data, error } = await supabase.from('webhook_deliveries').update(updates).eq('id', id).select();
+    if (error) throw error;
+    return data?.[0] ?? null;
+  }
+  const keys = Object.keys(updates || {});
+  if (keys.length === 0) return null;
+  const sets = keys.map((k, i) => `${k}=$${i+2}`).join(', ');
+  const values = [id, ...keys.map(k => updates[k])];
+  const res = await pgPool!.query(`UPDATE webhook_deliveries SET ${sets}, updated_at=NOW() WHERE id=$1 RETURNING *`, values);
+  return res.rows[0] ?? null;
+}
+
+export { createWebhookSubscription, getWebhookSubscription, listWebhookSubscriptions, updateWebhookSubscription, deleteWebhookSubscription, createWebhookEvent, getWebhookSubscriptionsForEvent, createWebhookDelivery, getWebhookDeliveriesPending, updateWebhookDelivery };

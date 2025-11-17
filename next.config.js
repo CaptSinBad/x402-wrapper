@@ -21,4 +21,29 @@ try {
 /** @type {import('next').NextConfig} */
 module.exports = {
   reactStrictMode: true,
+  typescript: {
+    tsconfigPath: './tsconfig.json',
+  },
+  experimental: {
+    optimizePackageImports: ['@privy-io/react-auth', '@privy-io/server-auth'],
+  },
+  turbopack: {},
+  webpack: (config, { isServer }) => {
+    // Exclude test files from node_modules to prevent build failures
+    config.watchOptions = {
+      ignored: ['**/node_modules/**', '**/.next/**'],
+    };
+    // Add additional excludes for problematic test files
+    config.module.rules.push({
+      test: /node_modules\/(thread-stream|pino)\/test/,
+      use: 'ignore-loader',
+    });
+    // Also exclude test files in general from pino
+    config.module.rules.push({
+      test: /node_modules\/thread-stream\/test\//,
+      use: 'ignore-loader',
+    });
+    return config;
+  },
 };
+

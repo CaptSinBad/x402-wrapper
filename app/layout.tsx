@@ -5,7 +5,7 @@ import './globals.css';
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body suppressHydrationWarning>
         <header className="site-header">
           <div className="site-brand">
             <Link href="/" className="brand-link">xSynesis</Link>
