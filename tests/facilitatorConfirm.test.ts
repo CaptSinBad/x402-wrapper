@@ -24,7 +24,7 @@ describe('facilitator webhook reservation confirmation', () => {
     mockGetPaymentAttempt.mockClear();
     mockInsertPaymentLog.mockClear();
     process.env.FACILITATOR_WEBHOOK_SECRET = 'test-secret-xyz';
-    vi.mock('/workspaces/x402-wrapper/apps/lib/dbClient', () => ({
+    vi.mock('/workspaces/xSynesis/apps/lib/dbClient', () => ({
       confirmReservationAndCreateSale: mockConfirmAndCreate,
       releaseReservation: mockRelease,
       getPaymentAttemptById: mockGetPaymentAttempt,
@@ -69,7 +69,7 @@ describe('facilitator webhook reservation confirmation', () => {
     const res = mockRes();
     await handler(req, res);
   await new Promise((r) => setTimeout(r, 0));
-  const db = await import('/workspaces/x402-wrapper/apps/lib/dbClient');
+  const db = await import('/workspaces/xSynesis/apps/lib/dbClient');
   expect(res._status).toBe(200);
     // confirmReservationAndCreateSale should be called twice for the two reservations
     expect(db.confirmReservationAndCreateSale).toHaveBeenCalledTimes(2);
@@ -101,7 +101,7 @@ describe('facilitator webhook reservation confirmation', () => {
     const res = mockRes();
     await handler(req, res);
 
-    const db = await import('/workspaces/x402-wrapper/apps/lib/dbClient');
+    const db = await import('/workspaces/xSynesis/apps/lib/dbClient');
     expect(res._status).toBe(200);
     expect(db.releaseReservation).toHaveBeenCalledTimes(2);
   });

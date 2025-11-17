@@ -1,0 +1,9 @@
+ignoredBuiltDependencies:
+  - '@coinbase/x402'
+  - '@reown/appkit'
+  - bufferutil
+  - esbuild
+  - facilitators
+  - keccak
+  - sharp
+  - utf-8-validate

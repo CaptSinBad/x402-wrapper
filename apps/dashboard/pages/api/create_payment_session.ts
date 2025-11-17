@@ -10,11 +10,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const body = req.body || {};
     const { endpoint_id, endpoint_url, client_ip } = body;
 
+    // Validate that at least one identifier is provided
+    if (!endpoint_id && !endpoint_url) {
+      return res.status(400).json({ error: 'missing_endpoint_identifier', detail: 'Provide either endpoint_id or endpoint_url' });
+    }
+
     let endpoint: any = null;
     if (endpoint_id) endpoint = await getSellerEndpointById(endpoint_id);
     else if (endpoint_url) endpoint = await getSellerEndpointByUrl(endpoint_url);
 
     if (!endpoint) return res.status(404).json({ error: 'endpoint_not_found' });
+
+    // Validate endpoint has required fields
+    if (!endpoint.price && (!Array.isArray(body.items) || body.items.length === 0)) {
+      return res.status(400).json({ error: 'invalid_endpoint', detail: 'Endpoint has no price and no items provided' });
+    }
 
     // Build paymentRequirements according to x402 expected shape
     const facilitatorCfg = loadFacilitatorConfig();

@@ -23,4 +23,24 @@ services:
       - .env.server
     restart: unless-stopped
 
+  webhook-dispatcher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: node scripts/webhookDispatcher.js
+    env_file:
+      - .env.server
+    environment:
+      WEBHOOK_DISPATCHER_ENABLED: 'true'
+      WEBHOOK_BATCH_SIZE: '10'
+      WEBHOOK_POLL_INTERVAL_MS: '30000'
+    depends_on:
+      - web
+    restart: unless-stopped
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
 volumes: {}

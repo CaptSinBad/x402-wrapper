@@ -3,8 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function LinkPage({ params }: { params: { token: string } }) {
-  const { token } = params;
+type Params = Promise<{ token: string }>;
+
+export default function LinkPage({ params }: { params: Params }) {
+  const [paramData, setParamData] = useState<{ token: string } | null>(null);
   const [link, setLink] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
@@ -12,10 +14,16 @@ export default function LinkPage({ params }: { params: { token: string } }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Unwrap params promise
+    Promise.resolve(params).then(p => setParamData(p));
+  }, [params]);
+
+  useEffect(() => {
+    if (!paramData) return;
     const fetchLink = async () => {
       setLoading(true);
       try {
-        const resp = await fetch(`/api/link/${token}`);
+        const resp = await fetch(`/api/link/${paramData.token}`);
         const json = await resp.json();
         if (resp.ok) setLink(json.link);
         else setMessage(json.error || 'Failed to load link');
@@ -24,14 +32,14 @@ export default function LinkPage({ params }: { params: { token: string } }) {
       } finally { setLoading(false); }
     };
     fetchLink();
-  }, [token]);
+  }, [paramData]);
 
   const doPay = async () => {
-    if (!link) return;
+    if (!link || !paramData) return;
     setPaying(true);
     setMessage(null);
     try {
-      const resp = await fetch(`/api/link/${token}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `link-${token}-${Date.now()}` }, body: JSON.stringify({}) });
+      const resp = await fetch(`/api/link/${paramData.token}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': `link-${paramData.token}-${Date.now()}` }, body: JSON.stringify({}) });
       const json = await resp.json();
       if (resp.ok) {
         setMessage('Payment attempt created. Use dev-settle to complete the sale in development.');

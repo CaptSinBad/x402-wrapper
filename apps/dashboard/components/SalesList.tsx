@@ -44,43 +44,53 @@ export default function SalesList() {
     fetchSales();
   }, [user?.wallet?.address]);
 
-  if (!user?.wallet?.address) return <p className="text-gray-500">Connect your wallet to view sales.</p>;
+  if (!user?.wallet?.address) return <p style={{ color: '#666', fontSize: 14, marginTop: 8 }}>Connect your wallet to view sales.</p>;
 
   return (
-    <div className="mt-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Sales</h2>
+    <div style={{ marginTop: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0, color: '#24292f' }}>Sales</h3>
         <div>
-          <a href="/api/sales?export=csv" className="text-sm text-blue-600 hover:underline">Export CSV</a>
+          <a 
+            href="/api/sales?export=csv" 
+            style={{ fontSize: 13, color: '#0366d6', textDecoration: 'none' }}
+            onMouseOver={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+            onMouseOut={(e) => (e.currentTarget.style.textDecoration = 'none')}
+          >
+            Export CSV
+          </a>
         </div>
       </div>
 
-      {loading ? <p>Loading…</p> : (
-        <div className="space-y-2">
-          {sales.length === 0 ? <p className="text-gray-500">No sales yet.</p> : (
-            <table className="w-full table-auto border-collapse">
-              <thead>
-                <tr className="text-left">
-                  <th className="p-2">When</th>
-                  <th className="p-2">Item</th>
-                  <th className="p-2">Qty</th>
-                  <th className="p-2">Amount</th>
-                  <th className="p-2">Buyer</th>
-                  
-                </tr>
-              </thead>
-              <tbody>
-                {sales.map(s => (
-                  <tr key={s.id} className="border-t">
-                    <td className="p-2 text-sm">{new Date(s.created_at).toLocaleString()}</td>
-                    <td className="p-2 text-sm">{s.item_title ?? s.item_id ?? '—'}</td>
-                    <td className="p-2 text-sm">{s.qty}</td>
-                    <td className="p-2 text-sm">{(s.amount_cents/100).toFixed(2)} {s.currency}</td>
-                    <td className="p-2 text-sm">{s.purchaser_address ?? '—'}</td>
+      {loading ? <p style={{ color: '#666' }}>Loading…</p> : (
+        <div>
+          {sales.length === 0 ? (
+            <p style={{ color: '#666', fontSize: 14, padding: 12, background: '#f6f8fa', borderRadius: 6 }}>No sales yet.</p>
+          ) : (
+            <div style={{ overflowX: 'auto', border: '1px solid #e1e4e8', borderRadius: 6 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#f6f8fa', borderBottom: '1px solid #e1e4e8' }}>
+                    <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>When</th>
+                    <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>Item</th>
+                    <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>Qty</th>
+                    <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>Amount</th>
+                    <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>Buyer</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {sales.map(s => (
+                    <tr key={s.id} style={{ borderBottom: '1px solid #e1e4e8', transition: 'background-color 0.2s' }}>
+                      <td style={{ padding: 12, fontSize: 13, color: '#24292f' }}>{new Date(s.created_at).toLocaleString()}</td>
+                      <td style={{ padding: 12, fontSize: 13, color: '#24292f', fontFamily: 'monospace' }}>{s.item_title ?? s.item_id ?? '—'}</td>
+                      <td style={{ padding: 12, fontSize: 13, color: '#24292f', textAlign: 'center' }}>{s.qty}</td>
+                      <td style={{ padding: 12, fontSize: 13, color: '#24292f', fontWeight: 600 }}>{(s.amount_cents/100).toFixed(2)} {s.currency}</td>
+                      <td style={{ padding: 12, fontSize: 13, color: '#24292f', fontFamily: 'monospace' }}>{s.purchaser_address ? `${s.purchaser_address.slice(0, 6)}...${s.purchaser_address.slice(-4)}` : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

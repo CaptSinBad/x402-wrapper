@@ -55,42 +55,70 @@ export default function SettlementsList() {
   }
 
   return (
-    <div>
-      <h2>Settlements</h2>
-      {loading && <div>Loading...</div>}
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Status</th>
-            <th>Attempts</th>
-            <th>tx_hash</th>
-            <th>Last error</th>
-            <th>Created</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id} style={{ borderTop: '1px solid #ddd' }}>
-              <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r.id}</td>
-              <td>{r.status}</td>
-              <td>{r.attempts ?? 0}</td>
-              <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{r.tx_hash ?? '-'}</td>
-              <td style={{ color: 'crimson' }}>{r.last_error ?? '-'}</td>
-              <td>{r.created_at ? new Date(r.created_at).toLocaleString() : '-'}</td>
-              <td>
-                {r.status !== 'queued' && (
-                  <button onClick={() => retryRow(r.id)} style={{ marginRight: 8 }}>
-                    Retry
-                  </button>
-                )}
-              </td>
+    <div style={{ padding: 0 }}>
+      <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16, color: '#24292f' }}>Settlements</h2>
+      {loading && <div style={{ color: '#666', fontSize: 14, padding: 12 }}>Loading...</div>}
+      {error && <div style={{ color: '#d1242f', background: '#fee', padding: 12, borderRadius: 6, borderLeft: '4px solid #d1242f', fontSize: 14, marginBottom: 12 }}>{error}</div>}
+      <div style={{ overflowX: 'auto', border: '1px solid #e1e4e8', borderRadius: 6 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f6f8fa', borderBottom: '1px solid #e1e4e8' }}>
+              <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>ID</th>
+              <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>Status</th>
+              <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>Attempts</th>
+              <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>TX Hash</th>
+              <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>Last Error</th>
+              <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>Created</th>
+              <th style={{ padding: 12, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#666', textTransform: 'uppercase' }}>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id} style={{ borderBottom: '1px solid #e1e4e8', transition: 'background-color 0.2s' }}>
+                <td style={{ fontFamily: 'monospace', fontSize: 12, padding: 12, color: '#0366d6' }}>{r.id}</td>
+                <td style={{ padding: 12, fontSize: 13 }}>
+                  <span style={{ 
+                    background: r.status === 'confirmed' ? '#d4edda' : r.status === 'failed' ? '#f8d7da' : '#fff3cd', 
+                    color: r.status === 'confirmed' ? '#155724' : r.status === 'failed' ? '#721c24' : '#856404',
+                    padding: '2px 8px',
+                    borderRadius: 3,
+                    fontSize: 12,
+                    fontWeight: 500
+                  }}>
+                    {r.status}
+                  </span>
+                </td>
+                <td style={{ padding: 12, fontSize: 13, textAlign: 'center' }}>{r.attempts ?? 0}</td>
+                <td style={{ fontFamily: 'monospace', fontSize: 12, padding: 12, color: '#666' }}>{r.tx_hash ?? '-'}</td>
+                <td style={{ padding: 12, fontSize: 12, color: '#d1242f', fontFamily: 'monospace', wordBreak: 'break-all', maxWidth: 200 }}>{r.last_error ?? '-'}</td>
+                <td style={{ padding: 12, fontSize: 13 }}>{r.created_at ? new Date(r.created_at).toLocaleString() : '-'}</td>
+                <td style={{ padding: 12 }}>
+                  {r.status !== 'queued' && (
+                    <button 
+                      onClick={() => retryRow(r.id)} 
+                      style={{ 
+                        padding: '6px 12px',
+                        background: '#0366d6',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 4,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseOver={(e) => (e.currentTarget.style.background = '#0256c7')}
+                      onMouseOut={(e) => (e.currentTarget.style.background = '#0366d6')}
+                    >
+                      Retry
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

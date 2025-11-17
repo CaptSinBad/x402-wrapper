@@ -1,10 +1,11 @@
 import React from 'react';
 import PosClient from './client';
 
-type Props = { params: { token: string } };
+type Params = Promise<{ token: string }>;
+type Props = { params: Params };
 
 export default async function Page({ params }: Props) {
-  const token = params.token;
+  const { token } = await params;
   const base = process.env.NEXT_PUBLIC_BASE_URL || '';
   try {
     const res = await fetch(`${base || ''}/api/link/${encodeURIComponent(token)}`, { cache: 'no-store' });

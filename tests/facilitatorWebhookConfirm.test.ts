@@ -25,7 +25,7 @@ describe('facilitator webhook -> confirm reservations', () => {
     mockGetPaymentAttempt.mockClear();
     mockInsertPaymentLog.mockClear();
 
-    vi.mock('/workspaces/x402-wrapper/apps/lib/dbClient', () => ({
+    vi.mock('/workspaces/xSynesis/apps/lib/dbClient', () => ({
       confirmReservationAndCreateSale: mockConfirmAndCreate,
       releaseReservation: mockRelease,
       getPaymentAttemptById: mockGetPaymentAttempt,
@@ -70,7 +70,7 @@ describe('facilitator webhook -> confirm reservations', () => {
 
     await handler(req, res);
 
-  const db = await import('/workspaces/x402-wrapper/apps/lib/dbClient');
+  const db = await import('/workspaces/xSynesis/apps/lib/dbClient');
   expect(res._status).toBe(200);
   expect(db.getPaymentAttemptById).toHaveBeenCalledWith('attempt-1');
   expect(db.confirmReservationAndCreateSale).toHaveBeenCalledTimes(2);
@@ -102,7 +102,7 @@ describe('facilitator webhook -> confirm reservations', () => {
 
     await handler(req, res);
 
-  const db = await import('/workspaces/x402-wrapper/apps/lib/dbClient');
+  const db = await import('/workspaces/xSynesis/apps/lib/dbClient');
   expect(res._status).toBe(200);
   expect(db.getPaymentAttemptById).toHaveBeenCalledWith('attempt-2');
   expect(db.releaseReservation).toHaveBeenCalledTimes(2);
