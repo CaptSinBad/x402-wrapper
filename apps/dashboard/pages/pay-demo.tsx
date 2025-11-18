@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useSignTypedData } from '@privy-io/react-auth';
 import { payAndFetch, createSignedPaymentHeader } from '../../../apps/lib/payAndFetch';
 
 interface Book {
@@ -34,6 +34,7 @@ const BOOKS: Book[] = [
 
 export default function BookstoreDemoPage() {
   const { user, authenticated, login } = usePrivy();
+  const { signTypedData } = useSignTypedData();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [cart, setCart] = useState<{ [key: string]: number }>({});
   const [qrCode, setQrCode] = useState<string>('');
@@ -128,17 +129,92 @@ export default function BookstoreDemoPage() {
       // Build payment requirements directly (no session endpoint needed)
       const priceAtomic = (total * 1e6).toString(); // USDC is 6 decimals
       
-      const paymentRequirements = {
-        scheme: 'exact',
-        network: 'base-sepolia',
-        maxAmountRequired: priceAtomic,
-        resource: '/bookstore-demo',
-        description: `Rare Books Store - ${Object.keys(cart).length} items`,
-        asset: 'USDC',
-        payTo: process.env.NEXT_PUBLIC_SELLER_ADDRESS || '0x784590bfCad59C0394f91F1CD1BCBA1e51d09408',
-      };
-
       addTransaction('💳 Payment Requirements Ready', 'verify', 'verifying', '#17a2b8');
+
+      // Create a custom payload creation function that uses Privy's signTypedData
+      const createPrivyPayload = async ({
+        requirement,
+        priceAtomic: price,
+        walletAddress,
+      }: any) => {
+        const chainId =
+          requirement.network === 'base-mainnet'
+            ? 8453
+            : requirement.network === 'base-sepolia'
+            ? 84532
+            : 1;
+
+        // Generate proper random nonce (32-byte hex string)
+        const nonce = '0x' + Array.from(crypto.getRandomValues(new Uint8Array(32)))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+        
+        const now = Math.floor(Date.now() / 1000);
+        const validBefore = now + (requirement.maxTimeoutSeconds || 300);
+        const validAfter = 0;
+
+        const domain = {
+          name: 'x402 Payment',
+          version: '1',
+          chainId,
+          verifyingContract: requirement.payTo || '',
+        };
+
+        const types = {
+          Authorization: [
+            { name: 'from', type: 'address' },
+            { name: 'to', type: 'address' },
+            { name: 'value', type: 'uint256' },
+            { name: 'validAfter', type: 'uint48' },
+            { name: 'validBefore', type: 'uint48' },
+            { name: 'nonce', type: 'uint256' },
+          ],
+        };
+
+        const authorization = {
+          from: walletAddress,
+          to: requirement.payTo,
+          value: price.toString(), // uint256 as string
+          validAfter: validAfter.toString(), // uint48 as string
+          validBefore: validBefore.toString(), // uint48 as string
+          nonce: nonce.toString(), // uint256 as string
+        };
+
+        const typedData = {
+          types: {
+            EIP712Domain: [
+              { name: 'name', type: 'string' },
+              { name: 'version', type: 'string' },
+              { name: 'chainId', type: 'uint256' },
+              { name: 'verifyingContract', type: 'address' },
+            ],
+            ...types,
+          },
+          primaryType: 'Authorization',
+          domain,
+          message: authorization,
+        };
+
+        // Use Privy's signTypedData
+        const signResult = await signTypedData(typedData);
+        
+        // Extract signature string (Privy returns either string or object with signature property)
+        const signatureString = typeof signResult === 'string' 
+          ? signResult 
+          : (signResult?.signature || signResult?.data || JSON.stringify(signResult));
+
+        const payload = {
+          signature: signatureString,
+          authorization,
+        };
+
+        return {
+          x402Version: 1,
+          scheme: requirement.scheme,
+          network: requirement.network,
+          payload,
+        };
+      };
 
       // Execute x402 payment flow with wallet signature
       const paymentRes = await payAndFetch(
@@ -151,7 +227,7 @@ export default function BookstoreDemoPage() {
         {
           walletAddress: user.wallet.address,
           priceAtomicOverride: priceAtomic,
-          createPayload: createSignedPaymentHeader,
+          createPayload: createPrivyPayload,
         }
       );
 
@@ -177,8 +253,33 @@ export default function BookstoreDemoPage() {
         setStep(3);
       }, 1500);
     } catch (err: any) {
-      const errorMsg = err?.message || 'Payment failed';
+      let errorMsg = 'Payment failed';
+      
+      // Extract error message from various error types
+      if (err instanceof Error) {
+        errorMsg = err.message;
+      } else if (err && typeof err === 'object' && err.message) {
+        errorMsg = err.message;
+      } else if (err && typeof err === 'string') {
+        errorMsg = err;
+      } else if (err) {
+        errorMsg = JSON.stringify(err) || 'Unknown error';
+      }
+
+      // Check for specific Privy/wallet errors
+      if (errorMsg.includes('origin') || errorMsg.includes('Origin')) {
+        errorMsg = 'Wallet connection error: Origin mismatch with Privy. Please configure your Codespaces URL in Privy dashboard.';
+      } else if (errorMsg.includes('An error has occurred') || errorMsg.includes('Privy')) {
+        errorMsg = `Wallet error: ${errorMsg} - Check that Privy is configured for this origin.`;
+      } else if (errorMsg.includes('signature') || errorMsg.includes('sign')) {
+        errorMsg = `Signature error: ${errorMsg} - Make sure your wallet is connected and unlocked.`;
+      }
+
       console.error('Payment error:', err);
+      console.error('Payment error message:', errorMsg);
+      console.error('Payment error stack:', err instanceof Error ? err.stack : 'N/A');
+      console.error('Current origin:', typeof window !== 'undefined' ? window.location.origin : 'unknown');
+      
       setPaymentError(errorMsg);
       addTransaction(`❌ ${errorMsg}`, 'wallet', 'pending', '#dc3545');
       setIsProcessing(false);

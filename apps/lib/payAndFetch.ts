@@ -20,28 +20,35 @@ export type CreatePayloadFn = (params: {
   requirement: PaymentRequirements;
   priceAtomic: string;
   walletAddress: string;
+  provider?: any;
 }) => Promise<{ x402Version: number; scheme: string; network: string; payload: any }>;
 
 /**
  * 🔐 createSignedPaymentHeader
- * Signs a payment intent using the Privy wallet provider or an injected wallet (MetaMask, Coinbase Wallet).
+ * Signs a payment intent using a wallet provider (MetaMask, Coinbase Wallet, or Privy).
  * Produces a valid x402 Payment Header payload compatible with Coinbase facilitator.
+ * 
+ * @param requirement - Payment requirements from server
+ * @param priceAtomic - Amount to charge in atomic units
+ * @param walletAddress - Wallet address to sign with
+ * @param provider - (Optional) Explicit EIP-1193 provider. If not provided, attempts to find injected provider.
  */
 export async function createSignedPaymentHeader({
   requirement,
   priceAtomic,
   walletAddress,
+  provider: explicitProvider,
 }: {
   requirement: PaymentRequirements;
   priceAtomic: string;
   walletAddress: string;
+  provider?: any;
 }) {
-  const provider =
-    (window as any).privy?.provider ||
-    (window as any).ethereum ||
+  const provider = explicitProvider ||
+    (typeof window !== 'undefined' && (window as any).ethereum) ||
     null;
 
-  if (!provider) throw new Error('No wallet provider found (Privy or injected)');
+  if (!provider) throw new Error('No wallet provider found. Please ensure MetaMask or Coinbase Wallet is installed and connected.');
 
   // Define EIP-712 typed data
   const chainId =
@@ -136,10 +143,12 @@ export async function payAndFetch(
     createPayload,
     walletAddress,
     priceAtomicOverride,
+    provider,
   }: {
     createPayload: CreatePayloadFn;
     walletAddress: string;
     priceAtomicOverride?: string;
+    provider?: any;
   }
 ): Promise<Response> {
   const res = await fetch(url, opts);
@@ -157,9 +166,16 @@ export async function payAndFetch(
     requirement,
     priceAtomic,
     walletAddress,
+    provider,
   });
 
-  const headerValue = btoa(JSON.stringify(paymentHeaderObj)); // Base64 encode
+  // Build the complete x402 header with both paymentPayload and paymentRequirements
+  const x402Header = {
+    paymentPayload: paymentHeaderObj,
+    paymentRequirements: requirement,
+  };
+
+  const headerValue = btoa(JSON.stringify(x402Header)); // Base64 encode
 
   const paidReqOpts = {
     ...opts,

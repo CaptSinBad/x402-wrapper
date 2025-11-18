@@ -1,14 +1,54 @@
 # xsynesis — Product Journal (cleaned)
 
-Date: 2025-11-12
+Date: 2025-11-12 → **Updated 2025-11-18**
 Branch: main
+Status: **🟡 CRITICAL: Phase 1 (Buyer Demo) ~75% complete, blocked on facilitator integration**
 
-This cleaned product journal summarizes: what the product is, what we implemented, current status, remaining gaps, and the recommended next steps. It's concise and actionable — use this as the single source-of-truth for product + engineering planning.
+**📍 Current Location:** /ANTIGRAVITY_HANDOFF.md for complete handoff documentation to Google Antigravity  
+**🔗 Related Docs:** 
+- CRITICAL_FIXES_APPLIED.md — Recent bug fixes and learnings
+- X402_WORKING_CODE_PATTERNS.md — Reference implementation patterns
+- CODESPACE_HANDOFF.md — Previous session notes
 
-## Executivset -a; source .env.postgres; set +a
-node scripts/run-migrations.jse summary
+---
 
+## URGENT: Current Blocker & Findings (Nov 18, 2025 - UPDATED)
 
+**Problem:** Bookstore demo (buyer perspective) cannot complete a payment. After fixing nonce/signature, facilitator now returns `invalid_payment_requirements` (400) then `500 internal_error`.
+
+**Fixes Applied (COMPLETED):**
+1. **Nonce format** ✅
+   - Was: `nonce = Date.now().toString()` 
+   - Now: `nonce = "0x" + randomBytes(32).hex()`
+   - Status: WORKING in pay-demo.tsx
+
+2. **Signature format** ✅
+   - Was: `signature = { signature: "0x7001..." }`
+   - Now: `signature = "0x7001..."` (extracted)
+   - Status: WORKING with Privy response extraction
+
+3. **Authorization fields** ✅
+   - All fields converted to strings (validAfter, validBefore, value, nonce)
+   - Status: WORKING in signed Authorization object
+
+**Current Blocker (NEW):**
+- Facilitator returns `400: invalid_payment_requirements`
+- Then `500: internal_error` on retry
+- **Root cause:** Payment requirements structure may be incomplete
+  - Missing fields: mimeType, maxTimeoutSeconds, correct USDC token address
+  - Need to verify against x402 spec
+
+**Status After Session:**
+- ✅ Server running and accessible
+- ✅ Endpoint returns 402 with payment requirements
+- ✅ Client-side payment signing working
+- ❌ Facilitator verification failing (investigating)
+- ✅ All fixes from previous session applied
+- ⏳ Handoff document created for Antigravity (ANTIGRAVITY_HANDOFF.md)
+
+---
+
+## Executive Summary
 
 xsynesis is being built as a Stripe-like payments platform using Coinbase x402 (CDP) as the facilitator layer. Our aim is to provide sellers with first-class primitives similar to Stripe Connect: payment links, POS/QR flows, payouts/offramp, and simple onboarding — all powered by x402 settlement rails where appropriate.
 
@@ -99,6 +139,129 @@ Quick status: dev-settle ✓, public link resolver & pay flow ✓, payment-links
 4) UX polish & demos:
    - Dashboard list of links, QR generator endpoint, `app/pos/[token]` minimal POS page.
    - Use dev-settle for demo flows in dev.
+
+---
+
+## REVISED Roadmap (Nov 18, 2025) - From Video + Research
+
+After reviewing payment gateway MVP best practices (video: "How to build payment gateway?") and x402 working implementations, the roadmap is:
+
+### Phase 1: Core Payment Flow (CURRENT - BLOCKED)
+**Goal:** Get buyer payment flow working end-to-end (bookstore demo)
+
+- ❌ **BLOCKER:** Facilitator returning `invalid_payload`
+  - Cause: Nonce format & signature extraction
+  - **FIX APPLIED:** 
+    - Nonce: Now generates as 32-byte hex (`0x` + random bytes)
+    - Signature: Extract string from Privy response object
+  - Next: Test against facilitator
+
+**Deliverables:**
+- ✅ Bookstore demo: Select books → Checkout
+- ✅ Wallet connection (Privy integration)
+- ✅ Payment signing (EIP-712 with Privy)
+- ⏳ **Payment verification** with facilitator (next test)
+- ⏳ Settlement confirmation
+- ⏳ Order success screen
+
+**Metrics to track:**
+- Payment success rate (currently: 0%)
+- Error types from facilitator
+- Signature verification success
+
+### Phase 2: Seller Dashboard (MISSING)
+**Goal:** Sellers can register endpoints, see payments, withdraw funds
+
+**Currently missing:**
+- ❌ No way to register API endpoint
+- ❌ No seller dashboard
+- ❌ No transaction history view
+- ❌ No payment receipt UI
+
+**Must Have (MoSCoW):**
+- Register endpoint with price
+- See incoming payments
+- Withdraw USDC to wallet
+
+**Should Have:**
+- Payment history export
+- Email notifications
+- Refund management
+
+**Could Have:**
+- Analytics dashboard
+- Subscription payments
+- Multiple payment methods
+
+**Won't Have (v1):**
+- Fraud detection
+- Advanced analytics
+- Multi-currency
+
+### Phase 3: SDK for Client Integration (NOT STARTED)
+**Goal:** Clients can embed x402 payments in their websites (like Stripe)
+
+**Options:**
+1. **Drop-in widget** → `<XsynesisPaymentButton apiKey="..." />`
+2. **REST API** → Clients call our API, we return payment requirements
+3. **SDK library** → `xsynesis-js` npm package with helpers
+
+**Recommended approach:** Start with REST API, then wrap in widget
+
+**Implementation:**
+- Create `/api/v1/create-payment-session` endpoint
+- Return payment requirements + session token
+- Clients embed payment form using our JS SDK
+- SDK handles signing and verification
+
+### Phase 4: Production Hardening
+- Worker safety (settlement idempotency)
+- Reservation reaper (cleanup)
+- Error recovery and retries
+- Analytics (with privacy compliance)
+
+---
+
+## Next Immediate Action
+
+**Test the nonce + signature fixes:**
+
+```bash
+# 1. Ensure server is running on port 3000
+cd /workspaces/xSynesis && pnpm dev
+
+# 2. Navigate to bookstore demo
+# https://shiny-robot-r4qg5x5xqp9p3ww9r-3000.app.github.dev/pay-demo
+
+# 3. Try payment:
+# - Select book
+# - Checkout
+# - Check console for payment response
+
+# 4. Monitor server logs for:
+# - [bookstore/confirm] Verifying payment with facilitator...
+# - Look for either: success response or clearer error message
+```
+
+**If still failing:** Check server logs for error detail. Likely candidates:
+- Authorization fields still have wrong types
+- Signature not valid EIP-712
+- Chain ID mismatch
+- Balance insufficient (testnet USDC)
+
+---
+
+## Critical Success Factors (from video research)
+
+1. **MVP Scope** ✅ - Focused on one problem (API monetization)
+2. **Feature Prioritization** 🟡 - Using MoSCoW approach, but missing Phase 2 seller features
+3. **UX Focus** ✅ - Simple, few clicks, clear flow
+4. **Error Recovery** ❌ - Need hidden flow handling (retries, timeouts)
+5. **Code Quality** ✅ - Microservices ready, GitHub owned
+6. **Team** ✅ - Solo dev, agile-friendly
+
+**Key Gap:** No "customer care" yet (refunds, support, recovery flows)
+
 
 5) CI & production readiness:
    - Resolve pnpm packaging issues, add gated integration tests for webhook->worker->confirm flows, and create a production checklist (monitoring/backups/KYC).

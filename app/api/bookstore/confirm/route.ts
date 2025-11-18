@@ -13,11 +13,35 @@ export async function POST(req: NextRequest) {
     const paymentHeader = req.headers.get('x-payment');
     
     if (!paymentHeader) {
-      console.error('[bookstore/confirm] Missing X-PAYMENT header');
+      console.log('[bookstore/confirm] No X-PAYMENT header - returning payment requirements');
+      
+      // Parse request body to get total price
+      const body = await req.json().catch(() => ({ total: 0 }));
+      const total = body.total || 0;
+      const priceAtomic = (total * 1e6).toString(); // USDC is 6 decimals
+      
+      // Return 402 with payment requirements (accepts array)
+      // Must include all required fields for facilitator verification
       return NextResponse.json(
         {
-          error: 'payment_required',
-          message: 'X-PAYMENT header required',
+          accepts: [
+            {
+              scheme: 'exact',
+              network: 'base-sepolia',
+              maxAmountRequired: priceAtomic,
+              resource: '/bookstore-demo',
+              description: `Bookstore Purchase - ${total.toFixed(2)} USDC`,
+              mimeType: 'application/json',
+              maxTimeoutSeconds: 300,
+              // USDC token address on Base Sepolia
+              asset: '0x833589fCD6eDb6E08f4c7C32D4f71b1566469C3d',
+              payTo: process.env.NEXT_PUBLIC_SELLER_ADDRESS || '0x784590bfCad59C0394f91F1CD1BCBA1e51d09408',
+              extra: {
+                name: 'USDC',
+                version: '2',
+              },
+            },
+          ],
         },
         { status: 402 }
       );
@@ -29,6 +53,7 @@ export async function POST(req: NextRequest) {
       console.log('[bookstore/confirm] Decoding payment header...');
       paymentData = JSON.parse(Buffer.from(paymentHeader, 'base64').toString());
       console.log('[bookstore/confirm] Decoded header successfully');
+      console.log('[bookstore/confirm] Payment data structure:', JSON.stringify(paymentData, null, 2));
     } catch (err) {
       console.error('[bookstore/confirm] Failed to decode payment header:', err);
       return NextResponse.json(
@@ -38,13 +63,17 @@ export async function POST(req: NextRequest) {
     }
 
     const { paymentPayload, paymentRequirements } = paymentData;
+    console.log('[bookstore/confirm] paymentPayload.payload.authorization:', JSON.stringify(paymentPayload?.payload?.authorization, null, 2));
     console.log('[bookstore/confirm] Verifying payment with facilitator...');
+    console.log('[bookstore/confirm] Payment Payload:', JSON.stringify(paymentPayload, null, 2));
+    console.log('[bookstore/confirm] Payment Requirements:', JSON.stringify(paymentRequirements, null, 2));
 
     // Verify payment with facilitator
     const verifyRes = await verify({
       paymentPayload,
       paymentRequirements,
     });
+
 
     console.log('[bookstore/confirm] Verification result:', verifyRes);
 
