@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import PrivyClientProvider from './components/PrivyClientProvider';
 import './globals.css';
+import './lib/errorSuppression';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
