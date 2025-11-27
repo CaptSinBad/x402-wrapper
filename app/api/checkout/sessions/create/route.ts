@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const productMap = new Map(productsResult.rows.map(p => [p.id, p]));
+        const productMap = new Map(productsResult.rows.map((p: any) => [p.id, p]));
 
         // Calculate total and build enriched line items
         let totalCents = 0;
