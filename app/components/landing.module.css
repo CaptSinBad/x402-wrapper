@@ -1,0 +1,499 @@
+/* BinahPay Landing Page Styles - Stripe-Inspired */
+
+/* ========== Design Tokens ========== */
+.landing {
+  --binahpay-primary: #2B5FA5;
+  --binahpay-dark: #1B3F75;
+  --binahpay-light: #4A8FD5;
+  --binahpay-accent: #5BA3E8;
+  --binahpay-bg: #F7FAFC;
+  --binahpay-card: #FFFFFF;
+  --binahpay-text: #1A202C;
+  --binahpay-text-muted: #718096;
+  --binahpay-shadow: rgba(43, 95, 165, 0.08);
+  --binahpay-shadow-hover: rgba(43, 95, 165, 0.16);
+}
+
+/* ========== Container ========== */
+.landing {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--binahpay-bg);
+  overflow-x: hidden;
+}
+
+/* ========== Hero Section ========== */
+.hero {
+  position: relative;
+  background: linear-gradient(135deg, var(--binahpay-dark) 0%, var(--binahpay-primary) 50%, var(--binahpay-light) 100%);
+  padding: 120px 20px 140px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 50%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+  animation: gradientShift 15s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  animation: fadeIn 1s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.logoIcon {
+  width: 64px;
+  height: 64px;
+  background: white;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.heroTitle {
+  font-size: 64px;
+  font-weight: 800;
+  color: white;
+  margin: 0 0 20px;
+  line-height: 1.1;
+  letter-spacing: -2px;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.heroSubtitle {
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 0 0 40px;
+  font-weight: 400;
+  line-height: 1.5;
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+.heroCta {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fadeInUp 0.8s ease-out 0.6s both;
+}
+
+.ctaPrimary,
+.ctaSecondary {
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ctaPrimary {
+  background: white;
+  color: var(--binahpay-primary);
+}
+
+.ctaPrimary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.ctaSecondary {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.ctaSecondary:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: translateY(-2px);
+}
+
+/* ========== Section Spacing ========== */
+.section {
+  padding: 100px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.sectionTitle {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--binahpay-text);
+  text-align: center;
+  margin: 0 0 16px;
+  letter-spacing: -1px;
+}
+
+.sectionSubtitle {
+  font-size: 20px;
+  color: var(--binahpay-text-muted);
+  text-align: center;
+  margin: 0 0 60px;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ========== Product Showcase ========== */
+.products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 32px;
+  margin-top: 60px;
+}
+
+.productCard {
+  background: var(--binahpay-card);
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 4px 16px var(--binahpay-shadow);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.productCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--binahpay-primary), var(--binahpay-light));
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.productCard:hover::before {
+  transform: scaleX(1);
+}
+
+.productCard:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px var(--binahpay-shadow-hover);
+}
+
+.productIcon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--binahpay-primary), var(--binahpay-light));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  font-size: 28px;
+}
+
+.productTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--binahpay-text);
+  margin: 0 0 12px;
+}
+
+.productDescription {
+  font-size: 16px;
+  color: var(--binahpay-text-muted);
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.productLink {
+  color: var(--binahpay-primary);
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: gap 0.3s ease;
+}
+
+.productLink:hover {
+  gap: 12px;
+}
+
+/* ========== Features Grid ========== */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 40px;
+  margin-top: 60px;
+}
+
+.featureCard {
+  text-align: center;
+  padding: 32px;
+  background: var(--binahpay-card);
+  border-radius: 16px;
+  transition: all 0.3s ease;
+}
+
+.featureCard:hover {
+  background: linear-gradient(135deg, rgba(43, 95, 165, 0.03), rgba(74, 143, 213, 0.03));
+  transform: scale(1.02);
+}
+
+.featureIcon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, var(--binahpay-primary), var(--binahpay-light));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  box-shadow: 0 8px 24px rgba(43, 95, 165, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.featureCard:hover .featureIcon {
+  transform: rotateY(360deg);
+}
+
+.featureTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--binahpay-text);
+  margin: 0 0 12px;
+}
+
+.featureDescription {
+  font-size: 15px;
+  color: var(--binahpay-text-muted);
+  line-height: 1.6;
+}
+
+/* ========== Integration Badges ========== */
+.integrations {
+  background: white;
+  padding: 80px 20px;
+}
+
+.badgeGrid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 48px;
+  flex-wrap: wrap;
+  margin-top: 48px;
+}
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  opacity: 0.7;
+}
+
+.badge:hover {
+  opacity: 1;
+  background: var(--binahpay-bg);
+  transform: translateY(-4px);
+}
+
+.badgeIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: var(--binahpay-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--binahpay-primary);
+}
+
+.badgeName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--binahpay-text);
+}
+
+/* ========== Stats Section ========== */
+.stats {
+  background: linear-gradient(135deg, var(--binahpay-dark), var(--binahpay-primary));
+  padding: 80px 20px;
+  margin: 60px 0;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 48px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.stat {
+  text-align: center;
+  color: white;
+}
+
+.statValue {
+  font-size: 48px;
+  font-weight: 800;
+  margin: 0 0 8px;
+  background: linear-gradient(135deg, white, rgba(255, 255, 255, 0.8));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.statLabel {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+}
+
+/* ========== CTA Footer ========== */
+.ctaFooter {
+  background: var(--binahpay-card);
+  padding: 80px 20px;
+  text-align: center;
+  border-top: 1px solid rgba(43, 95, 165, 0.1);
+}
+
+.ctaFooterTitle {
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--binahpay-text);
+  margin: 0 0 16px;
+}
+
+.ctaFooterText {
+  font-size: 18px;
+  color: var(--binahpay-text-muted);
+  margin: 0 0 32px;
+}
+
+/* ========== Responsive Design ========== */
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 40px;
+  }
+  
+  .heroSubtitle {
+    font-size: 18px;
+  }
+  
+  .sectionTitle {
+    font-size: 32px;
+  }
+  
+  .sectionSubtitle {
+    font-size: 16px;
+  }
+  
+  .products {
+    grid-template-columns: 1fr;
+  }
+  
+  .features {
+    grid-template-columns: 1fr;
+  }
+  
+  .heroCta {
+    flex-direction: column;
+  }
+  
+  .ctaPrimary,
+  .ctaSecondary {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .badgeGrid {
+    gap: 24px;
+  }
+  
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+  }
+  
+  .statValue {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: 80px 20px 100px;
+  }
+  
+  .section {
+    padding: 60px 20px;
+  }
+  
+  .logoIcon {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .heroTitle {
+    font-size: 32px;
+  }
+  
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}

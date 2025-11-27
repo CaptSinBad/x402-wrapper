@@ -21,6 +21,11 @@
       "react"
     ],
     "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
     "incremental": true,
     "plugins": [
       {
@@ -40,6 +45,8 @@
   ],
   "exclude": [
     "node_modules",
-    "external"
+    "external",
+    "tests",
+    "scripts"
   ]
 }

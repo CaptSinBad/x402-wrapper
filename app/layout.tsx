@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import PrivyClientProvider from './components/PrivyClientProvider';
+import ClientWalletProvider from './components/ClientWalletProvider';
 import './globals.css';
 import './lib/errorSuppression';
 
@@ -9,29 +9,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body suppressHydrationWarning>
         <header className="site-header">
           <div className="site-brand">
-            <Link href="/" className="brand-link">xSynesis</Link>
+            <Link href="/" className="brand-link">BinahPay</Link>
             <nav className="site-nav">
               <Link href="/dashboard" className="nav-link">Dashboard</Link>
-              <Link href="/pay-demo" className="nav-link">Pay Demo</Link>
-              <Link href="/settlements" className="nav-link">Settlements</Link>
             </nav>
-          </div>
-
-          <div>
-            <Link href="/dashboard" className="cta">Connect / Open Dashboard</Link>
           </div>
         </header>
 
-        {/* Provide Privy client-side context to the app pages that need wallet connect */}
-        <PrivyClientProvider>
+        {/* Wallet provider for wallet authentication */}
+        <ClientWalletProvider>
           <main className="main-container">{children}</main>
 
           <footer className="site-footer">
-            <small>© {new Date().getFullYear()} xSynesis — demo only</small>
+            <small>© {new Date().getFullYear()} BinahPay — Decentralized Payment Infrastructure</small>
           </footer>
-        </PrivyClientProvider>
+        </ClientWalletProvider>
       </body>
     </html>
   );
 }
-

@@ -150,25 +150,81 @@ async function postJSON<TReq, TRes>(path: string, body: TReq, opts?: { timeoutMs
 }
 
 export async function verify(req: VerifyRequest): Promise<VerifyResponse> {
-  // If Coinbase CDP credentials are present, prefer the CDP client for mainnet flows.
-  if (CDP_API_KEY_ID && CDP_API_KEY_SECRET) {
+  // Determine facilitator URL - use CDP production API if no facilitator URL configured
+  let facilitatorUrl = FACILITATOR_URL;
+  let useCdpApi = false;
+
+  if (!facilitatorUrl && CDP_API_KEY_ID && CDP_API_KEY_SECRET) {
+    // Use Coinbase CDP production API
+    facilitatorUrl = 'https://api.cdp.coinbase.com/platform/v2/x402/facilitator';
+    useCdpApi = true;
+    console.log('[facilitator/verify] Using Coinbase CDP API');
+  } else if (facilitatorUrl) {
+    console.log('[facilitator/verify] Using facilitator:', facilitatorUrl);
+  } else {
+    throw new Error('No facilitator URL configured and CDP credentials not available');
+  }
+
+  const path = `${facilitatorUrl.replace(/\/$/, '')}/verify`;
+
+  // Make HTTP request with CDP authentication if using CDP API
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+
+  if (useCdpApi && CDP_API_KEY_ID && CDP_API_KEY_SECRET) {
+    // Add CDP API authentication headers
+    headers['CB-ACCESS-KEY'] = CDP_API_KEY_ID;
+    headers['CB-ACCESS-SECRET'] = CDP_API_KEY_SECRET;
+  }
+
+  console.log('[facilitator/verify] Sending request to:', path);
+  console.log('[facilitator/verify] Request body:', JSON.stringify(req, null, 2));
+
+  return await postJSONWithHeaders<VerifyRequest, VerifyResponse>(path, req, headers, { timeoutMs: 30000, retries: 2 });
+}
+
+// Helper function with custom headers support
+async function postJSONWithHeaders<TReq, TRes>(
+  path: string,
+  body: TReq,
+  headers: Record<string, string>,
+  opts?: { timeoutMs?: number; retries?: number; }
+): Promise<TRes> {
+  const timeoutMs = opts?.timeoutMs ?? 10000;
+  const retries = opts?.retries ?? 1;
+
+  let lastErr: any = null;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const coinbase = await import('@coinbase/x402');
-      // The Coinbase client may expose a simple verify API — adapt if their API differs.
-      if (coinbase && coinbase.default && typeof coinbase.default.verify === 'function') {
-        return await coinbase.default.verify(req as any) as VerifyResponse;
+      const res = await fetch(path, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+      clearTimeout(id);
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Facilitator returned ${res.status}: ${text}`);
       }
+
+      const json = (await res.json()) as TRes;
+      return json;
     } catch (err) {
-      // If dynamic import fails (package not installed), fallback to HTTP path below.
-      // eslint-disable-next-line no-console
-      console.warn('Coinbase CDP client not available, falling back to HTTP facilitator');
+      lastErr = err;
+      clearTimeout(id);
+      // simple backoff
+      if (attempt < retries) await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
     }
   }
 
-  if (!FACILITATOR_URL) throw new Error('FACILITATOR_URL not configured');
-  const path = `${FACILITATOR_URL.replace(/\/$/, '')}/verify`;
-  return await postJSON<VerifyRequest, VerifyResponse>(path, req, { timeoutMs: 8000, retries: 1 });
+  throw lastErr;
 }
+
 
 export async function settle(req: SettleRequest): Promise<SettleResponse> {
   if (CDP_API_KEY_ID && CDP_API_KEY_SECRET) {

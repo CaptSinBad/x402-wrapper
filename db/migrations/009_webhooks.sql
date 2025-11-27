@@ -1,7 +1,7 @@
 -- Migration 009: Webhooks infrastructure
 -- Creates webhook subscriptions, events, and delivery tracking
 
-CREATE TABLE webhook_subscriptions (
+CREATE TABLE IF NOT EXISTS webhook_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   seller_id TEXT NOT NULL,
   url TEXT NOT NULL,
@@ -17,10 +17,10 @@ CREATE TABLE webhook_subscriptions (
   CONSTRAINT valid_seller CHECK (seller_id != '')
 );
 
-CREATE INDEX idx_webhook_subscriptions_seller_id ON webhook_subscriptions(seller_id);
-CREATE INDEX idx_webhook_subscriptions_active ON webhook_subscriptions(active) WHERE active = true;
+CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_seller_id ON webhook_subscriptions(seller_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_active ON webhook_subscriptions(active) WHERE active = true;
 
-CREATE TABLE webhook_events (
+CREATE TABLE IF NOT EXISTS webhook_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_type TEXT NOT NULL, -- e.g., 'payment.completed', 'settlement.confirmed'
   seller_id TEXT NOT NULL,
@@ -30,11 +30,11 @@ CREATE TABLE webhook_events (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_webhook_events_seller_id ON webhook_events(seller_id);
-CREATE INDEX idx_webhook_events_event_type ON webhook_events(event_type);
-CREATE INDEX idx_webhook_events_created_at ON webhook_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_seller_id ON webhook_events(seller_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_event_type ON webhook_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_created_at ON webhook_events(created_at DESC);
 
-CREATE TABLE webhook_deliveries (
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   webhook_subscription_id UUID NOT NULL REFERENCES webhook_subscriptions(id) ON DELETE CASCADE,
   webhook_event_id UUID NOT NULL REFERENCES webhook_events(id) ON DELETE CASCADE,
@@ -53,12 +53,12 @@ CREATE TABLE webhook_deliveries (
   UNIQUE(webhook_subscription_id, webhook_event_id)
 );
 
-CREATE INDEX idx_webhook_deliveries_status ON webhook_deliveries(status);
-CREATE INDEX idx_webhook_deliveries_next_retry_at ON webhook_deliveries(next_retry_at) WHERE status = 'retry';
-CREATE INDEX idx_webhook_deliveries_subscription_id ON webhook_deliveries(webhook_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status ON webhook_deliveries(status);
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_next_retry_at ON webhook_deliveries(next_retry_at) WHERE status = 'retry';
+CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_subscription_id ON webhook_deliveries(webhook_subscription_id);
 
 -- Supported webhook events
-CREATE TABLE webhook_event_types (
+CREATE TABLE IF NOT EXISTS webhook_event_types (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_type TEXT UNIQUE NOT NULL,
   description TEXT,
@@ -77,4 +77,6 @@ INSERT INTO webhook_event_types (event_type, description) VALUES
 ('payout.completed', 'Payout has been completed'),
 ('payout.failed', 'Payout has failed'),
 ('link.created', 'Payment link has been created'),
-('link.expired', 'Payment link has expired');
+('link.expired', 'Payment link has expired')
+ON CONFLICT (event_type) DO NOTHING;
+

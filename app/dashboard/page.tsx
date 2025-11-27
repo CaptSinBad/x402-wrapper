@@ -1,5 +1,6 @@
-import DashboardPage from '../../apps/dashboard/pages/dashboard';
+import { redirect } from 'next/navigation';
+import DashboardOverview from './overview/page';
 
 export default function Page() {
-  return <DashboardPage />;
+  return <DashboardOverview />;
 }

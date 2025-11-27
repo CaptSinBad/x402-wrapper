@@ -27,23 +27,43 @@ module.exports = {
   experimental: {
     optimizePackageImports: ['@privy-io/react-auth', '@privy-io/server-auth'],
   },
-  turbopack: {},
+  turbopack: {
+    resolveAlias: {
+      // Prevent importing test files from pino/thread-stream
+    },
+  },
   webpack: (config, { isServer }) => {
     // Exclude test files from node_modules to prevent build failures
     config.watchOptions = {
       ignored: ['**/node_modules/**', '**/.next/**'],
     };
-    // Add additional excludes for problematic test files
+
+    // Alias tap to false to avoid resolution errors in thread-stream tests
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      tap: false,
+      'pino-elasticsearch': false,
+      'pino-pretty': false,
+    };
+
+    // Ignore test files from problematic packages
     config.module.rules.push({
-      test: /node_modules\/(thread-stream|pino)\/test/,
+      test: /node_modules\/(thread-stream|pino)\/.*\.test\.js$/,
       use: 'ignore-loader',
     });
-    // Also exclude test files in general from pino
+
+    // Also ignore the test directory in thread-stream
     config.module.rules.push({
-      test: /node_modules\/thread-stream\/test\//,
+      test: /node_modules\/thread-stream\/test\/.*$/,
       use: 'ignore-loader',
     });
+
+    // Ignore pino test directory
+    config.module.rules.push({
+      test: /node_modules\/pino\/test\/.*$/,
+      use: 'ignore-loader',
+    });
+
     return config;
   },
 };
-
