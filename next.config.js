@@ -26,60 +26,52 @@ module.exports = {
   },
   experimental: {
     optimizePackageImports: ['@privy-io/react-auth', '@privy-io/server-auth'],
-    // Exclude problematic packages from bundling
-    serverComponentsExternalPackages: ['thread-stream', 'pino'],
+    // Force these packages to be external (not bundled)
+    serverComponentsExternalPackages: ['thread-stream', 'pino', 'pino-pretty', '@walletconnect/logger'],
   },
-  turbopack: {
-    resolveAlias: {
-      // Prevent importing test files from pino/thread-stream
-      'thread-stream/test': false,
-      'pino/test': false,
-    },
-    rules: {
-      '*.test.{js,mjs,ts}': {
-        loaders: ['ignore-loader'],
-      },
-      '**/test/**': {
-        loaders: ['ignore-loader'],
-      },
-    },
+  // Exclude test files from being traced/bundled
+  outputFileTracingExcludes: {
+    '*': [
+      'node_modules/thread-stream/test/**',
+      'node_modules/thread-stream/bench.js',
+      'node_modules/thread-stream/LICENSE',
+      'node_modules/thread-stream/README.md',
+      'node_modules/pino/test/**',
+    ],
   },
   webpack: (config, { isServer }) => {
-    // Exclude test files from node_modules to prevent build failures
-    config.watchOptions = {
-      ignored: ['**/node_modules/**', '**/.next/**'],
-    };
+    // Client-side: completely exclude pino and thread-stream
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'thread-stream': false,
+        'pino': false,
+        'pino-pretty': false,
+        'pino-elasticsearch': false,
+        '@walletconnect/logger': false,
+      };
+    }
 
-    // Alias tap to false to avoid resolution errors in thread-stream tests
+    // Server-side: exclude test dependencies
     config.resolve.alias = {
       ...config.resolve.alias,
       tap: false,
-      'pino-elasticsearch': false,
-      'pino-pretty': false,
       desm: false,
       fastbench: false,
       rimraf: false,
     };
 
-    // Ignore test files from problematic packages
+    // Exclude test files
     config.module.rules.push({
       test: /node_modules\/(thread-stream|pino)\/.*\.test\.(js|mjs|ts)$/,
       use: 'ignore-loader',
     });
 
-    // Also ignore the test directory in thread-stream
     config.module.rules.push({
       test: /node_modules\/thread-stream\/test\/.*$/,
       use: 'ignore-loader',
     });
 
-    // Ignore pino test directory
-    config.module.rules.push({
-      test: /node_modules\/pino\/test\/.*$/,
-      use: 'ignore-loader',
-    });
-
-    // Ignore LICENSE, README, and other non-code files
     config.module.rules.push({
       test: /node_modules\/thread-stream\/(LICENSE|README\.md|bench\.js|\.yarnrc\.yml)$/,
       use: 'ignore-loader',
