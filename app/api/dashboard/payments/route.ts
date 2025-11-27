@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
             [user.id]
         );
 
-        const payments = result.rows.map(row => ({
+        const payments = result.rows.map((row: any) => ({
             id: row.id,
             amount: (parseInt(row.amount_cents) / 100).toFixed(2),
             currency: row.currency,
