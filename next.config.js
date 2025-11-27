@@ -26,9 +26,9 @@ module.exports = {
   },
   experimental: {
     optimizePackageImports: ['@privy-io/react-auth', '@privy-io/server-auth'],
-    // Force these packages to be external (not bundled)
-    serverComponentsExternalPackages: ['thread-stream', 'pino', 'pino-pretty', '@walletconnect/logger'],
   },
+  // Force these packages to be external (not bundled) - Next.js 16+
+  serverExternalPackages: ['thread-stream', 'pino', 'pino-pretty', '@walletconnect/logger'],
   // Exclude test files from being traced/bundled
   outputFileTracingExcludes: {
     '*': [
@@ -39,6 +39,8 @@ module.exports = {
       'node_modules/pino/test/**',
     ],
   },
+  // Empty turbopack config to silence Next.js 16 warning
+  turbopack: {},
   webpack: (config, { isServer }) => {
     // Client-side: completely exclude pino and thread-stream
     if (!isServer) {
