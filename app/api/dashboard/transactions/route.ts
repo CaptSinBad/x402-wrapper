@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
             [limit, offset]
         );
 
-        const transactions = transactionsResult.rows.map(sale => ({
+        const transactions = transactionsResult.rows.map((sale: any) => ({
             id: sale.id,
             sellerId: sale.seller_id,
             amountUSDC: (sale.amount_cents / 100).toFixed(2),

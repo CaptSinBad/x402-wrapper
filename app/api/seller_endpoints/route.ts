@@ -95,7 +95,7 @@ export async function GET() {
             `SELECT * FROM seller_endpoints ORDER BY created_at DESC`
         );
 
-        const endpoints = result.rows.map(endpoint => ({
+        const endpoints = result.rows.map((endpoint: any) => ({
             id: endpoint.id,
             sellerWallet: endpoint.seller_wallet,
             endpointUrl: endpoint.endpoint_url,

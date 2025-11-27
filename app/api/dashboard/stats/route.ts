@@ -50,7 +50,7 @@ export async function GET() {
        LIMIT 5`
         );
 
-        const recentSales = recentSalesResult.rows.map(sale => ({
+        const recentSales = recentSalesResult.rows.map((sale: any) => ({
             id: sale.id,
             sellerId: sale.seller_id,
             amountUSDC: (sale.amount_cents / 100).toFixed(2),

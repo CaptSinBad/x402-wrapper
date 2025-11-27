@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 
         const result = await pgPool.query(query, params);
 
-        const products = result.rows.map(row => ({
+        const products = result.rows.map((row: any) => ({
             id: row.id,
             name: row.name,
             description: row.description,
