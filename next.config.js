@@ -26,10 +26,22 @@ module.exports = {
   },
   experimental: {
     optimizePackageImports: ['@privy-io/react-auth', '@privy-io/server-auth'],
+    // Exclude problematic packages from bundling
+    serverComponentsExternalPackages: ['thread-stream', 'pino'],
   },
   turbopack: {
     resolveAlias: {
       // Prevent importing test files from pino/thread-stream
+      'thread-stream/test': false,
+      'pino/test': false,
+    },
+    rules: {
+      '*.test.{js,mjs,ts}': {
+        loaders: ['ignore-loader'],
+      },
+      '**/test/**': {
+        loaders: ['ignore-loader'],
+      },
     },
   },
   webpack: (config, { isServer }) => {
@@ -44,11 +56,14 @@ module.exports = {
       tap: false,
       'pino-elasticsearch': false,
       'pino-pretty': false,
+      desm: false,
+      fastbench: false,
+      rimraf: false,
     };
 
     // Ignore test files from problematic packages
     config.module.rules.push({
-      test: /node_modules\/(thread-stream|pino)\/.*\.test\.js$/,
+      test: /node_modules\/(thread-stream|pino)\/.*\.test\.(js|mjs|ts)$/,
       use: 'ignore-loader',
     });
 
@@ -61,6 +76,12 @@ module.exports = {
     // Ignore pino test directory
     config.module.rules.push({
       test: /node_modules\/pino\/test\/.*$/,
+      use: 'ignore-loader',
+    });
+
+    // Ignore LICENSE, README, and other non-code files
+    config.module.rules.push({
+      test: /node_modules\/thread-stream\/(LICENSE|README\.md|bench\.js|\.yarnrc\.yml)$/,
       use: 'ignore-loader',
     });
 
