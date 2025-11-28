@@ -42,7 +42,12 @@ if (!databaseUrl) {
 
 async function run() {
   console.log('Using DATABASE_URL:', databaseUrl.replace(/:(.*)@/, ':<REDACTED>@'));
-  const client = new Client({ connectionString: databaseUrl });
+  const client = new Client({
+    connectionString: databaseUrl,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
   await client.connect();
   try {
     const migrationsDir = path.resolve(process.cwd(), 'db', 'migrations');
