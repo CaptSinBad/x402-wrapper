@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 // import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useWalletClient, useDisconnect } from 'wagmi';
+import { useAppKit } from '@reown/appkit/react';
 import { parseUnits } from 'viem';
 import { baseSepolia } from 'viem/chains';
 
@@ -16,6 +17,7 @@ export default function PaymentLinkPage() {
   const { address, isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const { disconnect } = useDisconnect();
+  const { open } = useAppKit();
 
   const [link, setLink] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -299,7 +301,23 @@ export default function PaymentLinkPage() {
               <p style={{ fontSize: 15, color: '#718096', marginBottom: 20, lineHeight: '1.6' }}>
                 Connect your wallet to complete payment
               </p>
-              <appkit-button />
+              <button
+                onClick={() => open()}
+                style={{
+                  padding: '14px 32px',
+                  fontSize: 16,
+                  fontWeight: 600,
+                  background: brandColor,
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  width: '100%',
+                  maxWidth: 300,
+                }}
+              >
+                Connect Wallet
+              </button>
             </div>
           ) : (
             <div>
