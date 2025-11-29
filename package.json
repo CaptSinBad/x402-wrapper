@@ -22,6 +22,7 @@
     "@reown/appkit-adapter-wagmi": "^1.8.14",
     "@supabase/supabase-js": "^2.76.1",
     "@tanstack/react-query": "^5.90.10",
+    "@vercel/blob": "^2.0.0",
     "axios": "^1.13.2",
     "ethers": "^6.9.0",
     "facilitators": "^0.0.7",

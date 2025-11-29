@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
 import { requireAuth } from '../../../../lib/session';
 import crypto from 'crypto';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 
 const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -47,21 +45,19 @@ export async function POST(req: NextRequest) {
         let imageUrl = null;
         if (imageFile) {
             try {
-                // Create upload directory if it doesn't exist
-                const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'payment-links');
-                await mkdir(uploadsDir, { recursive: true });
+                // Use Vercel Blob for serverless image storage
+                const { put } = await import('@vercel/blob');
 
                 // Generate unique filename
                 const fileExt = imageFile.name.split('.').pop();
-                const fileName = `${token}.${fileExt}`;
-                const filePath = path.join(uploadsDir, fileName);
+                const fileName = `payment-links/${token}.${fileExt}`;
 
-                // Convert File to Buffer and save
-                const bytes = await imageFile.arrayBuffer();
-                const buffer = Buffer.from(bytes);
-                await writeFile(filePath, buffer);
+                // Upload to Vercel Blob
+                const blob = await put(fileName, imageFile, {
+                    access: 'public',
+                });
 
-                imageUrl = `/uploads/payment-links/${fileName}`;
+                imageUrl = blob.url;
             } catch (err) {
                 console.error('Failed to upload image:', err);
                 // Continue without image
