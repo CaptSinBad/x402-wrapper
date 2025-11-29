@@ -28,26 +28,31 @@ export default function LoginPage() {
             return;
         }
 
+        console.log('[Login] Starting wallet auth for:', address);
         setIsLoading(true);
         setError('');
 
         try {
+            console.log('[Login] Calling wallet-login API...');
             const response = await fetch('/api/auth/wallet-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ walletAddress: address }),
             });
 
+            console.log('[Login] Response status:', response.status);
             const data = await response.json();
+            console.log('[Login] Response data:', data);
 
             if (!response.ok) {
                 throw new Error(data.message || 'Authentication failed');
             }
 
             // Redirect based on onboarding status
+            console.log('[Login] Redirecting to:', data.redirectTo);
             router.push(data.redirectTo);
         } catch (err: any) {
-            console.error('Wallet auth error:', err);
+            console.error('[Login] Wallet auth error:', err);
             setError(err.message || 'Failed to authenticate');
             setIsLoading(false);
         }
