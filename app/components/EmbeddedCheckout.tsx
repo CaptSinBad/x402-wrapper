@@ -1,5 +1,7 @@
 'use client';
 
+/// <reference path="./web-components.d.ts" />
+
 import { useState, useEffect } from 'react';
 import { useAccount, useWalletClient } from 'wagmi';
 import { parseUnits } from 'viem';
