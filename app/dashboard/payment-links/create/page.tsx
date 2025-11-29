@@ -8,6 +8,8 @@ export default function CreatePaymentLinkPage() {
     const router = useRouter();
     const [isCreating, setIsCreating] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [successModal, setSuccessModal] = useState<{ url: string; token: string } | null>(null);
+    const [copied, setCopied] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -80,14 +82,24 @@ export default function CreatePaymentLinkPage() {
                 throw new Error(result.error || 'Failed to create payment link');
             }
 
-            // Show success and redirect
-            alert(`Payment link created! ${window.location.origin}/link/${result.token}`);
-            router.push('/dashboard/payment-links');
+            // Show success modal
+            setSuccessModal({
+                url: result.url,
+                token: result.token
+            });
         } catch (error: any) {
             console.error('Error creating payment link:', error);
             alert(error.message || 'Failed to create payment link');
         } finally {
             setIsCreating(false);
+        }
+    };
+
+    const copyToClipboard = () => {
+        if (successModal) {
+            navigator.clipboard.writeText(successModal.url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
         }
     };
 
@@ -438,6 +450,117 @@ export default function CreatePaymentLinkPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Success Modal */}
+            {successModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '16px',
+                        padding: '40px',
+                        maxWidth: '500px',
+                        width: '90%',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: '64px', marginBottom: '16px' }}>🎉</div>
+                        <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '12px' }}>
+                            Payment Link Created!
+                        </h2>
+                        <p style={{ color: '#718096', marginBottom: '24px' }}>
+                            Your payment link is ready to share with customers
+                        </p>
+
+                        <div style={{
+                            background: '#F7FAFC',
+                            padding: '16px',
+                            borderRadius: '8px',
+                            marginBottom: '20px',
+                            border: '1px solid #E2E8F0'
+                        }}>
+                            <div style={{
+                                fontSize: '12px',
+                                color: '#718096',
+                                marginBottom: '8px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                            }}>
+                                Payment Link
+                            </div>
+                            <div style={{
+                                fontSize: '14px',
+                                fontFamily: 'monospace',
+                                color: '#2D3748',
+                                wordBreak: 'break-all'
+                            }}>
+                                {successModal.url}
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                            <button
+                                onClick={copyToClipboard}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px 24px',
+                                    background: copied ? '#48BB78' : '#2B5FA5',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                {copied ? '✓ Copied!' : '📋 Copy Link'}
+                            </button>
+                            <button
+                                onClick={() => window.open(`/link/${successModal.token}`, '_blank')}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px 24px',
+                                    background: 'white',
+                                    color: '#2B5FA5',
+                                    border: '1px solid #2B5FA5',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                👁️ View Link
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={() => router.push('/dashboard/payment-links')}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                background: '#EDF2F7',
+                                color: '#2D3748',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Back to Payment Links
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

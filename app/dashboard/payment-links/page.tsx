@@ -24,6 +24,8 @@ export default function PaymentLinksPage() {
     const [links, setLinks] = useState<PaymentLink[]>([]);
     const [loading, setLoading] = useState(true);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
+    const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState<string | null>(null);
 
     useEffect(() => {
         fetchLinks();
@@ -45,6 +47,28 @@ export default function PaymentLinksPage() {
         navigator.clipboard.writeText(url);
         setCopiedToken(token);
         setTimeout(() => setCopiedToken(null), 2000);
+    };
+
+    const handleDelete = async (id: string) => {
+        setDeleting(id);
+        try {
+            const response = await fetch(`/api/payment-links/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                // Remove from list
+                setLinks(links.filter(link => link.id !== id));
+                setDeleteConfirm(null);
+            } else {
+                alert('Failed to delete payment link');
+            }
+        } catch (error) {
+            console.error('Failed to delete:', error);
+            alert('Failed to delete payment link');
+        } finally {
+            setDeleting(null);
+        }
     };
 
     if (loading) {
@@ -214,15 +238,119 @@ export default function PaymentLinksPage() {
                                     fontSize: '14px',
                                     fontWeight: '500',
                                     cursor: 'pointer',
-                                    transition: 'all 0.2s'
+                                    transition: 'all 0.2s',
+                                    marginBottom: '8px'
                                 }}
                             >
                                 {copiedToken === link.token ? '✓ Copied!' : '🔗 Copy Link'}
                             </button>
+
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                    onClick={() => router.push(`/link/${link.token}`)}
+                                    style={{
+                                        flex: 1,
+                                        padding: '8px',
+                                        background: 'white',
+                                        color: '#2B5FA5',
+                                        border: '1px solid #2B5FA5',
+                                        borderRadius: '6px',
+                                        fontSize: '13px',
+                                        fontWeight: '500',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    View
+                                </button>
+                                <button
+                                    onClick={() => setDeleteConfirm(link.id)}
+                                    disabled={deleting === link.id}
+                                    style={{
+                                        flex: 1,
+                                        padding: '8px',
+                                        background: deleting === link.id ? '#CBD5E0' : 'white',
+                                        color: '#E53E3E',
+                                        border: '1px solid #E53E3E',
+                                        borderRadius: '6px',
+                                        fontSize: '13px',
+                                        fontWeight: '500',
+                                        cursor: deleting === link.id ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {deleting === link.id ? 'Deleting...' : 'Delete'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirm && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        background: 'white',
+                        borderRadius: '12px',
+                        padding: '32px',
+                        maxWidth: '400px',
+                        width: '90%'
+                    }}>
+                        <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>
+                            Delete Payment Link?
+                        </h2>
+                        <p style={{ color: '#718096', marginBottom: '24px', lineHeight: '1.6' }}>
+                            This action cannot be undone. The payment link will be permanently deleted.
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button
+                                onClick={() => setDeleteConfirm(null)}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px',
+                                    background: '#EDF2F7',
+                                    color: '#2D3748',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontWeight: '500',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => handleDelete(deleteConfirm)}
+                                disabled={deleting === deleteConfirm}
+                                style={{
+                                    flex: 1,
+                                    padding: '12px',
+                                    background: '#E53E3E',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontWeight: '500',
+                                    cursor: deleting === deleteConfirm ? 'not-allowed' : 'pointer',
+                                    opacity: deleting === deleteConfirm ? 0.6 : 1
+                                }}
+                            >
+                                {deleting === deleteConfirm ? 'Deleting...' : 'Delete'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
