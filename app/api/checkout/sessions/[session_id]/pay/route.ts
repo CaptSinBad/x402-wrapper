@@ -176,7 +176,30 @@ export async function POST(
 
         const order = orderResult.rows[0];
 
-        // TODO: Trigger webhook event (checkout.session.completed)
+        // Get project ID for the seller
+        const projectResult = await pgPool.query(
+            `SELECT id FROM projects WHERE user_id = $1 LIMIT 1`,
+            [session.seller_id]
+        );
+
+        // Trigger webhook event (checkout.session.completed)
+        if (projectResult.rows.length > 0) {
+            const { sendCheckoutSessionCompletedWebhook } = await import('@/lib/webhooks');
+
+            // Fire webhook asynchronously (don't await to avoid delaying response)
+            sendCheckoutSessionCompletedWebhook({
+                project_id: projectResult.rows[0].id,
+                session_id: sessionId,
+                customer_email: body.customer_email,
+                amount_total: session.total_cents,
+                currency: session.currency,
+                metadata: session.metadata ? JSON.parse(session.metadata) : {},
+                transaction_hash: settleResponse.txHash,
+            }).catch(error => {
+                console.error('[checkout/pay] Webhook delivery failed:', error);
+                // Don't fail the payment if webhook fails
+            });
+        }
 
         return NextResponse.json({
             success: true,
