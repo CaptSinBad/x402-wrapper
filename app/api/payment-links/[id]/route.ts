@@ -12,11 +12,11 @@ const pgPool = new Pool({
  */
 export async function PATCH(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const user = await requireAuth();
-        const { id } = params;
+        const { id } = await context.params;
         const body = await req.json();
 
         const { name, description, price, brandColor, expiresAt } = body;
@@ -85,11 +85,11 @@ export async function PATCH(
  */
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const user = await requireAuth();
-        const { id } = params;
+        const { id } = await context.params;
 
         // Verify ownership and delete
         const result = await pgPool.query(
