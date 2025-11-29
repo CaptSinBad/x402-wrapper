@@ -50,7 +50,7 @@ export default function Home() {
 							Create shareable payment links in seconds. No code required.
 							Perfect for invoices, products, and services.
 						</p>
-						<Link href="/dashboard" className={styles.productLink}>
+						<Link href="/signup" className={styles.productLink}>
 							Create a link →
 						</Link>
 					</div>
@@ -62,7 +62,7 @@ export default function Home() {
 							Monetize your APIs with built-in payment gating. Charge per request
 							with automatic settlement and withdrawal.
 						</p>
-						<Link href="/dashboard" className={styles.productLink}>
+						<Link href="/signup" className={styles.productLink}>
 							Register endpoint →
 						</Link>
 					</div>
@@ -74,7 +74,7 @@ export default function Home() {
 							Embeddable checkout for your website or app. Accept crypto
 							payments with a beautiful, conversion-optimized flow.
 						</p>
-						<Link href="/checkout" className={styles.productLink}>
+						<Link href="/signup" className={styles.productLink}>
 							Try checkout →
 						</Link>
 					</div>
