@@ -5,11 +5,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 // import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
+import { useAppKit } from '@reown/appkit/react';
 import styles from '../components/auth.module.css';
 
 export default function LoginPage() {
     const router = useRouter();
     const { address, isConnected } = useAccount();
+    const { open } = useAppKit();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -88,10 +90,34 @@ export default function LoginPage() {
                     </div>
                 ) : (
                     <>
-                        {/* AppKit Button (Handles Wallet + Socials) */}
-                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-                            <appkit-button />
-                        </div>
+                        {/* Manual Connect Button */}
+                        <button
+                            onClick={() => open()}
+                            style={{
+                                width: '100%',
+                                padding: '16px 24px',
+                                background: 'linear-gradient(135deg, #2B5FA5 0%, #1e4a7a 100%)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontSize: '16px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                marginBottom: '24px',
+                                transition: 'transform 0.2s, box-shadow 0.2s',
+                                boxShadow: '0 4px 12px rgba(43, 95, 165, 0.3)'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(43, 95, 165, 0.4)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(43, 95, 165, 0.3)';
+                            }}
+                        >
+                            🔐 Connect Wallet
+                        </button>
 
                         <div style={{ textAlign: 'center', color: '#718096', fontSize: '14px' }}>
                             Connect your wallet or sign in with social accounts to continue.
