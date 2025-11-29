@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
 
         // Calculate line items with pricing
         const enrichedLineItems = line_items.map(item => {
-            const product = productMap.get(item.product_id);
+            const product = productMap.get(item.product_id) as any;
             if (!product) {
                 throw new Error(`Product ${item.product_id} not found`);
             }
