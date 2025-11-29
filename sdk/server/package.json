@@ -1,0 +1,33 @@
+{
+    "name": "@binahpay/server",
+    "version": "0.1.0",
+    "description": "Official BinahPay Node.js server SDK for creating checkout sessions and managing payments",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc -p tsconfig.build.json",
+        "prepublishOnly": "npm run build"
+    },
+    "keywords": [
+        "binahpay",
+        "payment",
+        "crypto",
+        "checkout",
+        "web3",
+        "sdk"
+    ],
+    "author": "BinahPay",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/binahpay/sdk-server"
+    },
+    "dependencies": {},
+    "devDependencies": {
+        "typescript": "^5.0.0",
+        "@types/node": "^20.0.0"
+    }
+}
