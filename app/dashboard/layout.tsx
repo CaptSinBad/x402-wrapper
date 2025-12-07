@@ -78,6 +78,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         </Link>
 
                         <Link
+                            href="/dashboard/store/categories"
+                            className={`${styles.navItem} ${isActive('/dashboard/store/categories') ? styles.active : ''}`}
+                        >
+                            <span className={styles.navIcon}>📁</span>
+                            <span>Categories</span>
+                        </Link>
+
+                        <Link
                             href="/dashboard/orders"
                             className={`${styles.navItem} ${isActive('/dashboard/orders') ? styles.active : ''}`}
                         >
@@ -165,17 +173,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <h1 className={styles.pageTitle}>
                             {pathname === '/dashboard' ? 'Overview' :
                                 pathname?.includes('/store/setup') ? 'Store Setup' :
-                                    pathname?.includes('/orders') ? 'Orders' :
-                                        pathname?.includes('/products') ? 'Products' :
-                                            pathname?.includes('/payments') ? 'Payments' :
-                                                pathname?.includes('/api-keys') ? 'API Keys' :
-                                                    pathname?.includes('/payment-links') ? 'Payment Links' :
-                                                        pathname?.includes('/balances') ? 'Balances' :
-                                                            pathname?.includes('/webhooks') ? 'Webhooks' :
-                                                                pathname?.includes('/logs') ? 'Logs' :
-                                                                    pathname?.includes('/settings') ? 'Settings' :
-                                                                        pathname?.includes('/checkout-demo') ? 'Checkout Demo' :
-                                                                            'Dashboard'}
+                                    pathname?.includes('/store/categories') ? 'Categories' :
+                                        pathname?.includes('/orders') ? 'Orders' :
+                                            pathname?.includes('/products') ? 'Products' :
+                                                pathname?.includes('/payments') ? 'Payments' :
+                                                    pathname?.includes('/api-keys') ? 'API Keys' :
+                                                        pathname?.includes('/payment-links') ? 'Payment Links' :
+                                                            pathname?.includes('/balances') ? 'Balances' :
+                                                                pathname?.includes('/webhooks') ? 'Webhooks' :
+                                                                    pathname?.includes('/logs') ? 'Logs' :
+                                                                        pathname?.includes('/settings') ? 'Settings' :
+                                                                            pathname?.includes('/checkout-demo') ? 'Checkout Demo' :
+                                                                                'Dashboard'}
                         </h1>
                     </div>
 

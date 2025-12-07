@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
         const offset = parseInt(searchParams.get('offset') || '0');
         const active = searchParams.get('active'); // 'true', 'false', or null (all)
         const storeId = searchParams.get('store_id'); // optional filter by store
+        const categoryId = searchParams.get('category_id'); // optional filter by category
 
         let query = `
             SELECT 
@@ -40,6 +41,11 @@ export async function GET(req: NextRequest) {
         if (storeId) {
             query += ` AND p.store_id = $${params.length + 1}`;
             params.push(storeId);
+        }
+
+        if (categoryId) {
+            query += ` AND p.category_id = $${params.length + 1}`;
+            params.push(categoryId);
         }
 
         query += `
@@ -80,6 +86,11 @@ export async function GET(req: NextRequest) {
         if (storeId) {
             countQuery += ` AND store_id = $${countParams.length + 1}`;
             countParams.push(storeId);
+        }
+
+        if (categoryId) {
+            countQuery += ` AND category_id = $${countParams.length + 1}`;
+            countParams.push(categoryId);
         }
 
         const countResult = await pgPool.query(countQuery, countParams);

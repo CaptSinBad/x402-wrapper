@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
         const user = await requireAuth();
         const body = await req.json();
 
-        const { name, description, price_cents, currency, images, metadata, store_id } = body;
+        const { name, description, price_cents, currency, images, metadata, store_id, category_id } = body;
 
         // Validate required fields
         if (!name || !price_cents) {
@@ -47,10 +47,25 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // If category_id provided, verify it belongs to the store
+        if (category_id && store_id) {
+            const categoryCheck = await pgPool.query(
+                'SELECT id FROM categories WHERE id = $1 AND store_id = $2',
+                [category_id, store_id]
+            );
+
+            if (categoryCheck.rows.length === 0) {
+                return NextResponse.json(
+                    { error: 'category_not_found or does not belong to this store' },
+                    { status: 400 }
+                );
+            }
+        }
+
         const result = await pgPool.query(
             `INSERT INTO products (
-                seller_id, name, description, price_cents, currency, images, metadata, store_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                seller_id, name, description, price_cents, currency, images, metadata, store_id, category_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *`,
             [
                 user.id,
@@ -60,7 +75,8 @@ export async function POST(req: NextRequest) {
                 currency || 'USDC',
                 JSON.stringify(images || []),
                 JSON.stringify(metadata || {}),
-                store_id || null
+                store_id || null,
+                category_id || null
             ]
         );
 
