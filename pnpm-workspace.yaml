@@ -1,3 +1,8 @@
+packages:
+  - 'sdk/client'
+  - 'sdk/server'
+  - 'sdk/checkout'
+
 ignoredBuiltDependencies:
   - '@coinbase/x402'
   - '@reown/appkit'

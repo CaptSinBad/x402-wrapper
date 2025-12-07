@@ -126,7 +126,7 @@ export class BinahPay {
 
         try {
             const response = await fetch(url, options);
-            const responseData = await response.json();
+            const responseData: any = await response.json();
 
             if (!response.ok) {
                 throw new BinahPayError(

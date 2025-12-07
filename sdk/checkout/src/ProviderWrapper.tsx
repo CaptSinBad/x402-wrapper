@@ -52,11 +52,19 @@ createAppKit({
  * if they're not already present in the tree.
  */
 export function BinahPayCheckoutWithProviders(props: BinahPayCheckoutProps) {
+    const children = (
+        <QueryClientProvider client={queryClient}>
+            <BinahPayCheckout {...props} />
+        </QueryClientProvider>
+    ) as React.ReactNode;
+
     return (
+        // @ts-expect-error Wagmi v2 incompatibility with React 19 - upgrade to Wagmi v3 when available
         <WagmiProvider config={wagmiConfig}>
-            <QueryClientProvider client={queryClient}>
-                <BinahPayCheckout {...props} />
-            </QueryClientProvider>
+            {children}
         </WagmiProvider>
     );
 }
+
+// Default export with providers
+export default BinahPayCheckoutWithProviders;
