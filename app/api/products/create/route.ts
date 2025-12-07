@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
         const user = await requireAuth();
         const body = await req.json();
 
-        const { name, description, price_cents, currency, images, metadata } = body;
+        const { name, description, price_cents, currency, images, metadata, store_id } = body;
 
         // Validate required fields
         if (!name || !price_cents) {
@@ -32,10 +32,25 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // If store_id provided, verify ownership
+        if (store_id) {
+            const storeCheck = await pgPool.query(
+                'SELECT id FROM stores WHERE id = $1 AND user_id = $2',
+                [store_id, user.id]
+            );
+
+            if (storeCheck.rows.length === 0) {
+                return NextResponse.json(
+                    { error: 'store_not_found or you do not own this store' },
+                    { status: 404 }
+                );
+            }
+        }
+
         const result = await pgPool.query(
             `INSERT INTO products (
-                seller_id, name, description, price_cents, currency, images, metadata
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                seller_id, name, description, price_cents, currency, images, metadata, store_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *`,
             [
                 user.id,
@@ -44,7 +59,8 @@ export async function POST(req: NextRequest) {
                 price_cents,
                 currency || 'USDC',
                 JSON.stringify(images || []),
-                JSON.stringify(metadata || {})
+                JSON.stringify(metadata || {}),
+                store_id || null
             ]
         );
 

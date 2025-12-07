@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '50');
         const offset = parseInt(searchParams.get('offset') || '0');
         const active = searchParams.get('active'); // 'true', 'false', or null (all)
+        const storeId = searchParams.get('store_id'); // optional filter by store
 
         let query = `
             SELECT 
@@ -34,6 +35,11 @@ export async function GET(req: NextRequest) {
         if (active !== null) {
             query += ` AND p.active = $${params.length + 1}`;
             params.push(active === 'true');
+        }
+
+        if (storeId) {
+            query += ` AND p.store_id = $${params.length + 1}`;
+            params.push(storeId);
         }
 
         query += `
@@ -63,10 +69,20 @@ export async function GET(req: NextRequest) {
         }));
 
         // Get total count
-        const countResult = await pgPool.query(
-            `SELECT COUNT(*) as total FROM products WHERE seller_id = $1 ${active !== null ? 'AND active = $2' : ''}`,
-            active !== null ? [user.id, active === 'true'] : [user.id]
-        );
+        let countQuery = 'SELECT COUNT(*) as total FROM products WHERE seller_id = $1';
+        const countParams: any[] = [user.id];
+
+        if (active !== null) {
+            countQuery += ` AND active = $${countParams.length + 1}`;
+            countParams.push(active === 'true');
+        }
+
+        if (storeId) {
+            countQuery += ` AND store_id = $${countParams.length + 1}`;
+            countParams.push(storeId);
+        }
+
+        const countResult = await pgPool.query(countQuery, countParams);
 
         return NextResponse.json({
             products,

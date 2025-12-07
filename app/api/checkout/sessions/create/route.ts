@@ -76,6 +76,10 @@ export async function POST(req: NextRequest) {
             };
         });
 
+        // Calculate 1% platform fee (round up)
+        const platformFeeCents = Math.ceil(totalCents * 0.01);
+        const totalWithFee = totalCents + platformFeeCents;
+
         // Generate unique session ID
         const sessionId = `sess_${crypto.randomBytes(16).toString('hex')}`;
 
@@ -86,16 +90,17 @@ export async function POST(req: NextRequest) {
         const result = await pgPool.query(
             `INSERT INTO checkout_sessions (
                 session_id, seller_id, customer_email, line_items, 
-                total_cents, currency, mode, success_url, cancel_url, 
-                metadata, expires_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                total_cents, platform_fee_cents, currency, mode, 
+                success_url, cancel_url, metadata, expires_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING *`,
             [
                 sessionId,
                 user.id,
                 customer_email || null,
                 JSON.stringify(enrichedLineItems),
-                totalCents,
+                totalWithFee,
+                platformFeeCents,
                 'USDC', // Default currency
                 mode,
                 success_url || null,
@@ -114,6 +119,8 @@ export async function POST(req: NextRequest) {
             expires_at: session.expires_at,
             total_cents: session.total_cents,
             total: (session.total_cents / 100).toFixed(2),
+            platform_fee_cents: session.platform_fee_cents,
+            platform_fee: (session.platform_fee_cents / 100).toFixed(2),
             currency: session.currency,
             line_items: enrichedLineItems
         });
