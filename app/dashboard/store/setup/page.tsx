@@ -50,7 +50,11 @@ export default function StoreSetupPage() {
                 return;
             }
 
-            alert(isEditing ? 'Store updated successfully!' : 'Store created successfully!');
+            // Success! Show store URL and redirect
+            const storeUrl = `${window.location.origin}/s/${data.store.store_slug}`;
+            if (confirm(`Store ${isEditing ? 'updated' : 'created'} successfully!\n\nYour store is live at:\n${storeUrl}\n\nClick OK to view it now, or Cancel to add products.`)) {
+                window.open(storeUrl, '_blank');
+            }
             router.push('/dashboard/products');
         } catch (error) {
             console.error('Failed to save store:', error);
@@ -106,10 +110,10 @@ export default function StoreSetupPage() {
                             marginTop: '6px'
                         }}>
                             Your store will be available at: <strong>
-                                {formData.store_name
+                                {window.location.origin}/s/{formData.store_name
                                     .toLowerCase()
                                     .replace(/[^a-z0-9]+/g, '-')
-                                    .replace(/^-+|-+$/g, '')}.binahpay.shop
+                                    .replace(/^-+|-+$/g, '')}
                             </strong>
                         </p>
                     )}
