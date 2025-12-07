@@ -1,44 +1,77 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
+interface Store {
+    id: string;
+    store_name: string;
+    store_slug: string;
+}
 
 export default function CreateProductPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [stores, setStores] = useState<Store[]>([]);
+    const [loadingStores, setLoadingStores] = useState(true);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         price: '',
         currency: 'USDC',
-        images: [] as string[]
+        images: [] as string[],
+        store_id: ''
     });
+
+    useEffect(() => {
+        fetchStores();
+    }, []);
+
+    const fetchStores = async () => {
+        try {
+            // Note: You'll need to create this API endpoint
+            // For now, we'll make store_id optional
+            setLoadingStores(false);
+        } catch (error) {
+            console.error('Error fetching stores:', error);
+            setLoadingStores(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
+            const payload: any = {
+                name: formData.name,
+                description: formData.description,
+                price_cents: Math.round(parseFloat(formData.price) * 100),
+                currency: formData.currency,
+                images: formData.images
+            };
+
+            // Include store_id if selected
+            if (formData.store_id) {
+                payload.store_id = formData.store_id;
+            }
+
             const response = await fetch('/api/products/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: formData.name,
-                    description: formData.description,
-                    price_cents: Math.round(parseFloat(formData.price) * 100),
-                    currency: formData.currency,
-                    images: formData.images
-                })
+                body: JSON.stringify(payload)
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                throw new Error('Failed to create product');
+                throw new Error(data.error || 'Failed to create product');
             }
 
             router.push('/dashboard/products');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating product:', error);
-            alert('Failed to create product');
+            alert(error.message || 'Failed to create product');
         } finally {
             setLoading(false);
         }
