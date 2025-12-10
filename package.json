@@ -43,6 +43,7 @@
     "zod": "^3.22.2"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
     "@testing-library/dom": "^9.0.0",
     "@types/node": "^24.9.1",
     "@types/pg": "^8.15.6",
