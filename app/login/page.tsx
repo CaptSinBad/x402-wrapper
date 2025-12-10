@@ -208,6 +208,32 @@ export default function LoginPage() {
                             ← Back to BinahPay
                         </Link>
                     </div>
+
+                    {/* Troubleshooting */}
+                    <div className="mt-6 pt-6 border-t border-zinc-900 w-full text-center">
+                        <p className="text-xs text-zinc-600 mb-2">Having trouble?</p>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    // 1. Call server logout to clear cookie
+                                    await fetch('/api/auth/logout', { method: 'POST' });
+                                    // 2. Clear local storage
+                                    localStorage.clear();
+                                    sessionStorage.clear();
+                                    // 3. Disconnect wallet
+                                    if (disconnect) disconnect();
+                                    // 4. Reload page
+                                    window.location.reload();
+                                } catch (e) {
+                                    console.error(e);
+                                    window.location.reload();
+                                }
+                            }}
+                            className="text-xs text-red-900/50 hover:text-red-500 transition-colors underline"
+                        >
+                            Force Reset Session & Cache
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

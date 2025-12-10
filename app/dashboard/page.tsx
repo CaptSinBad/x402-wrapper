@@ -98,44 +98,67 @@ export default function DashboardPage() {
           <h3 className="text-lg font-medium text-white">Recent Payments</h3>
         </div>
 
-        {recentPayments.length === 0 ? (
-          <EmptyState onAction={() => setIsDrawerOpen(true)} />
-        ) : (
-          <div className="rounded-xl border border-border bg-surface overflow-hidden">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-zinc-500 uppercase bg-zinc-900/50 border-b border-border">
-                <tr>
-                  <th className="px-6 py-3 font-medium tracking-wider">Status</th>
-                  <th className="px-6 py-3 font-medium tracking-wider">Amount</th>
-                  <th className="px-6 py-3 font-medium tracking-wider">Customer</th>
-                  <th className="px-6 py-3 font-medium tracking-wider">Date</th>
-                  <th className="px-6 py-3 font-medium tracking-wider text-right">ID</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {recentPayments.map((payment) => (
-                  <tr key={payment.id} className="group hover:bg-zinc-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <StatusBadge status={payment.status} />
-                    </td>
-                    <td className="px-6 py-4 font-medium text-white tabular-nums">
-                      {payment.amount}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-400">
-                      {payment.customer || '—'}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-500 tabular-nums">
-                      {payment.date}
-                    </td>
-                    <td className="px-6 py-4 text-right font-mono text-xs text-zinc-600 group-hover:text-zinc-400 transition-colors">
-                      {payment.id.slice(0, 8)}...
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-lg font-medium text-white">Recent Payments</h3>
           </div>
-        )}
+
+          {recentPayments.length === 0 ? (
+            <EmptyState
+              onAction={() => setIsDrawerOpen(true)}
+              onSimulate={() => {
+                const fakePayment = {
+                  id: 'pay_' + Math.random().toString(36).substr(2, 9),
+                  status: 'completed',
+                  amount: '42.00 USDC',
+                  customer: 'demo@binahpay.com',
+                  date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                };
+                setRecentPayments([fakePayment]);
+                setStats(prev => ({
+                  ...prev,
+                  grossVolume: prev.grossVolume + 42.00,
+                  pendingSettlements: prev.pendingSettlements + 42.00
+                }));
+              }}
+            />
+          ) : (
+            <div className="rounded-xl border border-border bg-surface overflow-hidden">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-zinc-500 uppercase bg-zinc-900/50 border-b border-border">
+                  <tr>
+                    <th className="px-6 py-3 font-medium tracking-wider">Status</th>
+                    <th className="px-6 py-3 font-medium tracking-wider">Amount</th>
+                    <th className="px-6 py-3 font-medium tracking-wider">Customer</th>
+                    <th className="px-6 py-3 font-medium tracking-wider">Date</th>
+                    <th className="px-6 py-3 font-medium tracking-wider text-right">ID</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {recentPayments.map((payment) => (
+                    <tr key={payment.id} className="group hover:bg-zinc-800/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <StatusBadge status={payment.status} />
+                      </td>
+                      <td className="px-6 py-4 font-medium text-white tabular-nums">
+                        {payment.amount}
+                      </td>
+                      <td className="px-6 py-4 text-zinc-400">
+                        {payment.customer || '—'}
+                      </td>
+                      <td className="px-6 py-4 text-zinc-500 tabular-nums">
+                        {payment.date}
+                      </td>
+                      <td className="px-6 py-4 text-right font-mono text-xs text-zinc-600 group-hover:text-zinc-400 transition-colors">
+                        {payment.id.slice(0, 8)}...
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
