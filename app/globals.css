@@ -1,8 +1,27 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0A0A0A;
+  --color-surface: #111111;
+  --color-border: #27272A;
+  --color-hover: #18181B;
+  --color-primary: #0052FF;
+  --color-success: #10B981;
+  --color-danger: #EF4444;
+  --color-muted: #71717A;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+}
 
 @layer base {
+
+  *,
+  ::after,
+  ::before {
+    @apply border-border;
+  }
+
   body {
     @apply bg-background text-zinc-100 font-sans antialiased;
   }
