@@ -16,7 +16,8 @@ import {
     Search,
     Store,
     FolderOpen,
-    Package
+    Package,
+    LogOut
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
@@ -172,15 +173,25 @@ export function Sidebar() {
 
             {/* User Profile */}
             <div className="p-4 border-t border-border mt-auto">
-                <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400">
+                <button
+                    onClick={async () => {
+                        try {
+                            await fetch('/api/auth/logout', { method: 'POST' });
+                            window.location.href = '/login';
+                        } catch (err) {
+                            console.error('Logout failed', err);
+                        }
+                    }}
+                    className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition-colors group"
+                >
+                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-zinc-700 transition-colors">
                         <User className="w-4 h-4" />
                     </div>
                     <div className="flex-1 text-left">
                         <div className="text-sm font-medium text-zinc-200">Merchant User</div>
-                        <div className="text-xs text-zinc-500">merchant@binahpay.com</div>
+                        <div className="text-xs text-zinc-500">Sign out</div>
                     </div>
-                    <Settings className="w-4 h-4 text-zinc-500" />
+                    <LogOut className="w-4 h-4 text-zinc-500 group-hover:text-red-400 transition-colors" />
                 </button>
             </div>
         </div>
