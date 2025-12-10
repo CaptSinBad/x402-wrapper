@@ -32,28 +32,42 @@ export default function LoginPage() {
         setIsLoading(true);
         setError('');
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
         try {
             console.log('[Login] Calling wallet-login API...');
             const response = await fetch('/api/auth/wallet-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ walletAddress: address }),
+                signal: controller.signal,
             });
+
+            clearTimeout(timeoutId);
 
             console.log('[Login] Response status:', response.status);
             const data = await response.json();
-            console.log('[Login] Response data:', data);
 
             if (!response.ok) {
-                throw new Error(data.message || 'Authentication failed');
+                throw new Error(data.message || data.error || 'Authentication failed');
             }
 
             // Redirect based on onboarding status
             console.log('[Login] Redirecting to:', data.redirectTo);
             router.push(data.redirectTo);
+
+            // Should verify redirect happened? If we're still here after a few seconds, something is wrong.
+            // But usually the page unloads. We keep isLoading(true).
         } catch (err: any) {
             console.error('[Login] Wallet auth error:', err);
-            setError(err.message || 'Failed to authenticate');
+            clearTimeout(timeoutId);
+
+            if (err.name === 'AbortError') {
+                setError('Login timed out. Please check your network or try again.');
+            } else {
+                setError(err.message || 'Failed to authenticate');
+            }
             setIsLoading(false);
         }
     };

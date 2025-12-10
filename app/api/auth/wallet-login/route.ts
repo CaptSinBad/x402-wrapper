@@ -11,6 +11,14 @@ const pgPool = new Pool({
  * Authenticate or create user with wallet address
  */
 export async function POST(req: NextRequest) {
+    if (!process.env.DATABASE_URL) {
+        console.error('DATABASE_URL is not defined');
+        return NextResponse.json(
+            { error: 'configuration_error', message: 'Database configuration missing' },
+            { status: 500 }
+        );
+    }
+
     try {
         const { walletAddress, signature, message } = await req.json();
 
