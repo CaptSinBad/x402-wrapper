@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
 import { createSession } from '../../../../lib/session';
-
-const pgPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-});
+import { db } from '../../../../lib/db';
 
 /**
  * POST /api/auth/wallet-login
@@ -34,14 +30,14 @@ export async function POST(req: NextRequest) {
         // In production, you should verify the signature matches the message
 
         // Check if user exists
-        let user = await pgPool.query(
+        let user = await db.query(
             `SELECT * FROM users WHERE wallet_address = $1`,
             [walletAddress.toLowerCase()]
         );
 
         if (user.rows.length === 0) {
             // Create new user
-            const result = await pgPool.query(
+            const result = await db.query(
                 `INSERT INTO users (wallet_address, auth_method) 
          VALUES ($1, $2) 
          RETURNING *`,
@@ -56,7 +52,7 @@ export async function POST(req: NextRequest) {
         const token = await createSession(userId);
 
         // Check if onboarding is complete
-        const onboarding = await pgPool.query(
+        const onboarding = await db.query(
             `SELECT completed FROM onboarding_progress WHERE user_id = $1`,
             [userId]
         );
