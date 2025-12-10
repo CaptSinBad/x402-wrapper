@@ -1,28 +1,55 @@
-import Link from 'next/link';
+import type { Metadata } from 'next';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 import ClientWalletProvider from './components/ClientWalletProvider';
 import './globals.css';
-import './lib/errorSuppression';
+import './lib/errorSuppression'; // Keep error suppression
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+  display: 'swap',
+});
+
+export const metadata: Metadata = {
+  title: 'BinahPay',
+  description: 'Crypto payments platform powered by Coinbase x402',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
-      <body suppressHydrationWarning>
-        <header className="site-header">
-          <div className="site-brand">
-            <Link href="/" className="brand-link">BinahPay</Link>
-            <nav className="site-nav">
-              <Link href="/dashboard" className="nav-link">Dashboard</Link>
-            </nav>
-          </div>
-        </header>
-
-        {/* Wallet provider for wallet authentication */}
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <body className="bg-background text-zinc-100 min-h-screen font-sans antialiased selection:bg-primary/20 selection:text-primary">
         <ClientWalletProvider>
-          <main className="main-container">{children}</main>
+          <div className="min-h-screen flex flex-col">
+            {/* Temporary minimal header to allow navigation during dev */}
+            <header className="border-b border-border bg-surface/50 backdrop-blur-md sticky top-0 z-50">
+              <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+                <a href="/" className="text-lg font-medium tracking-tight text-white">BinahPay</a>
+                <nav className="flex gap-6 text-sm font-medium text-zinc-400">
+                  <a href="/dashboard" className="hover:text-white transition-colors">Dashboard</a>
+                  <a href="/login" className="hover:text-white transition-colors">Login</a>
+                </nav>
+              </div>
+            </header>
 
-          <footer className="site-footer">
-            <small>© {new Date().getFullYear()} BinahPay — Decentralized Payment Infrastructure</small>
-          </footer>
+            <main className="flex-1">
+              {children}
+            </main>
+
+            <footer className="border-t border-border py-8 text-center text-xs text-muted font-mono">
+              © {new Date().getFullYear()} BinahPay — Decentralized Infrastructure
+            </footer>
+          </div>
         </ClientWalletProvider>
       </body>
     </html>

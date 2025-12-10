@@ -1,125 +1,15 @@
-/* Basic global styles to improve the demo UI */
-:root {
-  --bg: #f7fafc;
-  --muted: #6b7280;
-  --accent: #2B5FA5;
-  --accent-dark: #1B3F75;
-  --card: #ffffff;
-  --header-bg: #2B5FA5;
-  --binahpay-primary: #2B5FA5;
-  --binahpay-dark: #1B3F75;
-  --binahpay-light: #4A8FD5;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-html,
-body,
-#root {
-  height: 100%;
-}
-
-body {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-  margin: 0;
-  padding: 0;
-  background: var(--bg);
-  color: #03203a;
-}
-
-.site-header {
-  background: var(--header-bg);
-  color: #fff;
-  padding: 16px 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.site-brand {
-  display: flex;
-  align-items: center;
-  gap: 20px
-}
-
-.brand-link {
-  color: #fff;
-  text-decoration: none;
-  font-weight: 800;
-  font-size: 20px;
-  letter-spacing: -0.5px
-}
-
-.site-nav {
-  display: flex;
-  gap: 12px
-}
-
-.nav-link {
-  color: #a0aec0;
-  text-decoration: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s
-}
-
-.nav-link:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.1)
-}
-
-.cta {
-  background: #fff;
-  color: var(--binahpay-primary);
-  padding: 10px 20px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  display: inline-block;
-  border: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-
-.cta:hover {
-  background: #f3f4f6;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  transform: translateY(-1px);
-}
-
-.main-container {
-  padding: 24px;
-  max-width: 1100px;
-  margin: 24px auto;
-}
-
-.site-footer {
-  padding: 24px;
-  text-align: center;
-  color: var(--muted)
-}
-
-/* Utility cards */
-.card {
-  background: var(--card);
-  border-radius: 10px;
-  padding: 16px;
-  box-shadow: 0 1px 4px rgba(3, 12, 34, 0.06)
-}
-
-button {
-  cursor: pointer
-}
-
-@media (max-width:700px) {
-  .site-nav {
-    display: none
+@layer base {
+  body {
+    @apply bg-background text-zinc-100 font-sans antialiased;
   }
+}
 
-  .main-container {
-    padding: 16px
+@layer utilities {
+  .glass {
+    @apply bg-surface/50 backdrop-blur-md border border-white/5;
   }
 }
