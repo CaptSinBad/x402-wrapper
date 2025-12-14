@@ -34,13 +34,16 @@ export async function POST(req: NextRequest) {
         // In production, you should verify the signature matches the message
 
         // Check if user exists
+        console.log('[API] Querying user for wallet:', walletAddress);
         let user = await pgPool.query(
             `SELECT * FROM users WHERE wallet_address = $1`,
             [walletAddress.toLowerCase()]
         );
+        console.log('[API] User query result:', user.rows.length > 0 ? 'Found' : 'Not Found');
 
         if (user.rows.length === 0) {
             // Create new user
+            console.log('[API] Creating new user...');
             const result = await pgPool.query(
                 `INSERT INTO users (wallet_address, auth_method) 
          VALUES ($1, $2) 
@@ -48,6 +51,7 @@ export async function POST(req: NextRequest) {
                 [walletAddress.toLowerCase(), 'wallet']
             );
             user = result;
+            console.log('[API] User created:', user.rows[0].id);
         }
 
         const userId = user.rows[0].id;

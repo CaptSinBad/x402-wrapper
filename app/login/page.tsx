@@ -26,7 +26,7 @@ export default function LoginPage() {
         setError('');
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout for cold starts
 
         try {
             console.log('[Login] Calling wallet-login API...');
