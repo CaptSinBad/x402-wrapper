@@ -36,3 +36,5 @@ Thumbs.db
 # IDE (optional - team may want these committed)
 # .vscode/
 # .idea/
+.vercel
+.env*.local
