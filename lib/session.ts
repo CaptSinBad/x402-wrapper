@@ -1,10 +1,11 @@
 // Session management utilities
 import { cookies } from 'next/headers';
+import { Pool } from 'pg';
 import crypto from 'crypto';
-import { db } from './db';
 
-// Removed local Pool instantiation
-
+const pgPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+});
 
 export interface SessionUser {
     id: string;
@@ -18,7 +19,7 @@ export async function createSession(userId: string): Promise<string> {
     const token = crypto.randomBytes(32).toString('base64url');
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
-    await db.query(
+    await pgPool.query(
         `INSERT INTO user_sessions (user_id, token, expires_at) 
      VALUES ($1, $2, $3)`,
         [userId, token, expiresAt]
@@ -43,7 +44,7 @@ export async function getSession(): Promise<SessionUser | null> {
 
     if (!token) return null;
 
-    const result = await db.query(
+    const result = await pgPool.query(
         `SELECT u.* FROM users u
      JOIN user_sessions s ON s.user_id = u.id
      WHERE s.token = $1 AND s.expires_at > NOW()`,
@@ -67,7 +68,7 @@ export async function destroySession(): Promise<void> {
     const token = cookieStore.get('session_token')?.value;
 
     if (token) {
-        await db.query(
+        await pgPool.query(
             `DELETE FROM user_sessions WHERE token = $1`,
             [token]
         );
