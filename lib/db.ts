@@ -13,7 +13,7 @@ export const db = {
         // console.log('[DB HTTP] Query:', text);
         try {
             // neon http driver returns array of rows directly
-            const res = await sql(text, params ?? []);
+            const res = await sql(text as any, params ?? []);
             return { rows: res };
         } catch (error) {
             console.error('[DB HTTP] Error:', error);
