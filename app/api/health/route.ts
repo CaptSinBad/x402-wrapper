@@ -11,7 +11,7 @@ export async function GET() {
 
         // 2. Test DB Query
         console.log('[Health] Querying DB...');
-        const result = await db.query('SELECT NOW() as now');
+        const result: any = await db.query('SELECT NOW() as now');
         console.log('[Health] Query success');
 
         const duration = Date.now() - start;
