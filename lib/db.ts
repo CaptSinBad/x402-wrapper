@@ -1,14 +1,23 @@
-import { Pool } from '@neondatabase/serverless';
+import { neon } from '@neondatabase/serverless';
 
 if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL is not defined');
 }
 
-// Use the Pool from @neondatabase/serverless
-// This is a drop-in replacement for pg.Pool but designed for serverless environments (Vercel)
-// It handles WebSockets/HTTP connections automatically.
-export const db = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    connectionTimeoutMillis: 5000,
-    // ssl is automatically handled by the driver for neon hosts
-});
+const sql = neon(process.env.DATABASE_URL);
+
+// Wrapper to make neon HTTP driver look like pg.Pool
+export const db = {
+    query: async (text: string, params?: any[]) => {
+        // Log query text for debug
+        // console.log('[DB HTTP] Query:', text);
+        try {
+            // neon http driver returns array of rows directly
+            const res = await sql(text, params ?? []);
+            return { rows: res };
+        } catch (error) {
+            console.error('[DB HTTP] Error:', error);
+            throw error;
+        }
+    }
+};
