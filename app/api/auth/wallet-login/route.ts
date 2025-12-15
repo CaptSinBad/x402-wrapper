@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
-import { createSession } from '../../../lib/session';
+import { createSession } from '@/lib/session';
 
 const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
