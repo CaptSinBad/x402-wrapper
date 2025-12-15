@@ -1,53 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSession } from '../../../../lib/session';
-import { db } from '../../../../lib/db';
+import { Pool } from 'pg';
+import { createSession } from '../../../lib/session';
 
-/**
- * POST /api/auth/wallet-login
- * Authenticate or create user with wallet address
- */
+const pgPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+});
+
 export async function POST(req: NextRequest) {
-    if (!process.env.DATABASE_URL) {
-        console.error('DATABASE_URL is not defined');
-        return NextResponse.json(
-            { error: 'configuration_error', message: 'Database configuration missing' },
-            { status: 500 }
-        );
-    }
-
     try {
-        const { walletAddress, signature, message } = await req.json();
-
-        if (!walletAddress) {
-            return NextResponse.json(
-                { error: 'wallet_address_required' },
-                { status: 400 }
-            );
-        }
-
-        // TODO: Verify signature if provided
-        // For now, we'll trust the wallet address from the frontend
-        // In production, you should verify the signature matches the message
+        const { address, chainId } = await req.json();
 
         // Check if user exists
-        console.log('[API] Querying user for wallet:', walletAddress);
-        let user: any = await db.query(
+        let user = await pgPool.query(
             `SELECT * FROM users WHERE wallet_address = $1`,
-            [walletAddress.toLowerCase()]
+            [address]
         );
-        console.log('[API] User query result:', user.rows.length > 0 ? 'Found' : 'Not Found');
 
         if (user.rows.length === 0) {
             // Create new user
-            console.log('[API] Creating new user...');
-            const result: any = await db.query(
-                `INSERT INTO users (wallet_address, auth_method) 
-         VALUES ($1, $2) 
-         RETURNING *`,
-                [walletAddress.toLowerCase(), 'wallet']
+            user = await pgPool.query(
+                `INSERT INTO users (wallet_address, auth_method) VALUES ($1, 'wallet') RETURNING *`,
+                [address]
             );
-            user = result;
-            console.log('[API] User created:', user.rows[0].id);
+
+            // Initialize onboarding progress
+            await pgPool.query(
+                `INSERT INTO onboarding_progress (user_id, completed, current_step) VALUES ($1, false, 1)`,
+                [user.rows[0].id]
+            );
         }
 
         const userId = user.rows[0].id;
@@ -56,7 +36,7 @@ export async function POST(req: NextRequest) {
         const token = await createSession(userId);
 
         // Check if onboarding is complete
-        const onboarding: any = await db.query(
+        const onboarding = await pgPool.query(
             `SELECT completed FROM onboarding_progress WHERE user_id = $1`,
             [userId]
         );
