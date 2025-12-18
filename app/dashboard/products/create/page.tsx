@@ -1,44 +1,105 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
+interface Store {
+    id: string;
+    store_name: string;
+    store_slug: string;
+}
 
 export default function CreateProductPage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [stores, setStores] = useState<Store[]>([]);
+    const [categories, setCategories] = useState<any[]>([]);
+    const [loadingStores, setLoadingStores] = useState(true);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         price: '',
         currency: 'USDC',
-        images: [] as string[]
+        images: [] as string[],
+        store_id: '',
+        category_id: ''
     });
+
+    useEffect(() => {
+        fetchStores();
+    }, []);
+
+    useEffect(() => {
+        if (formData.store_id) {
+            fetchCategories();
+        }
+    }, [formData.store_id]);
+
+    const fetchStores = async () => {
+        try {
+            // For now we'll get store_id from URL or use API to fetch user's stores
+            // Simplified: we'll make it optional for now
+            setLoadingStores(false);
+        } catch (error) {
+            console.error('Error fetching stores:', error);
+            setLoadingStores(false);
+        }
+    };
+
+    const fetchCategories = async () => {
+        if (!formData.store_id) return;
+
+        try {
+            const response = await fetch(`/api/stores/${formData.store_id}/categories/list`);
+            const data = await response.json();
+
+            if (response.ok) {
+                setCategories(data.categories || []);
+            }
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
+            const payload: any = {
+                name: formData.name,
+                description: formData.description,
+                price_cents: Math.round(parseFloat(formData.price) * 100),
+                currency: formData.currency,
+                images: formData.images
+            };
+
+            // Include store_id if selected
+            if (formData.store_id) {
+                payload.store_id = formData.store_id;
+            }
+
+            // Include category_id if selected
+            if (formData.category_id) {
+                payload.category_id = formData.category_id;
+            }
+
             const response = await fetch('/api/products/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: formData.name,
-                    description: formData.description,
-                    price_cents: Math.round(parseFloat(formData.price) * 100),
-                    currency: formData.currency,
-                    images: formData.images
-                })
+                body: JSON.stringify(payload)
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                throw new Error('Failed to create product');
+                throw new Error(data.error || 'Failed to create product');
             }
 
             router.push('/dashboard/products');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating product:', error);
-            alert('Failed to create product');
+            alert(error.message || 'Failed to create product');
         } finally {
             setLoading(false);
         }
@@ -162,6 +223,36 @@ export default function CreateProductPage() {
                             </select>
                         </div>
                     </div>
+
+                    {/* Category (if store selected) */}
+                    {formData.store_id && (
+                        <div style={{ marginBottom: '24px' }}>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
+                                Category
+                            </label>
+                            <select
+                                value={formData.category_id}
+                                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    border: '1px solid #E2E8F0',
+                                    borderRadius: '8px',
+                                    fontSize: '15px'
+                                }}
+                            >
+                                <option value="">No category</option>
+                                {categories.map((cat) => (
+                                    <option key={cat.id} value={cat.id}>
+                                        {cat.name} ({cat.product_count} products)
+                                    </option>
+                                ))}
+                            </select>
+                            <p style={{ fontSize: '12px', color: '#718096', marginTop: '6px' }}>
+                                Optional: Organize product into a category
+                            </p>
+                        </div>
+                    )}
 
                     {/* Images */}
                     <div style={{ marginBottom: '24px' }}>

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import styles from '../../../components/dashboard.module.css';
+import { ChevronLeft, Upload, Loader2, Check, Copy, ExternalLink, Smartphone } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function CreatePaymentLinkPage() {
     const router = useRouter();
@@ -104,84 +105,64 @@ export default function CreatePaymentLinkPage() {
     };
 
     return (
-        <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-            <div style={{ marginBottom: '32px' }}>
+        <div className="max-w-[1400px] mx-auto p-6">
+            <div className="mb-8">
                 <button
                     onClick={() => router.back()}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#2B5FA5',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        marginBottom: '16px'
-                    }}
+                    className="flex items-center gap-1 text-sm font-medium text-zinc-400 hover:text-white mb-4 transition-colors"
                 >
-                    ← Back to Payment Links
+                    <ChevronLeft className="w-4 h-4" />
+                    Back to Payment Links
                 </button>
-                <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>
+                <h1 className="text-2xl font-bold text-white mb-2">
                     Create Payment Link
                 </h1>
-                <p style={{ color: '#718096', fontSize: '16px' }}>
+                <p className="text-zinc-400">
                     Create a beautiful payment page for your product
                 </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Form Column */}
-                <div style={{
-                    background: 'white',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '16px',
-                    padding: '32px'
-                }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '24px' }}>
+                <div className="bg-[#111111] border border-zinc-800 rounded-xl p-8">
+                    <h2 className="text-lg font-medium text-white mb-6">
                         Product Details
                     </h2>
 
                     {/* Image Upload */}
-                    <div style={{ marginBottom: '24px' }}>
-                        <label style={{ display: 'block', fontWeight: '500', marginBottom: '8px', color: '#2D3748' }}>
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
                             Product Image
                         </label>
-                        <div style={{
-                            border: '2px dashed #CBD5E0',
-                            borderRadius: '12px',
-                            padding: '32px',
-                            textAlign: 'center',
-                            background: imagePreview ? 'transparent' : '#F7FAFC',
-                            position: 'relative',
-                            overflow: 'hidden',
-                            cursor: 'pointer'
-                        }}
+                        <div
+                            className={cn(
+                                "border-2 border-dashed border-zinc-700 rounded-xl p-8 text-center transition-colors cursor-pointer",
+                                imagePreview ? "bg-transparent border-zinc-600" : "bg-zinc-900/50 hover:bg-zinc-900 hover:border-zinc-500"
+                            )}
                             onClick={() => document.getElementById('imageInput')?.click()}
                         >
                             {imagePreview ? (
-                                <img src={imagePreview} alt="Preview" style={{
-                                    maxWidth: '100%',
-                                    maxHeight: '200px',
-                                    borderRadius: '8px'
-                                }} />
+                                <img src={imagePreview} alt="Preview" className="max-w-full max-h-[200px] mx-auto rounded-lg object-contain" />
                             ) : (
-                                <>
-                                    <div style={{ fontSize: '48px', marginBottom: '8px' }}>📸</div>
-                                    <p style={{ color: '#718096', marginBottom: '4px' }}>Click to upload product image</p>
-                                    <p style={{ color: '#A0AEC0', fontSize: '14px' }}>PNG, JPG up to 5MB</p>
-                                </>
+                                <div className="flex flex-col items-center gap-2">
+                                    <Upload className="w-8 h-8 text-zinc-500" />
+                                    <p className="text-sm text-zinc-400">Click to upload product image</p>
+                                    <p className="text-xs text-zinc-600">PNG, JPG up to 5MB</p>
+                                </div>
                             )}
                             <input
                                 id="imageInput"
                                 type="file"
                                 accept="image/*"
                                 onChange={handleImageChange}
-                                style={{ display: 'none' }}
+                                className="hidden"
                             />
                         </div>
                     </div>
 
                     {/* Product Name */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontWeight: '500', marginBottom: '8px', color: '#2D3748' }}>
+                    <div className="mb-5">
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
                             Product Name *
                         </label>
                         <input
@@ -190,19 +171,13 @@ export default function CreatePaymentLinkPage() {
                             value={formData.name}
                             onChange={handleChange}
                             placeholder="My Product"
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '8px',
-                                fontSize: '14px'
-                            }}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-white placeholder-zinc-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                         />
                     </div>
 
                     {/* Description */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontWeight: '500', marginBottom: '8px', color: '#2D3748' }}>
+                    <div className="mb-5">
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
                             Description
                         </label>
                         <textarea
@@ -211,21 +186,14 @@ export default function CreatePaymentLinkPage() {
                             onChange={handleChange}
                             placeholder="Describe your product..."
                             rows={3}
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '8px',
-                                fontSize: '14px',
-                                fontFamily: 'inherit'
-                            }}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-white placeholder-zinc-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                         />
                     </div>
 
                     {/* Price & Currency */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+                    <div className="grid grid-cols-2 gap-4 mb-5">
                         <div>
-                            <label style={{ display: 'block', fontWeight: '500', marginBottom: '8px', color: '#2D3748' }}>
+                            <label className="block text-sm font-medium text-zinc-300 mb-2">
                                 Price *
                             </label>
                             <input
@@ -235,30 +203,18 @@ export default function CreatePaymentLinkPage() {
                                 onChange={handleChange}
                                 placeholder="0.00"
                                 step="0.01"
-                                style={{
-                                    width: '100%',
-                                    padding: '12px',
-                                    border: '1px solid #E2E8F0',
-                                    borderRadius: '8px',
-                                    fontSize: '14px'
-                                }}
+                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-white placeholder-zinc-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                             />
                         </div>
                         <div>
-                            <label style={{ display: 'block', fontWeight: '500', marginBottom: '8px', color: '#2D3748' }}>
+                            <label className="block text-sm font-medium text-zinc-300 mb-2">
                                 Currency
                             </label>
                             <select
                                 name="currency"
                                 value={formData.currency}
                                 onChange={handleChange}
-                                style={{
-                                    width: '100%',
-                                    padding: '12px',
-                                    border: '1px solid #E2E8F0',
-                                    borderRadius: '8px',
-                                    fontSize: '14px'
-                                }}
+                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                             >
                                 <option value="USDC">USDC</option>
                                 <option value="USDT">USDT</option>
@@ -267,21 +223,15 @@ export default function CreatePaymentLinkPage() {
                     </div>
 
                     {/* Network */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontWeight: '500', marginBottom: '8px', color: '#2D3748' }}>
+                    <div className="mb-5">
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
                             Network
                         </label>
                         <select
                             name="network"
                             value={formData.network}
                             onChange={handleChange}
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '8px',
-                                fontSize: '14px'
-                            }}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                         >
                             <option value="base-sepolia">Base Sepolia (Testnet)</option>
                             <option value="base">Base</option>
@@ -289,86 +239,65 @@ export default function CreatePaymentLinkPage() {
                         </select>
                     </div>
 
-                    <hr style={{ border: 'none', borderTop: '1px solid #E2E8F0', margin: '32px 0' }} />
+                    <div className="h-px bg-zinc-800 my-8" />
 
-                    <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '20px' }}>
+                    <h2 className="text-lg font-medium text-white mb-6">
                         Customization
                     </h2>
 
                     {/* Brand Color */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'block', fontWeight: '500', marginBottom: '8px', color: '#2D3748' }}>
+                    <div className="mb-5">
+                        <label className="block text-sm font-medium text-zinc-300 mb-2">
                             Brand Color
                         </label>
-                        <input
-                            type="color"
-                            name="brandColor"
-                            value={formData.brandColor}
-                            onChange={handleChange}
-                            style={{
-                                width: '100%',
-                                height: '48px',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '8px',
-                                cursor: 'pointer'
-                            }}
-                        />
+                        <div className="flex gap-2 items-center">
+                            <input
+                                type="color"
+                                name="brandColor"
+                                value={formData.brandColor}
+                                onChange={handleChange}
+                                className="h-10 w-20 bg-transparent border border-zinc-800 rounded cursor-pointer"
+                            />
+                            <span className="text-zinc-500 text-sm font-mono">{formData.brandColor}</span>
+                        </div>
                     </div>
 
                     {/* Customer Info Collection */}
-                    <div style={{ marginBottom: '20px' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', cursor: 'pointer' }}>
+                    <div className="space-y-3 mb-5">
+                        <label className="flex items-center gap-3 cursor-pointer group">
                             <input
                                 type="checkbox"
                                 checked={formData.collectEmail}
                                 onChange={(e) => setFormData({ ...formData, collectEmail: e.target.checked })}
+                                className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-primary focus:ring-primary/50"
                             />
-                            <span style={{ fontSize: '14px', color: '#2D3748' }}>Collect customer email</span>
+                            <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">Collect customer email</span>
                         </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <label className="flex items-center gap-3 cursor-pointer group">
                             <input
                                 type="checkbox"
                                 checked={formData.collectName}
                                 onChange={(e) => setFormData({ ...formData, collectName: e.target.checked })}
+                                className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-primary focus:ring-primary/50"
                             />
-                            <span style={{ fontSize: '14px', color: '#2D3748' }}>Collect customer name</span>
+                            <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">Collect customer name</span>
                         </label>
                     </div>
 
                     {/* Actions */}
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
+                    <div className="flex gap-3 mt-8">
                         <button
                             onClick={() => router.back()}
-                            style={{
-                                flex: 1,
-                                padding: '14px 24px',
-                                background: 'white',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '8px',
-                                fontSize: '14px',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                                color: '#2D3748'
-                            }}
+                            className="flex-1 px-4 py-3 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800 rounded-lg text-sm font-medium transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleCreate}
                             disabled={isCreating || !formData.name || !formData.price}
-                            style={{
-                                flex: 1,
-                                padding: '14px 24px',
-                                background: formData.brandColor,
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontSize: '14px',
-                                fontWeight: '500',
-                                cursor: isCreating ? 'not-allowed' : 'pointer',
-                                opacity: (isCreating || !formData.name || !formData.price) ? 0.5 : 1
-                            }}
+                            className="flex-1 px-4 py-3 bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                         >
+                            {isCreating && <Loader2 className="w-4 h-4 animate-spin" />}
                             {isCreating ? 'Creating...' : 'Create Payment Link'}
                         </button>
                     </div>
@@ -376,75 +305,51 @@ export default function CreatePaymentLinkPage() {
 
                 {/* Live Preview Column */}
                 <div>
-                    <div style={{
-                        position: 'sticky',
-                        top: '24px',
-                        background: '#F7FAFC',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '16px',
-                        padding: '32px'
-                    }}>
-                        <h3 style={{ fontSize: '14px', fontWeight: '600', color: '#718096', marginBottom: '24px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                            Live Preview
-                        </h3>
+                    <div className="sticky top-6 bg-zinc-900/30 border border-zinc-800 rounded-xl p-8 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 mb-6">
+                            <Smartphone className="w-4 h-4 text-zinc-400" />
+                            <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                                Live Preview
+                            </h3>
+                        </div>
 
                         {/* Preview Card */}
-                        <div style={{
-                            background: 'white',
-                            borderRadius: '12px',
-                            padding: '32px',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                        }}>
+                        <div className="bg-white rounded-xl overflow-hidden shadow-2xl max-w-sm mx-auto">
                             {imagePreview && (
-                                <img
-                                    src={imagePreview}
-                                    alt="Product"
-                                    style={{
-                                        width: '100%',
-                                        height: '200px',
-                                        objectFit: 'cover',
-                                        borderRadius: '8px',
-                                        marginBottom: '24px'
-                                    }}
-                                />
+                                <div className="w-full h-48 overflow-hidden bg-gray-100">
+                                    <img
+                                        src={imagePreview}
+                                        alt="Product"
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
                             )}
 
-                            <h2 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '12px', color: '#2D3748' }}>
-                                {formData.name || 'Product Name'}
-                            </h2>
+                            <div className="p-6">
+                                <h2 className="text-xl font-bold text-gray-900 mb-2">
+                                    {formData.name || 'Product Name'}
+                                </h2>
 
-                            {formData.description && (
-                                <p style={{ fontSize: '16px', color: '#718096', marginBottom: '24px', lineHeight: '1.6' }}>
-                                    {formData.description}
-                                </p>
-                            )}
+                                {formData.description && (
+                                    <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                                        {formData.description}
+                                    </p>
+                                )}
 
-                            <div style={{
-                                fontSize: '48px',
-                                fontWeight: '700',
-                                color: formData.brandColor,
-                                marginBottom: '32px'
-                            }}>
-                                {formData.price ? `${formData.price} ${formData.currency}` : '0.00 USDC'}
-                            </div>
+                                <div className="text-3xl font-bold mb-6" style={{ color: formData.brandColor }}>
+                                    {formData.price ? `${formData.price} ${formData.currency}` : '0.00 USDC'}
+                                </div>
 
-                            <button style={{
-                                width: '100%',
-                                padding: '16px',
-                                background: formData.brandColor,
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontSize: '16px',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                marginBottom: '16px'
-                            }}>
-                                Pay with Wallet
-                            </button>
+                                <button
+                                    className="w-full py-3 text-white rounded-lg text-base font-semibold shadow-md mb-4 transition-transform active:scale-[0.98]"
+                                    style={{ background: formData.brandColor }}
+                                >
+                                    Pay with Wallet
+                                </button>
 
-                            <div style={{ textAlign: 'center', fontSize: '12px', color: '#A0AEC0' }}>
-                                Secured by x402 • Powered by BinahPay
+                                <div className="text-center text-xs text-gray-400 flex items-center justify-center gap-1">
+                                    Secured by <span className="font-bold text-gray-500">x402</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -453,108 +358,51 @@ export default function CreatePaymentLinkPage() {
 
             {/* Success Modal */}
             {successModal && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000
-                }}>
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '16px',
-                        padding: '40px',
-                        maxWidth: '500px',
-                        width: '90%',
-                        textAlign: 'center'
-                    }}>
-                        <div style={{ fontSize: '64px', marginBottom: '16px' }}>🎉</div>
-                        <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '12px' }}>
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-[#111111] border border-zinc-800 rounded-2xl p-8 max-w-md w-full text-center animate-in fade-in zoom-in-95 duration-200">
+                        <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Check className="w-8 h-8 text-green-500" />
+                        </div>
+
+                        <h2 className="text-xl font-bold text-white mb-2">
                             Payment Link Created!
                         </h2>
-                        <p style={{ color: '#718096', marginBottom: '24px' }}>
+                        <p className="text-zinc-400 mb-8">
                             Your payment link is ready to share with customers
                         </p>
 
-                        <div style={{
-                            background: '#F7FAFC',
-                            padding: '16px',
-                            borderRadius: '8px',
-                            marginBottom: '20px',
-                            border: '1px solid #E2E8F0'
-                        }}>
-                            <div style={{
-                                fontSize: '12px',
-                                color: '#718096',
-                                marginBottom: '8px',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px'
-                            }}>
+                        <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800 mb-6 text-left">
+                            <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">
                                 Payment Link
                             </div>
-                            <div style={{
-                                fontSize: '14px',
-                                fontFamily: 'monospace',
-                                color: '#2D3748',
-                                wordBreak: 'break-all'
-                            }}>
+                            <div className="font-mono text-sm text-zinc-300 break-all select-all">
                                 {successModal.url}
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                        <div className="flex gap-3 mb-4">
                             <button
                                 onClick={copyToClipboard}
-                                style={{
-                                    flex: 1,
-                                    padding: '14px 24px',
-                                    background: copied ? '#48BB78' : '#2B5FA5',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer'
-                                }}
+                                className={cn(
+                                    "flex-1 px-4 py-3 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2",
+                                    copied ? "bg-green-600 hover:bg-green-700" : "bg-primary hover:bg-primary/90"
+                                )}
                             >
-                                {copied ? '✓ Copied!' : '📋 Copy Link'}
+                                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                {copied ? 'Copied!' : 'Copy Link'}
                             </button>
                             <button
                                 onClick={() => window.open(`/link/${successModal.token}`, '_blank')}
-                                style={{
-                                    flex: 1,
-                                    padding: '14px 24px',
-                                    background: 'white',
-                                    color: '#2B5FA5',
-                                    border: '1px solid #2B5FA5',
-                                    borderRadius: '8px',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer'
-                                }}
+                                className="flex-1 px-4 py-3 bg-white text-black hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
                             >
-                                👁️ View Link
+                                <ExternalLink className="w-4 h-4" />
+                                View Link
                             </button>
                         </div>
 
                         <button
                             onClick={() => router.push('/dashboard/payment-links')}
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                background: '#EDF2F7',
-                                color: '#2D3748',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontSize: '14px',
-                                fontWeight: '500',
-                                cursor: 'pointer'
-                            }}
+                            className="w-full py-3 text-zinc-400 hover:text-white transition-colors text-sm font-medium"
                         >
                             Back to Payment Links
                         </button>
