@@ -1,4 +1,5 @@
-import { Pool, QueryResult } from 'pg';
+import { Pool } from 'pg';
+import type { QueryResult } from 'pg';
 
 let pool: Pool | null = null;
 
