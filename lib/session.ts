@@ -5,6 +5,10 @@ import crypto from 'crypto';
 
 const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false,
+    },
+    connectionTimeoutMillis: 10000, // 10 seconds
 });
 
 export interface SessionUser {

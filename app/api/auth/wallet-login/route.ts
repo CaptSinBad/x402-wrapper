@@ -4,6 +4,10 @@ import { createSession } from '../../../../lib/session';
 
 const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false,
+    },
+    connectionTimeoutMillis: 10000, // 10 seconds
 });
 
 /**
@@ -11,6 +15,15 @@ const pgPool = new Pool({
  * Authenticate or create user with wallet address
  */
 export async function POST(req: NextRequest) {
+    // Validate DATABASE_URL is configured
+    if (!process.env.DATABASE_URL) {
+        console.error('[auth/wallet-login] DATABASE_URL not configured');
+        return NextResponse.json(
+            { error: 'database_config_missing', message: 'Database configuration is missing' },
+            { status: 500 }
+        );
+    }
+
     try {
         const { walletAddress, signature, message } = await req.json();
 
