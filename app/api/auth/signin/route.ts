@@ -3,7 +3,6 @@ import { generateSiweMessage, verifySiweSignature } from '@/lib/auth/siwe';
 import { createToken } from '@/lib/auth/jwt';
 import { query } from '@/lib/db';
 import { cookies } from 'next/headers';
-import { consumeNonce } from '../challenge/route';
 
 /**
  * POST /api/auth/signin
@@ -39,16 +38,6 @@ export async function POST(req: NextRequest) {
                 { status: 401 }
             );
         }
-
-        // Optional: Verify nonce was used (prevents replay attacks)
-        // In production, you should verify the nonce from the message matches stored nonce
-        // const storedNonce = consumeNonce(walletAddress);
-        // if (!storedNonce) {
-        //     return NextResponse.json(
-        //         { error: 'invalid_nonce', message: 'Invalid or expired nonce' },
-        //         { status: 401 }
-        //     );
-        // }
 
         // Check if user exists, create if not
         let user = await query(
