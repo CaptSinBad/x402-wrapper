@@ -39,13 +39,37 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        console.log('[Auth] Signature verified. Address:', walletAddress);
+        console.log('[Auth] Database URL configured:', !!process.env.DATABASE_URL);
+
         // Check if user exists, create if not
-        let user = await query(
+        const dbStart = Date.now();
+        console.log('[Auth] Querying user from database...');
+
+        let userPromise = query(
             `SELECT * FROM users WHERE wallet_address = $1`,
             [walletAddress]
         );
 
-        if (user.rows.length === 0) {
+        // Race against a timeout to detect DB hangs
+        const user = await Promise.race([
+            userPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('DB_TIMEOUT')), 5000))
+        ]).catch(err => {
+            if (err.message === 'DB_TIMEOUT') {
+                console.error('[Auth] Database query timed out after 5000ms');
+                throw new Error('Database connection timed out');
+            }
+            throw err;
+        });
+
+        console.log('[Auth] User query completed in', Date.now() - dbStart, 'ms');
+
+        // Cast user result to any to avoid type issues if not matching QueryResult exactly
+        const userRows = (user as any).rows;
+
+        if (userRows.length === 0) {
+            console.log('[Auth] Creating new user...');
             // Create new user
             const result = await query(
                 `INSERT INTO users (wallet_address, auth_method) 
@@ -53,10 +77,10 @@ export async function POST(req: NextRequest) {
                  RETURNING *`,
                 [walletAddress, 'wallet']
             );
-            user = result;
+            userRows[0] = (result as any).rows[0];
         }
 
-        const userId = user.rows[0].id;
+        const userId = userRows[0].id;
 
         // Create JWT token
         const token = await createToken({
