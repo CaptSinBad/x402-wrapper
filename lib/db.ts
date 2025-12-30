@@ -1,64 +1,74 @@
-import { Pool, PoolConfig, QueryResult, QueryResultRow } from '@neondatabase/serverless';
+import { neon, neonConfig } from '@neondatabase/serverless';
 
-let pool: Pool | null = null;
+// Configure neon to use fetch (default, but explicit is good)
+neonConfig.fetchConnectionCache = true;
 
 /**
- * Get or create the singleton database Pool
- * 
- * Uses @neondatabase/serverless for Vercel compatibility
- * This driver uses WebSockets which work correctly in serverless functions
- * where standard TCP connections (pg) often hang or timeout.
+ * Interface representing a database row
  */
-export function getDbPool(): Pool {
-    if (!pool) {
-        const connectionString = process.env.DATABASE_URL;
-
-        if (!connectionString) {
-            throw new Error(
-                'DATABASE_URL environment variable is not set. ' +
-                'Please configure your database connection string.'
-            );
-        }
-
-        // Configure for Neon serverless
-        // No need for complex SSL config, the driver handles it
-        pool = new Pool({
-            connectionString,
-            connectionTimeoutMillis: 5000,
-            max: 10, // Lower pool size for serverless
-        });
-
-        // Log pool errors
-        pool.on('error', (err: Error) => {
-            console.error('[DB Pool] Unexpected error on idle client', err);
-        });
-    }
-
-    return pool;
+export interface QueryResultRow {
+    [column: string]: any;
 }
 
 /**
- * Execute a query using the connection pool
+ * Interface mimicking the pg QueryResult for compatibility
+ */
+export interface QueryResult<R extends QueryResultRow = any> {
+    rows: R[];
+    command: string;
+    rowCount: number | null;
+    oid: number;
+    fields: any[];
+}
+
+/**
+ * Execute a query using the Neon HTTP driver
+ * 
+ * This is stateless and serverless-friendly. 
+ * It uses a single HTTP request per query.
  * 
  * @param text SQL query string
  * @param params Query parameters
- * @returns Query result
+ * @returns Query result compatible with pg structure
  */
 export async function query<T extends QueryResultRow = any>(
     text: string,
     params?: any[]
 ): Promise<QueryResult<T>> {
-    const pool = getDbPool();
-    // Use type casting to ensure compatibility with explicit generic
-    return pool.query(text, params) as Promise<QueryResult<T>>;
+    const connectionString = process.env.DATABASE_URL;
+
+    if (!connectionString) {
+        throw new Error(
+            'DATABASE_URL environment variable is not set. ' +
+            'Please configure your database connection string.'
+        );
+    }
+
+    // Create a new SQL client for this request (lightweight)
+    const sql = neon(connectionString);
+
+    try {
+        // Execute query
+        // neon() returns standard array of objects key-value pairs
+        // We wrap it to match the existing 'pg' QueryResult structure
+        const rows = await sql(text, params || []) as T[];
+
+        return {
+            rows,
+            command: 'SELECT', // Approximation
+            rowCount: rows.length,
+            oid: 0,
+            fields: []
+        };
+    } catch (error) {
+        console.error('[DB] Query failed:', error);
+        throw error;
+    }
 }
 
 /**
- * Close the database pool (for graceful shutdown)
+ * No-op: HTTP driver doesn't need closing
  */
 export async function closePool(): Promise<void> {
-    if (pool) {
-        await pool.end();
-        pool = null;
-    }
+    // No-op for HTTP driver
 }

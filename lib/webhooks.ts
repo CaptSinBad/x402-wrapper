@@ -1,12 +1,8 @@
 // Webhook delivery system for BinahPay
 // Sends event notifications to merchant webhook endpoints
 
-import { Pool } from 'pg';
+import { query } from './db';
 import crypto from 'crypto';
-
-const pgPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-});
 
 export interface WebhookEvent {
     id: string;
@@ -95,7 +91,7 @@ export async function sendWebhook(params: {
 
     try {
         // Get project's webhook configuration
-        const projectResult = await pgPool.query(
+        const projectResult = await query(
             `SELECT webhook_secret FROM projects WHERE id = $1`,
             [project_id]
         );
@@ -108,7 +104,7 @@ export async function sendWebhook(params: {
         const webhookSecret = projectResult.rows[0].webhook_secret;
 
         // Get webhook subscriptions for this project and event type
-        const subscriptionsResult = await pgPool.query(
+        const subscriptionsResult = await query(
             `SELECT id, url, events 
              FROM webhook_subscriptions 
              WHERE user_id = (SELECT user_id FROM projects WHERE id = $1)
@@ -131,7 +127,7 @@ export async function sendWebhook(params: {
             created: Math.floor(Date.now() / 1000),
         };
 
-        await pgPool.query(
+        await query(
             `INSERT INTO webhook_events (id, type, data, created_at)
              VALUES ($1, $2, $3, to_timestamp($4))`,
             [event.id, event.type, JSON.stringify(event.data), event.created]
@@ -161,7 +157,7 @@ async function deliverWebhookToSubscription(
         // Record delivery attempt
         const deliveryId = `whdl_${crypto.randomBytes(12).toString('base64url')}`;
 
-        await pgPool.query(
+        await query(
             `INSERT INTO webhook_deliveries (
                 id, subscription_id, event_id, attempt, status, created_at
             ) VALUES ($1, $2, $3, $4, 'pending', NOW())`,

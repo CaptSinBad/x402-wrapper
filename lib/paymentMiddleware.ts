@@ -50,30 +50,26 @@ export function requirePayment(handler: NextApiHandler): NextApiHandler {
           // not JSON/base64, treat header as raw code
         }
 
-        // Use pg directly to check and mark activation code as used
-        const { Pool } = await import('pg');
-        const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
+        // Use centralized query
+        const { query } = await import('./db');
 
         // Check if activation code exists and is not used
-        const checkResult = await pgPool.query(
+        const checkResult = await query(
           `SELECT * FROM activation_codes WHERE code = $1 AND used = false`,
           [code]
         );
 
         if (checkResult.rows.length === 0) {
-          await pgPool.end();
           return res.status(402).json({ isValid: false, invalidReason: 'activation_code_invalid_or_used' });
         }
 
         const activationCode = checkResult.rows[0];
 
         // Mark as used
-        await pgPool.query(
+        await query(
           `UPDATE activation_codes SET used = true, used_by = $1, used_at = NOW() WHERE code = $2`,
           [buyer || null, code]
         );
-
-        await pgPool.end();
 
         // attach a fake verify result to allow downstream handlers
         r.paymentVerify = { isValid: true, payer: buyer || activationCode.buyer_address || null, activationCode };
