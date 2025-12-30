@@ -5,6 +5,20 @@ import { NextRequest } from 'next/server';
 import { query } from './db';
 import crypto from 'crypto';
 
+/**
+ * Custom error class for API authentication errors
+ * Defined at top to avoid hoisting issues
+ */
+export class ApiAuthError extends Error {
+    code: string;
+
+    constructor(message: string, code: string) {
+        super(message);
+        this.name = 'ApiAuthError';
+        this.code = code;
+    }
+}
+
 export interface ApiAuthContext {
     project: {
         id: string;
@@ -19,6 +33,31 @@ export interface ApiAuthContext {
         id: string;
         wallet_address?: string;
         email?: string;
+    };
+}
+
+/**
+ * Format error response for API authentication failures
+ */
+export function formatApiError(error: any): { error: any; status: number } {
+    if (error instanceof ApiAuthError) {
+        return {
+            error: {
+                type: 'authentication_error',
+                code: error.code,
+                message: error.message,
+            },
+            status: 401,
+        };
+    }
+
+    return {
+        error: {
+            type: 'api_error',
+            code: 'internal_error',
+            message: 'An internal error occurred',
+        },
+        status: 500,
     };
 }
 
@@ -152,42 +191,4 @@ export async function optionalApiAuth(req: NextRequest): Promise<ApiAuthContext 
         }
         throw error;
     }
-}
-
-/**
- * Custom error class for API authentication errors
- */
-export class ApiAuthError extends Error {
-    code: string;
-
-    constructor(message: string, code: string) {
-        super(message);
-        this.name = 'ApiAuthError';
-        this.code = code;
-    }
-}
-
-/**
- * Format error response for API authentication failures
- */
-export function formatApiError(error: any): { error: any; status: number } {
-    if (error instanceof ApiAuthError) {
-        return {
-            error: {
-                type: 'authentication_error',
-                code: error.code,
-                message: error.message,
-            },
-            status: 401,
-        };
-    }
-
-    return {
-        error: {
-            type: 'api_error',
-            code: 'internal_error',
-            message: 'An internal error occurred',
-        },
-        status: 500,
-    };
 }
