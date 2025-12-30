@@ -1,25 +1,13 @@
-import { Pool } from 'pg';
-
-// Define minimal types to avoid import errors
-export interface QueryResultRow {
-    [column: string]: any;
-}
-
-export interface QueryResult<R extends QueryResultRow = any> {
-    rows: R[];
-    command: string;
-    rowCount: number | null;
-    oid: number;
-    fields: any[];
-}
+import { Pool, PoolConfig, QueryResult, QueryResultRow } from '@neondatabase/serverless';
 
 let pool: Pool | null = null;
 
 /**
  * Get or create the singleton database Pool
  * 
- * Uses connection pooling with proper SSL config for Neon
- * Throws error if DATABASE_URL is not configured
+ * Uses @neondatabase/serverless for Vercel compatibility
+ * This driver uses WebSockets which work correctly in serverless functions
+ * where standard TCP connections (pg) often hang or timeout.
  */
 export function getDbPool(): Pool {
     if (!pool) {
@@ -32,22 +20,16 @@ export function getDbPool(): Pool {
             );
         }
 
-        // Use any to avoid PoolConfig type issues
-        const config: any = {
+        // Configure for Neon serverless
+        // No need for complex SSL config, the driver handles it
+        pool = new Pool({
             connectionString,
-            ssl: {
-                rejectUnauthorized: false,
-            },
-            // Connection pool settings
-            max: 20, // Maximum number of clients in the pool
-            idleTimeoutMillis: 30000, // Close idle clients after 30s
-            connectionTimeoutMillis: 10000, // Timeout after 10s if can't connect
-        };
+            connectionTimeoutMillis: 5000,
+            max: 10, // Lower pool size for serverless
+        });
 
-        pool = new Pool(config);
-
-        // Log pool errors (cast to any to avoid 'on' missing type error)
-        (pool as any).on('error', (err: Error) => {
+        // Log pool errors
+        pool.on('error', (err: Error) => {
             console.error('[DB Pool] Unexpected error on idle client', err);
         });
     }
@@ -67,8 +49,8 @@ export async function query<T extends QueryResultRow = any>(
     params?: any[]
 ): Promise<QueryResult<T>> {
     const pool = getDbPool();
-    // Cast result to our local QueryResult type
-    return (pool as any).query(text, params) as Promise<QueryResult<T>>;
+    // Use type casting to ensure compatibility with explicit generic
+    return pool.query(text, params) as Promise<QueryResult<T>>;
 }
 
 /**
