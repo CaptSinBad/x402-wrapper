@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import { query } from '../../../../lib/db';
 import { requireAuth } from '../../../../lib/session';
-
-const pgPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-});
 
 /**
  * POST /api/onboarding/save
@@ -32,14 +28,14 @@ export async function POST(req: NextRequest) {
         } = data;
 
         // Check if onboarding record exists
-        const existing = await pgPool.query(
+        const existing = await query(
             `SELECT user_id FROM onboarding_progress WHERE user_id = $1`,
             [user.id]
         );
 
         if (existing.rows.length === 0) {
             // Insert new record
-            await pgPool.query(
+            await query(
                 `INSERT INTO onboarding_progress (
           user_id, account_type, business_name, website, industry, country,
           settlement_wallet, stablecoin_preference,
@@ -55,7 +51,7 @@ export async function POST(req: NextRequest) {
             );
         } else {
             // Update existing record
-            await pgPool.query(
+            await query(
                 `UPDATE onboarding_progress SET
           account_type = COALESCE($2, account_type),
           business_name = COALESCE($3, business_name),
@@ -111,7 +107,7 @@ export async function GET(req: NextRequest) {
     try {
         const user = await requireAuth();
 
-        const result = await pgPool.query(
+        const result = await query(
             `SELECT * FROM onboarding_progress WHERE user_id = $1`,
             [user.id]
         );
