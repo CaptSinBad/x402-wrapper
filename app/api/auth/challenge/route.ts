@@ -82,9 +82,9 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * Get and consume a nonce (removes it from store)
+ * Get and consume a nonce (removes it from store) - INTERNAL USE ONLY
  */
-export function consumeNonce(address: string): string | null {
+function consumeNonce(address: string): string | null {
     const normalizedAddress = address.toLowerCase();
     const stored = nonceStore.get(normalizedAddress);
 
