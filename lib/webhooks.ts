@@ -168,12 +168,12 @@ async function deliverWebhookToSubscription(
         const result = await deliverWebhook(subscription.url, event, secret);
 
         // Update delivery record
-        await pgPool.query(
+        await query(
             `UPDATE webhook_deliveries 
              SET status = $1, 
-                 response_code = $2, 
-                 response_body = $3, 
-                 delivered_at = $4
+             response_code = $2, 
+             response_body = $3, 
+             delivered_at = $4
              WHERE id = $5`,
             [
                 result.success ? 'succeeded' : 'failed',

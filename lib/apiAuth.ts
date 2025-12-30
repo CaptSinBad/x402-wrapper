@@ -2,7 +2,6 @@
 // Validates Bearer token from Authorization header and returns project context
 
 import { NextRequest } from 'next/server';
-import { NextRequest } from 'next/server';
 import { query } from './db';
 import crypto from 'crypto';
 
@@ -82,10 +81,8 @@ export async function requireApiAuth(req: NextRequest): Promise<ApiAuthContext> 
 
     // Look up project by public key
     try {
-        // Look up project by public key
-        try {
-            const result = await query(
-                `SELECT 
+        const result = await query(
+            `SELECT 
                 p.id, 
                 p.name, 
                 p.user_id, 
@@ -99,98 +96,98 @@ export async function requireApiAuth(req: NextRequest): Promise<ApiAuthContext> 
              FROM projects p
              JOIN users u ON u.id = p.user_id
              WHERE p.public_key = $1`,
-                [apiKey]
-            );
+            [apiKey]
+        );
 
-            if (result.rows.length === 0) {
-                throw new ApiAuthError('Invalid API key', 'invalid_api_key');
-            }
-
-            const row = result.rows[0];
-
-            // Verify environment matches key prefix
-            if (row.environment !== formatCheck.environment) {
-                throw new ApiAuthError(
-                    `API key environment mismatch. Use ${row.environment} key for this project`,
-                    'api_key_mismatch'
-                );
-            }
-
-            return {
-                project: {
-                    id: row.id,
-                    name: row.name,
-                    user_id: row.user_id,
-                    environment: row.environment,
-                    public_key: row.public_key,
-                    x402_tenant_id: row.x402_tenant_id,
-                    x402_network: row.x402_network || 'base-sepolia',
-                },
-                user: {
-                    id: row.user_id,
-                    wallet_address: row.wallet_address,
-                    email: row.email,
-                },
-            };
-        } catch (error) {
-            if (error instanceof ApiAuthError) {
-                throw error;
-            }
-
-            console.error('[apiAuth] Database error:', error);
-            throw new ApiAuthError('Authentication failed', 'auth_error');
+        if (result.rows.length === 0) {
+            throw new ApiAuthError('Invalid API key', 'invalid_api_key');
         }
+
+        const row = result.rows[0];
+
+        // Verify environment matches key prefix
+        if (row.environment !== formatCheck.environment) {
+            throw new ApiAuthError(
+                `API key environment mismatch. Use ${row.environment} key for this project`,
+                'api_key_mismatch'
+            );
+        }
+
+        return {
+            project: {
+                id: row.id,
+                name: row.name,
+                user_id: row.user_id,
+                environment: row.environment,
+                public_key: row.public_key,
+                x402_tenant_id: row.x402_tenant_id,
+                x402_network: row.x402_network || 'base-sepolia',
+            },
+            user: {
+                id: row.user_id,
+                wallet_address: row.wallet_address,
+                email: row.email,
+            },
+        };
+    } catch (error) {
+        if (error instanceof ApiAuthError) {
+            throw error;
+        }
+
+        console.error('[apiAuth] Database error:', error);
+        throw new ApiAuthError('Authentication failed', 'auth_error');
     }
+}
 
 /**
  * Optional API auth - returns null if no key provided
  * Useful for endpoints that support both authenticated and unauthenticated access
  */
 export async function optionalApiAuth(req: NextRequest): Promise<ApiAuthContext | null> {
-        try {
-            return await requireApiAuth(req);
-        } catch (error) {
-            if (error instanceof ApiAuthError && error.code === 'missing_api_key') {
-                return null;
-            }
-            throw error;
+    try {
+        return await requireApiAuth(req);
+    } catch (error) {
+        if (error instanceof ApiAuthError && error.code === 'missing_api_key') {
+            return null;
         }
+        throw error;
     }
+}
 
-    /**
-     * Custom error class for API authentication errors
-     */
-    export class ApiAuthError extends Error {
-        code: string;
+/**
+ * Custom error class for API authentication errors
+ */
+export class ApiAuthError extends Error {
+    code: string;
 
-        constructor(message: string, code: string) {
-            super(message);
-            this.name = 'ApiAuthError';
-            this.code = code;
-        }
+    constructor(message: string, code: string) {
+        super(message);
+        this.name = 'ApiAuthError';
+        this.code = code;
     }
+}
 
-    /**
-     * Format error response for API authentication failures
-     */
-    export function formatApiError(error: any): { error: any; status: number } {
-        if (error instanceof ApiAuthError) {
-            return {
-                error: {
-                    type: 'authentication_error',
-                    code: error.code,
-                    message: error.message,
-                },
-                status: 401,
-            };
-        }
-
+/**
+ * Format error response for API authentication failures
+ */
+export function formatApiError(error: any): { error: any; status: number } {
+    if (error instanceof ApiAuthError) {
         return {
             error: {
-                type: 'api_error',
-                code: 'internal_error',
-                message: 'An internal error occurred',
+                type: 'authentication_error',
+                code: error.code,
+                message: error.message,
             },
-            status: 500,
+            status: 401,
         };
     }
+
+    return {
+        error: {
+            type: 'api_error',
+            code: 'internal_error',
+            message: 'An internal error occurred',
+        },
+        status: 500,
+    };
+}
