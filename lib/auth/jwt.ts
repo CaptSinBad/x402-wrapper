@@ -49,7 +49,17 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
             audience: JWT_AUDIENCE,
         });
 
-        return payload as JWTPayload;
+        // Extract our custom fields from the verified payload
+        if (!payload.userId || !payload.walletAddress || !payload.authMethod) {
+            return null;
+        }
+
+        return {
+            userId: payload.userId as string,
+            walletAddress: payload.walletAddress as string,
+            authMethod: payload.authMethod as 'wallet' | 'email',
+            role: payload.role as string | undefined,
+        };
     } catch (error) {
         console.error('[JWT] Token verification failed:', error);
         return null;
