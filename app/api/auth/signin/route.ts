@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
                 throw new Error('Database connection timed out');
             }
             throw err;
-        });
+        }) as any;
 
         console.log('[Auth] User query completed in', Date.now() - dbStart, 'ms');
 
