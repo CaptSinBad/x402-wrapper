@@ -1,5 +1,22 @@
-import { Pool, QueryResultRow } from 'pg';
-import type { QueryResult } from 'pg';
+import { Pool } from 'pg';
+
+/**
+ * Interface representing a database row
+ */
+export interface QueryResultRow {
+    [column: string]: any;
+}
+
+/**
+ * Interface mimicking the pg QueryResult for compatibility
+ */
+export interface QueryResult<R extends QueryResultRow = any> {
+    rows: R[];
+    command: string;
+    rowCount: number | null;
+    oid: number;
+    fields: any[];
+}
 
 /**
  * Simple database connection pool (no auth dependencies)
@@ -21,10 +38,6 @@ function getPool(): Pool {
             idleTimeoutMillis: 30000,
             connectionTimeoutMillis: 10000,
         });
-
-        pool.on('error', (err) => {
-            console.error('[DB Pool] Unexpected error:', err);
-        });
     }
 
     return pool;
@@ -37,8 +50,16 @@ export async function query<T extends QueryResultRow = any>(
     text: string,
     params?: any[]
 ): Promise<QueryResult<T>> {
-    const pool = getPool();
-    return pool.query<T>(text, params);
+    const dbPool = getPool();
+    const result = await dbPool.query<T>(text, params);
+
+    return {
+        rows: result.rows,
+        command: result.command || 'SELECT',
+        rowCount: result.rowCount,
+        oid: result.oid || 0,
+        fields: result.fields || []
+    };
 }
 
 /**
