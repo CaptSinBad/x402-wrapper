@@ -19,6 +19,8 @@
     "@coinbase/coinbase-sdk": "^0.25.0",
     "@coinbase/x402": "^0.7.1",
     "@neondatabase/serverless": "^1.0.2",
+    "@privy-io/react-auth": "^3.10.0",
+    "@privy-io/server-auth": "^1.32.5",
     "@reown/appkit": "^1.8.14",
     "@reown/appkit-adapter-wagmi": "^1.8.14",
     "@supabase/supabase-js": "^2.76.1",
