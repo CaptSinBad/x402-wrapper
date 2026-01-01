@@ -51,7 +51,8 @@ export async function query<T extends QueryResultRow = any>(
         // Execute query
         // neon() returns standard array of objects key-value pairs
         // We wrap it to match the existing 'pg' QueryResult structure
-        const rows = await sql(text, params || []) as T[];
+        // Cast text to any because TypeScript definition might be expecting TemplateStringsArray only
+        const rows = await sql(text as any, params || []) as T[];
 
         return {
             rows,
