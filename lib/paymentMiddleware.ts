@@ -50,29 +50,15 @@ export function requirePayment(handler: NextApiHandler): NextApiHandler {
           // not JSON/base64, treat header as raw code
         }
 
-        // Use centralized query
-        const { query } = await import('./db');
+        // Check activation code against environment variable list
+        const validCodes = process.env.ACTIVATION_CODES?.split(',').map(c => c.trim()) || [];
 
-        // Check if activation code exists and is not used
-        const checkResult = await query(
-          `SELECT * FROM activation_codes WHERE code = $1 AND used = false`,
-          [code]
-        );
-
-        if (checkResult.rows.length === 0) {
-          return res.status(402).json({ isValid: false, invalidReason: 'activation_code_invalid_or_used' });
+        if (!validCodes.includes(code)) {
+          return res.status(402).json({ isValid: false, invalidReason: 'activation_code_invalid' });
         }
 
-        const activationCode = checkResult.rows[0];
-
-        // Mark as used
-        await query(
-          `UPDATE activation_codes SET used = true, used_by = $1, used_at = NOW() WHERE code = $2`,
-          [buyer || null, code]
-        );
-
-        // attach a fake verify result to allow downstream handlers
-        r.paymentVerify = { isValid: true, payer: buyer || activationCode.buyer_address || null, activationCode };
+        // Code is valid - allow payment
+        r.paymentVerify = { isValid: true, payer: buyer || null, activationCode: { code } };
         return handler(r, res);
       } catch (err) {
         console.error('activation code middleware error', err);

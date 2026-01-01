@@ -1,7 +1,6 @@
 // Webhook delivery system for BinahPay
 // Sends event notifications to merchant webhook endpoints
 
-import { query } from './db';
 import crypto from 'crypto';
 
 export interface WebhookEvent {
@@ -81,40 +80,22 @@ async function deliverWebhook(
 
 /**
  * Create and deliver a webhook event
+ * Now uses environment variables instead of database
  */
 export async function sendWebhook(params: {
     project_id: string;
     event_type: string;
     data: any;
 }): Promise<void> {
-    const { project_id, event_type, data } = params;
+    const { event_type, data } = params;
 
     try {
-        // Get project's webhook configuration
-        const projectResult = await query(
-            `SELECT webhook_secret FROM projects WHERE id = $1`,
-            [project_id]
-        );
+        // Get webhook configuration from environment variables
+        const webhookSecret = process.env.WEBHOOK_SECRET || 'default-secret';
+        const webhookUrls = process.env.WEBHOOK_URLS?.split(',').map(u => u.trim()) || [];
 
-        if (projectResult.rows.length === 0) {
-            console.error('[webhooks] Project not found:', project_id);
-            return;
-        }
-
-        const webhookSecret = projectResult.rows[0].webhook_secret;
-
-        // Get webhook subscriptions for this project and event type
-        const subscriptionsResult = await query(
-            `SELECT id, url, events 
-             FROM webhook_subscriptions 
-             WHERE user_id = (SELECT user_id FROM projects WHERE id = $1)
-             AND enabled = true
-             AND $2 = ANY(events)`,
-            [project_id, event_type]
-        );
-
-        if (subscriptionsResult.rows.length === 0) {
-            console.log('[webhooks] No subscriptions for event:', event_type);
+        if (webhookUrls.length === 0) {
+            console.log('[webhooks] No webhook URLs configured');
             return;
         }
 
@@ -127,15 +108,9 @@ export async function sendWebhook(params: {
             created: Math.floor(Date.now() / 1000),
         };
 
-        await query(
-            `INSERT INTO webhook_events (id, type, data, created_at)
-             VALUES ($1, $2, $3, to_timestamp($4))`,
-            [event.id, event.type, JSON.stringify(event.data), event.created]
-        );
-
-        // Deliver to all subscribed endpoints
-        for (const subscription of subscriptionsResult.rows) {
-            await deliverWebhookToSubscription(subscription, event, webhookSecret);
+        // Deliver to all configured endpoints
+        for (const url of webhookUrls) {
+            await deliverWebhookToSubscription(url, event, webhookSecret);
         }
     } catch (error) {
         console.error('[webhooks] Error sending webhook:', error);
@@ -143,10 +118,10 @@ export async function sendWebhook(params: {
 }
 
 /**
- * Deliver webhook to a specific subscription with retry logic
+ * Deliver webhook to a specific URL with retry logic
  */
 async function deliverWebhookToSubscription(
-    subscription: any,
+    url: string,
     event: WebhookEvent,
     secret: string
 ): Promise<void> {
@@ -154,38 +129,11 @@ async function deliverWebhookToSubscription(
     const retryDelays = [1000, 5000, 30000]; // 1s, 5s, 30s
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-        // Record delivery attempt
-        const deliveryId = `whdl_${crypto.randomBytes(12).toString('base64url')}`;
-
-        await query(
-            `INSERT INTO webhook_deliveries (
-                id, subscription_id, event_id, attempt, status, created_at
-            ) VALUES ($1, $2, $3, $4, 'pending', NOW())`,
-            [deliveryId, subscription.id, event.id, attempt + 1]
-        );
-
         // Attempt delivery
-        const result = await deliverWebhook(subscription.url, event, secret);
-
-        // Update delivery record
-        await query(
-            `UPDATE webhook_deliveries 
-             SET status = $1, 
-             response_code = $2, 
-             response_body = $3, 
-             delivered_at = $4
-             WHERE id = $5`,
-            [
-                result.success ? 'succeeded' : 'failed',
-                result.status_code || null,
-                result.error_message ? result.error_message.substring(0, 1000) : null,
-                result.delivered_at || null,
-                deliveryId,
-            ]
-        );
+        const result = await deliverWebhook(url, event, secret);
 
         if (result.success) {
-            console.log(`[webhooks] Delivered ${event.type} to ${subscription.url}`);
+            console.log(`[webhooks] Delivered ${event.type} to ${url}`);
             return;
         }
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Middleware to protect routes and handle subdomain routing
+// Middleware for subdomain routing (auth removed)
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const hostname = request.headers.get('host') || '';
@@ -23,27 +23,7 @@ export function middleware(request: NextRequest) {
         }
     }
 
-    // Protected routes that require authentication
-    const protectedRoutes = ['/dashboard', '/onboarding'];
-
-    // Check if current path is protected
-    const isProtectedRoute = protectedRoutes.some(route =>
-        pathname.startsWith(route)
-    );
-
-    if (isProtectedRoute) {
-        // Check for session token cookie
-        const sessionToken = request.cookies.get('session_token');
-
-        if (!sessionToken) {
-            // Redirect to login if no session
-            const url = request.nextUrl.clone();
-            url.pathname = '/login';
-            url.searchParams.set('redirect', pathname);
-            return NextResponse.redirect(url);
-        }
-    }
-
+    // All routes are now public (auth removed)
     return NextResponse.next();
 }
 
