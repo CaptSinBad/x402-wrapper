@@ -18,6 +18,7 @@
   "dependencies": {
     "@coinbase/coinbase-sdk": "^0.25.0",
     "@coinbase/x402": "^0.7.1",
+    "@neondatabase/serverless": "^1.0.2",
     "@reown/appkit": "^1.8.14",
     "@reown/appkit-adapter-wagmi": "^1.8.14",
     "@supabase/supabase-js": "^2.76.1",
@@ -37,6 +38,7 @@
     "qrcode": "^1.5.4",
     "react": "19.2.1",
     "react-dom": "19.2.1",
+    "siwe": "^3.0.0",
     "swr": "^2.3.6",
     "tailwind-merge": "^3.4.0",
     "viem": "~2.39.0",

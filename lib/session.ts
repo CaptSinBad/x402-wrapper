@@ -4,6 +4,7 @@
  */
 
 export interface SessionUser {
+    id: string;  // Added for compatibility
     userId: string;
     walletAddress: string;
     authMethod: 'wallet' | 'email';
