@@ -51,10 +51,10 @@ export async function query<T extends QueryResultRow = any>(
     params?: any[]
 ): Promise<QueryResult<T>> {
     const dbPool = getPool();
-    const result = await dbPool.query<T>(text, params);
+    const result = await dbPool.query(text, params);
 
     return {
-        rows: result.rows,
+        rows: result.rows as T[],
         command: result.command || 'SELECT',
         rowCount: result.rowCount,
         oid: result.oid || 0,
