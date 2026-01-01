@@ -1,4 +1,5 @@
-import { Pool, QueryResult, QueryResultRow } from 'pg';
+import { Pool, QueryResultRow } from 'pg';
+import type { QueryResult } from 'pg';
 
 /**
  * Simple database connection pool (no auth dependencies)
