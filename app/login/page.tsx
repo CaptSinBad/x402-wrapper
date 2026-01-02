@@ -5,28 +5,21 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function LoginPage() {
-    const { login, authenticated, ready } = usePrivy();
+    const { login, logout, authenticated, ready } = usePrivy();
     const router = useRouter();
 
-    // Redirect if already authenticated
+    // Force logout on page load to ensure fresh login
     useEffect(() => {
         if (ready && authenticated) {
-            router.push('/dashboard');
+            // If already authenticated, log them out for fresh login
+            logout();
         }
-    }, [ready, authenticated, router]);
+    }, [ready, authenticated, logout]);
 
     if (!ready) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
                 <div className="text-white">Loading...</div>
-            </div>
-        );
-    }
-
-    if (authenticated) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-                <div className="text-white">Redirecting...</div>
             </div>
         );
     }
