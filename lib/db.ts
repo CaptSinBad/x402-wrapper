@@ -1,15 +1,14 @@
-import { Pool } from 'pg';
+import { neon } from '@neondatabase/serverless';
 
 /**
- * Interface representing a database row
+ * Serverless HTTP-based database client (no connection pooling)
+ * This prevents timeouts on Vercel
  */
+
 export interface QueryResultRow {
     [column: string]: any;
 }
 
-/**
- * Interface mimicking the pg QueryResult for compatibility
- */
 export interface QueryResult<R extends QueryResultRow = any> {
     rows: R[];
     command: string;
@@ -19,55 +18,46 @@ export interface QueryResult<R extends QueryResultRow = any> {
 }
 
 /**
- * Simple database connection pool (no auth dependencies)
- */
-let pool: Pool | null = null;
-
-function getPool(): Pool {
-    if (!pool) {
-        const connectionString = process.env.DATABASE_URL;
-
-        if (!connectionString) {
-            throw new Error('DATABASE_URL environment variable is not set');
-        }
-
-        pool = new Pool({
-            connectionString,
-            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
-            max: 20,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 10000,
-        });
-    }
-
-    return pool;
-}
-
-/**
- * Execute a database query
+ * Execute a database query using Neon's HTTP driver
+ * This is stateless and won't hang on serverless
  */
 export async function query<T extends QueryResultRow = any>(
     text: string,
     params?: any[]
 ): Promise<QueryResult<T>> {
-    const dbPool = getPool();
-    const result = await dbPool.query(text, params);
+    const connectionString = process.env.DATABASE_URL;
 
-    return {
-        rows: result.rows as T[],
-        command: result.command || 'SELECT',
-        rowCount: result.rowCount,
-        oid: result.oid || 0,
-        fields: result.fields || []
-    };
+    if (!connectionString) {
+        throw new Error('DATABASE_URL environment variable is not set');
+    }
+
+    const sql = neon(connectionString);
+
+    try {
+        // Execute query with 10 second timeout
+        const rows = await Promise.race([
+            sql(text as any, params || []) as Promise<T[]>,
+            new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('Query timeout after 10s')), 10000)
+            )
+        ]);
+
+        return {
+            rows,
+            command: 'SELECT',
+            rowCount: rows.length,
+            oid: 0,
+            fields: []
+        };
+    } catch (error: any) {
+        console.error('[DB] Query error:', error.message);
+        throw error;
+    }
 }
 
 /**
- * Close the database pool (for graceful shutdown)
+ * No cleanup needed with HTTP driver
  */
 export async function closePool(): Promise<void> {
-    if (pool) {
-        await pool.end();
-        pool = null;
-    }
+    // No-op - HTTP driver is stateless
 }
