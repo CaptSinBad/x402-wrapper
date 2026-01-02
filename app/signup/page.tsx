@@ -1,140 +1,85 @@
 'use client';
 
-import Link from 'next/link';
-import { useAccount } from 'wagmi';
+import { usePrivy } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { useAppKit } from '@reown/appkit/react';
-import styles from '../components/auth.module.css';
+import { useState } from 'react';
 
 export default function SignupPage() {
+    const { user, authenticated } = usePrivy();
     const router = useRouter();
-    const { address, isConnected } = useAccount();
-    const [isLoading, setIsLoading] = useState(false);
-    const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [creating, setCreating] = useState(false);
 
-    const { open } = useAppKit();
+    if (!authenticated) {
+        router.push('/login');
+        return null;
+    }
 
-    // Auto-login when wallet connects
-    useEffect(() => {
-        if (isConnected && address && !isLoading) {
-            handleWalletAuth();
-        }
-    }, [isConnected, address]);
+    const handleCreateAccount = async () => {
+        setCreating(true);
 
-    const handleWalletAuth = async () => {
-        console.log('Wallet connected, checking auth...');
-
-        setIsLoading(true);
         try {
-            console.log('Calling /api/auth/wallet-login with address:', address);
-            const response = await fetch('/api/auth/wallet-login', {
+            // Create user in database
+            const response = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ walletAddress: address }),
+                body: JSON.stringify({
+                    privyId: user?.id,
+                    walletAddress: user?.wallet?.address,
+                    email: user?.email?.address,
+                    authMethod: user?.wallet ? 'wallet' : 'email',
+                }),
             });
 
-            const data = await response.json();
-            console.log('Auth response:', data);
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Authentication failed');
+            if (response.ok) {
+                // Redirect to onboarding
+                router.push('/onboarding/step-1');
+            } else {
+                alert('Failed to create account. Please try again.');
+                setCreating(false);
             }
-
-            // Redirect based on onboarding status
-            console.log('Redirecting to:', data.redirectTo);
-            router.push(data.redirectTo);
-        } catch (err: any) {
-            console.error('Wallet auth error:', err);
-            setIsLoading(false);
+        } catch (error) {
+            console.error('Account creation failed:', error);
+            alert('Failed to create account. Please try again.');
+            setCreating(false);
         }
-    };
-
-    const handleEmailSignup = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        if (!agreedToTerms) {
-            alert('Please agree to the Terms of Service and Privacy Policy');
-            return;
-        }
-        // ... existing email logic ...
     };
 
     return (
-        <div className={styles.authPage}>
-            <div className={styles.authCard}>
-                {/* Logo */}
-                <div className={styles.authLogo}>
-                    <div className={styles.logoIcon}>
-                        <svg width="24" height="24" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M32 8L12 20V36C12 46.4 19.2 55.6 32 58C44.8 55.6 52 46.4 52 36V20L32 8Z" fill="white" />
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+            <div className="w-full max-w-md p-8 space-y-8 bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 shadow-2xl">
+                <div className="flex flex-col items-center space-y-3">
+                    <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-700 rounded-xl flex items-center justify-center">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <line x1="19" y1="8" x2="19" y2="14" />
+                            <line x1="22" y1="11" x2="16" y2="11" />
                         </svg>
                     </div>
-                    <span className={styles.logoText}>BinahPay</span>
+                    <h1 className="text-3xl font-bold text-white">Create Account</h1>
                 </div>
 
-                {/* Header */}
-                <h1 className={styles.authTitle}>Create your account</h1>
-                <p className={styles.authSubtitle}>
-                    Start accepting payments and monetizing APIs in minutes
-                </p>
+                <div className="space-y-4">
+                    <div className="bg-gray-700/30 p-4 rounded-lg">
+                        <p className="text-sm text-gray-400 mb-2">Connected with:</p>
+                        <p className="text-white font-mono text-sm">
+                            {user?.wallet?.address || user?.email?.address}
+                        </p>
+                    </div>
 
-                {/* Terms Checkbox (Moved up for visibility before action) */}
-                <div className={styles.checkboxGroup} style={{ marginBottom: '24px', justifyContent: 'center' }}>
-                    <input
-                        id="terms"
-                        type="checkbox"
-                        className={styles.checkbox}
-                        checked={agreedToTerms}
-                        onChange={(e) => setAgreedToTerms(e.target.checked)}
-                    />
-                    <label htmlFor="terms" className={styles.checkboxLabel}>
-                        I agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>
-                    </label>
+                    <p className="text-gray-300 text-center">
+                        Welcome! Let's create your BinahPay account and get you started.
+                    </p>
                 </div>
 
-
-                {/* Custom Side-by-Side Buttons */}
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-                    <button
-                        className={styles.walletConnectButton}
-                        style={{ flex: 1, justifyContent: 'center' }}
-                        onClick={() => open()}
-                        disabled={isLoading}
-                    >
-                        <span className={styles.buttonIcon}>👛</span>
-                        <span className={styles.buttonText}>Wallet</span>
-                    </button>
-
-                    <button
-                        className={styles.walletConnectButton}
-                        style={{
-                            flex: 1,
-                            justifyContent: 'center',
-                            background: 'white',
-                            color: '#2D3748',
-                            border: '1px solid #E2E8F0'
-                        }}
-                        onClick={() => open()}
-                        disabled={isLoading}
-                    >
-                        <span className={styles.buttonIcon}>G</span>
-                        <span className={styles.buttonText}>Google</span>
-                    </button>
-                </div>
-
-
-
-                {/* Footer Links */}
-                <div className={styles.authFooter}>
-                    Already have an account? <Link href="/login">Log in</Link>
-                </div>
+                <button
+                    onClick={handleCreateAccount}
+                    disabled={creating}
+                    className="w-full py-4 px-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-600 disabled:to-gray-700 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+                >
+                    {creating ? 'Creating Account...' : 'Create Account & Continue'}
+                </button>
             </div>
-
-            {/* Back to Home Link */}
-            <Link href="/" className={styles.backLink} style={{ position: 'absolute', top: '20px', left: '20px' }}>
-                ← Back to Home
-            </Link>
         </div>
     );
 }
