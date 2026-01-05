@@ -32,11 +32,13 @@ export function middleware(request: NextRequest) {
     );
 
     if (isProtectedRoute) {
-        // Check for session token cookie
-        const sessionToken = request.cookies.get('session_token');
+        // Check for Privy session cookie (any of these indicates auth)
+        const hasPrivySession = request.cookies.get('privy-token') ||
+            request.cookies.get('privy-id-token') ||
+            request.cookies.get('privy-refresh-token');
 
-        if (!sessionToken) {
-            // Redirect to login if no session
+        if (!hasPrivySession) {
+            // Redirect to login if no Privy session
             const url = request.nextUrl.clone();
             url.pathname = '/login';
             url.searchParams.set('redirect', pathname);
