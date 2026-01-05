@@ -12,7 +12,7 @@ const pgPool = new Pool({
  */
 export async function GET(
     req: NextRequest,
-    context: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ store_id: string }> }
 ) {
     try {
         const user = await requireAuth();
@@ -72,7 +72,7 @@ export async function GET(
  */
 export async function PATCH(
     req: NextRequest,
-    context: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ store_id: string }> }
 ) {
     try {
         const user = await requireAuth();
@@ -181,7 +181,7 @@ export async function PATCH(
  */
 export async function DELETE(
     req: NextRequest,
-    context: { params: Promise<{ id: string }> }
+    context: { params: Promise<{ store_id: string }> }
 ) {
     try {
         const user = await requireAuth();
