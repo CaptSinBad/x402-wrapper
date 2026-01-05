@@ -15,7 +15,7 @@ export async function PATCH(
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const { id } = await context.params;
         const body = await req.json();
 
@@ -88,7 +88,7 @@ export async function DELETE(
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const { id } = await context.params;
 
         // Verify ownership and delete

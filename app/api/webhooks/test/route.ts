@@ -12,7 +12,7 @@ const pgPool = new Pool({
  */
 export async function POST(req: NextRequest) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const { subscription_id, event_type } = await req.json();
 
         if (!subscription_id) {

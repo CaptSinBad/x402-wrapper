@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
-import { requireAuth } from '@/lib/session';
+import { requireAuth, handleAuthError } from '@/lib/auth';
 import crypto from 'crypto';
 
 const pgPool = new Pool({
@@ -26,7 +26,7 @@ export async function POST(
     context: { params: Promise<{ store_id: string }> }
 ) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const params = await context.params;
         const storeId = params.store_id;
         const body = await req.json();

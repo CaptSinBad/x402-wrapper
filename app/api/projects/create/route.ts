@@ -13,7 +13,7 @@ const pgPool = new Pool({
  */
 export async function POST(req: NextRequest) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const { name, environment } = await req.json();
 
         if (!name || !environment) {
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
 
         const result = await pgPool.query(
             `SELECT id, name, environment, public_key, x402_tenant_id, x402_network, created_at, updated_at

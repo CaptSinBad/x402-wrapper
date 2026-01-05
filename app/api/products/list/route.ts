@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
-import { requireAuth } from '@/lib/session';
+import { requireAuth, handleAuthError } from '@/lib/auth';
 
 const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -12,7 +12,7 @@ const pgPool = new Pool({
  */
 export async function GET(req: NextRequest) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const { searchParams } = new URL(req.url);
 
         const limit = parseInt(searchParams.get('limit') || '50');

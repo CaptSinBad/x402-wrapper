@@ -15,7 +15,7 @@ export async function PATCH(
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const { id } = await context.params;
         const { enabled } = await req.json();
 
@@ -61,7 +61,7 @@ export async function DELETE(
     context: { params: Promise<{ id: string }> }
 ) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const { id } = await context.params;
 
         const result = await pgPool.query(

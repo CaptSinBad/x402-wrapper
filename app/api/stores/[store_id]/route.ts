@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
-import { requireAuth } from '@/lib/session';
+import { requireAuth, handleAuthError } from '@/lib/auth';
 
 const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -15,7 +15,7 @@ export async function GET(
     context: { params: Promise<{ store_id: string }> }
 ) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const params = await context.params;
         const storeId = params.store_id;
 
@@ -75,7 +75,7 @@ export async function PATCH(
     context: { params: Promise<{ store_id: string }> }
 ) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const params = await context.params;
         const storeId = params.store_id;
         const body = await req.json();
@@ -184,7 +184,7 @@ export async function DELETE(
     context: { params: Promise<{ store_id: string }> }
 ) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const params = await context.params;
         const storeId = params.store_id;
 

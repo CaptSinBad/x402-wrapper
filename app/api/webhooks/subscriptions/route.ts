@@ -13,7 +13,7 @@ const pgPool = new Pool({
  */
 export async function GET(req: NextRequest) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
 
         const result = await pgPool.query(
             `SELECT id, url, events, enabled, created_at
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const { url, events } = await req.json();
 
         if (!url || !events || !Array.isArray(events)) {

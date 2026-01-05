@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
-import { requireAuth } from '@/lib/session';
+import { requireAuth, handleAuthError } from '@/lib/auth';
 
 const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -12,7 +12,8 @@ const pgPool = new Pool({
  */
 export async function POST(req: NextRequest) {
     try {
-        const user = await requireAuth();
+        // Secure authentication
+        const user = await requireAuth(req);
         const body = await req.json();
 
         const { name, description, price_cents, currency, images, metadata, store_id, category_id } = body;
@@ -97,18 +98,7 @@ export async function POST(req: NextRequest) {
             }
         });
     } catch (error: any) {
-        console.error('[products/create] Error:', error);
-
-        if (error.message === 'Unauthorized') {
-            return NextResponse.json(
-                { error: 'unauthorized' },
-                { status: 401 }
-            );
-        }
-
-        return NextResponse.json(
-            { error: 'internal_error', message: error.message },
-            { status: 500 }
-        );
+        // Use centralized error handling
+        return handleAuthError(error);
     }
 }

@@ -13,7 +13,7 @@ const pgPool = new Pool({
  */
 export async function POST(req: NextRequest) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
 
         // Parse FormData
         const formData = await req.formData();

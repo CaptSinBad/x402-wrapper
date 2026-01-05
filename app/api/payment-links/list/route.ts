@@ -32,7 +32,7 @@ interface PaymentLinkRow {
  */
 export async function GET(req: NextRequest) {
     try {
-        const user = await requireAuth();
+        const user = await requireAuth(req);
 
         const result = await pgPool.query(
             `SELECT 

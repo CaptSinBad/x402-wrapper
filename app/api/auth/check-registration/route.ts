@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getUserByPrivyId } from '@/lib/userManagement';
 
 /**
- * TEMPORARY: Bypass database check - treat all users as new
- * This gets login working while we debug the database connection
+ * POST /api/auth/check-registration
+ * Check if a Privy user is registered in our database
  */
 export async function POST(req: NextRequest) {
     try {
@@ -15,12 +16,20 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // TEMPORARY: Always return NOT registered to trigger signup flow
-        // This bypasses the database entirely
-        return NextResponse.json({
-            registered: false,
-            userId: null,
-        });
+        // Check if user exists in database
+        const user = await getUserByPrivyId(privyId);
+
+        if (user) {
+            return NextResponse.json({
+                registered: true,
+                userId: user.id,
+            });
+        } else {
+            return NextResponse.json({
+                registered: false,
+                userId: null,
+            });
+        }
     } catch (error) {
         console.error('[API] Check registration error:', error);
         return NextResponse.json(

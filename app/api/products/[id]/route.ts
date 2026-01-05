@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
-import { requireAuth } from '@/lib/session';
+import { requireAuth, handleAuthError } from '@/lib/auth';
 
 const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -16,7 +16,7 @@ export async function GET(
 ) {
     try {
         const params = await context.params;
-        const user = await requireAuth();
+        const user = await requireAuth(req);
 
         const result = await pgPool.query(
             `SELECT * FROM products WHERE id = $1 AND seller_id = $2`,
@@ -74,7 +74,7 @@ export async function PATCH(
 ) {
     try {
         const params = await context.params;
-        const user = await requireAuth();
+        const user = await requireAuth(req);
         const body = await req.json();
 
         const { name, description, price_cents, currency, images, metadata, active } = body;
@@ -187,7 +187,7 @@ export async function DELETE(
 ) {
     try {
         const params = await context.params;
-        const user = await requireAuth();
+        const user = await requireAuth(req);
 
         const result = await pgPool.query(
             `UPDATE products 
