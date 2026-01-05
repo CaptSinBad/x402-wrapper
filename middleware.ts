@@ -1,12 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Protected routes that require authentication
-const PROTECTED_ROUTES = [
-    '/dashboard',
-    '/onboarding',
-];
-
+// Middleware to protect routes and handle subdomain routing
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const hostname = request.headers.get('host') || '';
@@ -28,18 +23,24 @@ export function middleware(request: NextRequest) {
         }
     }
 
-    // Check if route is protected
-    const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+    // Protected routes that require authentication
+    const protectedRoutes = ['/dashboard', '/onboarding'];
+
+    // Check if current path is protected
+    const isProtectedRoute = protectedRoutes.some(route =>
+        pathname.startsWith(route)
+    );
 
     if (isProtectedRoute) {
-        // Check for Privy session cookie
-        const privyToken = request.cookies.get('privy-token')?.value;
+        // Check for session token cookie
+        const sessionToken = request.cookies.get('session_token');
 
-        // If no token, redirect to login
-        if (!privyToken) {
-            const loginUrl = new URL('/login', request.url);
-            loginUrl.searchParams.set('redirect', pathname);
-            return NextResponse.redirect(loginUrl);
+        if (!sessionToken) {
+            // Redirect to login if no session
+            const url = request.nextUrl.clone();
+            url.pathname = '/login';
+            url.searchParams.set('redirect', pathname);
+            return NextResponse.redirect(url);
         }
     }
 
@@ -49,7 +50,7 @@ export function middleware(request: NextRequest) {
 // Configure which routes to run middleware on
 export const config = {
     matcher: [
-        // Match all routes for subdomain handling and auth
-        '/((?!_next/static|_next/image|favicon.ico|api).*)',
+        // Match all routes for subdomain handling
+        '/((?!_next/static|_next/image|favicon.ico).*)',
     ],
 };

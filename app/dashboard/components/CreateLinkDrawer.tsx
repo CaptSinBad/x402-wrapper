@@ -47,7 +47,8 @@ export function CreateLinkDrawer({ isOpen, onClose }: CreateLinkDrawerProps) {
             // In real app: POST /api/payment-links/create
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            const mockLink = `https://pay.binahpay.com/${Math.random().toString(36).substr(2, 9)}`;
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+            const mockLink = `${baseUrl}/link/${Math.random().toString(36).substr(2, 9)}`;
             setCreatedLink(mockLink);
 
             // Generate QR

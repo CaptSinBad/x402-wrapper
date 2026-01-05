@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         const link = result.rows[0];
 
         // Generate full URL
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
         const linkUrl = `${baseUrl}/link/${token}`;
 
         // Generate QR code (base64 data URL)
