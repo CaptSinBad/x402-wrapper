@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Middleware for subdomain routing (auth removed)
+// Protected routes that require authentication
+const PROTECTED_ROUTES = [
+    '/dashboard',
+    '/onboarding',
+];
+
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const hostname = request.headers.get('host') || '';
@@ -23,14 +28,28 @@ export function middleware(request: NextRequest) {
         }
     }
 
-    // All routes are now public (auth removed)
+    // Check if route is protected
+    const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+
+    if (isProtectedRoute) {
+        // Check for Privy session cookie
+        const privyToken = request.cookies.get('privy-token')?.value;
+
+        // If no token, redirect to login
+        if (!privyToken) {
+            const loginUrl = new URL('/login', request.url);
+            loginUrl.searchParams.set('redirect', pathname);
+            return NextResponse.redirect(loginUrl);
+        }
+    }
+
     return NextResponse.next();
 }
 
 // Configure which routes to run middleware on
 export const config = {
     matcher: [
-        // Match all routes for subdomain handling
-        '/((?!_next/static|_next/image|favicon.ico).*)',
+        // Match all routes for subdomain handling and auth
+        '/((?!_next/static|_next/image|favicon.ico|api).*)',
     ],
 };
