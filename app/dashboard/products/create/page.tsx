@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthToken } from '@/app/hooks/useAuthToken';
 
 interface Store {
     id: string;
@@ -11,6 +12,7 @@ interface Store {
 
 export default function CreateProductPage() {
     const router = useRouter();
+    const { authFetch } = useAuthToken();
     const [loading, setLoading] = useState(false);
     const [stores, setStores] = useState<Store[]>([]);
     const [categories, setCategories] = useState<any[]>([]);
@@ -50,7 +52,7 @@ export default function CreateProductPage() {
         if (!formData.store_id) return;
 
         try {
-            const response = await fetch(`/api/stores/${formData.store_id}/categories/list`);
+            const response = await authFetch(`/api/stores/${formData.store_id}/categories/list`);
             const data = await response.json();
 
             if (response.ok) {
@@ -84,9 +86,8 @@ export default function CreateProductPage() {
                 payload.category_id = formData.category_id;
             }
 
-            const response = await fetch('/api/products/create', {
+            const response = await authFetch('/api/products/create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 

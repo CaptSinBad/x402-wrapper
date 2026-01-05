@@ -4,10 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../../components/onboarding.module.css';
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 type AccountType = 'individual' | 'business' | null;
 
 export default function OnboardingStep1() {
     const router = useRouter();
+    const { authFetch } = useAuthToken();
     const [selectedType, setSelectedType] = useState<AccountType>(null);
 
     const handleContinue = async () => {
@@ -18,9 +21,9 @@ export default function OnboardingStep1() {
             localStorage.setItem('onboarding_account_type', selectedType);
 
             // Save to database
-            await fetch('/api/onboarding/save', {
+            await authFetch('/api/onboarding/save', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                // authFetch adds Content-Type
                 body: JSON.stringify({
                     accountType: selectedType,
                     currentStep: 2

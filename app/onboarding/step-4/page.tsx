@@ -4,8 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../../components/onboarding.module.css';
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function OnboardingStep4() {
     const router = useRouter();
+    const { authFetch } = useAuthToken();
     const [projectName, setProjectName] = useState('');
     const [environment, setEnvironment] = useState('test');
     const [isCreating, setIsCreating] = useState(false);
@@ -29,9 +32,8 @@ export default function OnboardingStep4() {
         setIsCreating(true);
 
         try {
-            const response = await fetch('/api/projects/create', {
+            const response = await authFetch('/api/projects/create', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     name: projectName,
                     environment,

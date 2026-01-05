@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import styles from '../../components/onboarding.module.css';
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function OnboardingStep3() {
     const router = useRouter();
+    const { authFetch } = useAuthToken();
     const { address } = useAccount();
     const [formData, setFormData] = useState({
         stablecoinPreference: 'USDC',
@@ -35,9 +38,8 @@ export default function OnboardingStep3() {
     const handleContinue = async () => {
         try {
             // Save to database
-            await fetch('/api/onboarding/save', {
+            await authFetch('/api/onboarding/save', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     settlementWallet: address,
                     stablecoinPreference: formData.stablecoinPreference,

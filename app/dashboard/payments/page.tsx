@@ -13,7 +13,10 @@ interface Payment {
     createdAt: string;
 }
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function PaymentsPage() {
+    const { authFetch } = useAuthToken();
     const [payments, setPayments] = useState<Payment[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -23,7 +26,7 @@ export default function PaymentsPage() {
 
     const fetchPayments = async () => {
         try {
-            const response = await fetch('/api/dashboard/payments');
+            const response = await authFetch('/api/dashboard/payments');
             const data = await response.json();
             setPayments(data.payments || []);
         } catch (error) {

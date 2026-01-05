@@ -13,7 +13,10 @@ interface Category {
     product_count: number;
 }
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function CategoriesPage() {
+    const { authFetch } = useAuthToken();
     const router = useRouter();
     const searchParams = useSearchParams();
     const storeId = searchParams?.get('store_id');
@@ -37,7 +40,7 @@ export default function CategoriesPage() {
         if (!storeId) return;
 
         try {
-            const response = await fetch(`/api/stores/${storeId}/categories/list`);
+            const response = await authFetch(`/api/stores/${storeId}/categories/list`);
             const data = await response.json();
 
             if (response.ok) {
@@ -55,7 +58,7 @@ export default function CategoriesPage() {
         if (!storeId) return;
 
         try {
-            const response = await fetch(`/api/stores/${storeId}/categories/create`, {
+            const response = await authFetch(`/api/stores/${storeId}/categories/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)

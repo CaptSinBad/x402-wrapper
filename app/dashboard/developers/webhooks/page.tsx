@@ -11,8 +11,11 @@ interface WebhookSubscription {
     created_at: string;
 }
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function WebhooksPage() {
     const router = useRouter();
+    const { authFetch } = useAuthToken();
     const [subscriptions, setSubscriptions] = useState<WebhookSubscription[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
@@ -33,7 +36,7 @@ export default function WebhooksPage() {
 
     const fetchSubscriptions = async () => {
         try {
-            const response = await fetch('/api/webhooks/subscriptions');
+            const response = await authFetch('/api/webhooks/subscriptions');
             const data = await response.json();
             setSubscriptions(data.subscriptions || []);
         } catch (error) {
@@ -48,7 +51,7 @@ export default function WebhooksPage() {
         setIsCreating(true);
 
         try {
-            const response = await fetch('/api/webhooks/subscriptions', {
+            const response = await authFetch('/api/webhooks/subscriptions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -70,7 +73,7 @@ export default function WebhooksPage() {
 
     const handleToggle = async (id: string, enabled: boolean) => {
         try {
-            await fetch(`/api/webhooks/subscriptions/${id}`, {
+            await authFetch(`/api/webhooks/subscriptions/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ enabled: !enabled }),
@@ -85,7 +88,7 @@ export default function WebhooksPage() {
         if (!confirm('Are you sure you want to delete this webhook?')) return;
 
         try {
-            await fetch(`/api/webhooks/subscriptions/${id}`, {
+            await authFetch(`/api/webhooks/subscriptions/${id}`, {
                 method: 'DELETE',
             });
             fetchSubscriptions();

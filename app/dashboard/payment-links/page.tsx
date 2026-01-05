@@ -19,8 +19,11 @@ interface PaymentLink {
     createdAt: string;
 }
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function PaymentLinksPage() {
     const router = useRouter();
+    const { authFetch } = useAuthToken();
     const [links, setLinks] = useState<PaymentLink[]>([]);
     const [loading, setLoading] = useState(true);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
@@ -33,7 +36,7 @@ export default function PaymentLinksPage() {
 
     const fetchLinks = async () => {
         try {
-            const response = await fetch('/api/payment-links/list');
+            const response = await authFetch('/api/payment-links/list');
             const data = await response.json();
             setLinks(data.links || []);
         } catch (error) {
@@ -52,7 +55,7 @@ export default function PaymentLinksPage() {
     const handleDelete = async (id: string) => {
         setDeleting(id);
         try {
-            const response = await fetch(`/api/payment-links/${id}`, {
+            const response = await authFetch(`/api/payment-links/${id}`, {
                 method: 'DELETE',
             });
 

@@ -4,8 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from '../../components/onboarding.module.css';
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function OnboardingStep2() {
     const router = useRouter();
+    const { authFetch } = useAuthToken();
     const [accountType, setAccountType] = useState('');
     const [formData, setFormData] = useState({
         businessName: '',
@@ -37,9 +40,8 @@ export default function OnboardingStep2() {
             localStorage.setItem('onboarding_business_details', JSON.stringify(formData));
 
             // Save to database
-            await fetch('/api/onboarding/save', {
+            await authFetch('/api/onboarding/save', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     businessName: formData.businessName,
                     website: formData.website,

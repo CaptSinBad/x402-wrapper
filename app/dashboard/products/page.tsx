@@ -17,8 +17,11 @@ interface Product {
     created_at: string;
 }
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function ProductsPage() {
     const router = useRouter();
+    const { authFetch } = useAuthToken();
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -30,7 +33,7 @@ export default function ProductsPage() {
     const fetchProducts = async () => {
         try {
             const url = `/api/products/list${filter !== 'all' ? `?active=${filter === 'active'}` : ''}`;
-            const response = await fetch(url);
+            const response = await authFetch(url);
             const data = await response.json();
             setProducts(data.products || []);
         } catch (error) {
@@ -42,7 +45,7 @@ export default function ProductsPage() {
 
     const toggleActive = async (productId: string, currentActive: boolean) => {
         try {
-            await fetch(`/api/products/${productId}`, {
+            await authFetch(`/api/products/${productId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ active: !currentActive })
@@ -57,7 +60,7 @@ export default function ProductsPage() {
         if (!confirm('Are you sure you want to delete this product?')) return;
 
         try {
-            await fetch(`/api/products/${productId}`, {
+            await authFetch(`/api/products/${productId}`, {
                 method: 'DELETE'
             });
             fetchProducts();

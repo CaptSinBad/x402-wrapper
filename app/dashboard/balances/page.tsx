@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react';
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function BalancesPage() {
+    const { authFetch } = useAuthToken();
     const [balance, setBalance] = useState({ total: 0, available: 0, pending: 0 });
     const [loading, setLoading] = useState(true);
 
@@ -12,7 +15,7 @@ export default function BalancesPage() {
 
     const fetchBalance = async () => {
         try {
-            const response = await fetch('/api/dashboard/payments');
+            const response = await authFetch('/api/dashboard/payments');
             const data = await response.json();
             const payments = data.payments || [];
 

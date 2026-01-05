@@ -9,7 +9,10 @@ import { cn } from '@/lib/utils';
 import { CreateLinkDrawer } from './components/CreateLinkDrawer';
 import { StatusBadge } from './components/StatusBadge';
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function DashboardPage() {
+  const { authFetch } = useAuthToken();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     grossVolume: 0,
@@ -24,8 +27,8 @@ export default function DashboardPage() {
       try {
         // Parallel fetching
         const [statsRes, paymentsRes] = await Promise.all([
-          fetch('/api/dashboard/stats'),
-          fetch('/api/dashboard/recent-payments')
+          authFetch('/api/dashboard/stats'),
+          authFetch('/api/dashboard/recent-payments')
         ]);
 
         const statsData = await statsRes.json();

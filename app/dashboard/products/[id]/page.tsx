@@ -14,7 +14,10 @@ interface Product {
     active: boolean;
 }
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function ProductEditPage() {
+    const { authFetch } = useAuthToken();
     const params = useParams();
     const router = useRouter();
     const productId = params.id as string;
@@ -36,7 +39,7 @@ export default function ProductEditPage() {
 
     const fetchProduct = async () => {
         try {
-            const response = await fetch(`/api/products/${productId}`);
+            const response = await authFetch(`/api/products/${productId}`);
             if (!response.ok) {
                 throw new Error('Product not found');
             }
@@ -59,7 +62,7 @@ export default function ProductEditPage() {
         setError('');
 
         try {
-            const response = await fetch(`/api/products/${productId}`, {
+            const response = await authFetch(`/api/products/${productId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -91,7 +94,7 @@ export default function ProductEditPage() {
         }
 
         try {
-            const response = await fetch(`/api/products/${productId}`, {
+            const response = await authFetch(`/api/products/${productId}`, {
                 method: 'DELETE'
             });
 

@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, Upload, Loader2, Check, Copy, ExternalLink, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function CreatePaymentLinkPage() {
     const router = useRouter();
+    const { authFetch } = useAuthToken();
     const [isCreating, setIsCreating] = useState(false);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [successModal, setSuccessModal] = useState<{ url: string; token: string } | null>(null);
@@ -72,7 +75,7 @@ export default function CreatePaymentLinkPage() {
                 data.append('image', formData.imageFile);
             }
 
-            const response = await fetch('/api/payment-links/create', {
+            const response = await authFetch('/api/payment-links/create', {
                 method: 'POST',
                 body: data,
             });

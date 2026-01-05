@@ -4,7 +4,10 @@ import { useState, useEffect } from 'react';
 import { Copy, Eye, EyeOff, AlertTriangle, Terminal, Key } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
 export default function APIKeysPage() {
+    const { authFetch } = useAuthToken();
     const [showSecretKey, setShowSecretKey] = useState(false);
     const [showWebhookSecret, setShowWebhookSecret] = useState(false);
     const [apiKeys, setApiKeys] = useState({
@@ -16,7 +19,7 @@ export default function APIKeysPage() {
 
     // Fetch real API keys
     useEffect(() => {
-        fetch('/api/dashboard/developers/projects')
+        authFetch('/api/dashboard/developers/projects')
             .then(res => res.json())
             .then(data => {
                 if (data.projects && data.projects.length > 0) {
