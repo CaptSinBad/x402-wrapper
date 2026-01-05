@@ -9,13 +9,6 @@ export default function LoginPage() {
     const router = useRouter();
     const [checking, setChecking] = useState(false);
 
-    // Force logout on page load for fresh login
-    useEffect(() => {
-        if (ready && authenticated && !checking) {
-            logout();
-        }
-    }, [ready, authenticated, checking, logout]);
-
     // Check if user is registered in database after authentication
     useEffect(() => {
         if (ready && authenticated && user && !checking) {
