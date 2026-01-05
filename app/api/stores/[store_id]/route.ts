@@ -17,7 +17,7 @@ export async function GET(
     try {
         const user = await requireAuth();
         const params = await context.params;
-        const storeId = params.id;
+        const storeId = params.store_id;
 
         const result = await pgPool.query(
             `SELECT * FROM stores WHERE id = $1 AND user_id = $2`,
@@ -77,7 +77,7 @@ export async function PATCH(
     try {
         const user = await requireAuth();
         const params = await context.params;
-        const storeId = params.id;
+        const storeId = params.store_id;
         const body = await req.json();
 
         // Verify ownership
@@ -186,7 +186,7 @@ export async function DELETE(
     try {
         const user = await requireAuth();
         const params = await context.params;
-        const storeId = params.id;
+        const storeId = params.store_id;
 
         const result = await pgPool.query(
             `UPDATE stores SET active = false, updated_at = NOW() 
