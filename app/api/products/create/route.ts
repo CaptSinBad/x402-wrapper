@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
                 description || null,
                 price_cents,
                 currency || 'USDC',
-                JSON.stringify(images || []),
+                images || [], // Postgres ARRAY accepts JS array
                 JSON.stringify(metadata || {}),
                 store_id || null,
                 category_id || null

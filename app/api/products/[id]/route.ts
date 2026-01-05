@@ -108,7 +108,7 @@ export async function PATCH(
         }
         if (images !== undefined) {
             updates.push(`images = $${paramIndex++}`);
-            values.push(JSON.stringify(images));
+            values.push(images); // Postgres ARRAY accepts JS array
         }
         if (metadata !== undefined) {
             updates.push(`metadata = $${paramIndex++}`);
