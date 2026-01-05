@@ -34,13 +34,8 @@ export async function query<T extends QueryResultRow = any>(
     const sql = neon(connectionString);
 
     try {
-        // Execute query with 10 second timeout
-        const rows = await Promise.race([
-            sql(text as any, params || []) as Promise<T[]>,
-            new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error('Query timeout after 10s')), 10000)
-            )
-        ]);
+        // Neon driver requires using .query() for parameterized queries
+        const rows = await sql.query(text, params || []) as T[];
 
         return {
             rows,
