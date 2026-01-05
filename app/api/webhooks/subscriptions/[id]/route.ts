@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
-import { requireAuth } from '../../../../../lib/session';
+import { requireAuth } from '@/lib/auth';
 
 const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
