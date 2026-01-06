@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json(
-            { error: 'internal_error', message: error.message },
+            { error: error.message, message: error.message }, // EXPOSE ERROR FOR DEBUGGING
             { status: 500 }
         );
     }

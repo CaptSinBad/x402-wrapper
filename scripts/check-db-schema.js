@@ -38,25 +38,27 @@ async function checkSchema() {
         const res = await client.query(`
             SELECT column_name, data_type 
             FROM information_schema.columns 
-            WHERE table_name = 'products';
+            WHERE table_name = 'projects';
         `);
 
         const columns = res.rows.map(r => `${r.column_name} (${r.data_type})`);
-        console.log('\nCurrent "products" table columns:', columns);
+        console.log('\nCurrent "projects" table columns:', columns);
 
         const colNames = res.rows.map(r => r.column_name);
-        const imagesCol = res.rows.find(r => r.column_name === 'images');
-        if (imagesCol) console.log('Images column type:', imagesCol.data_type);
 
         const missing = [];
-        if (!colNames.includes('store_id')) missing.push('store_id');
-        if (!colNames.includes('category_id')) missing.push('category_id');
+        // Check for columns used in the payment link creation
+        const required = ['x402_tenant_id', 'x402_network', 'id', 'public_key'];
+
+        required.forEach(req => {
+            if (!colNames.includes(req)) missing.push(req);
+        });
 
         if (missing.length > 0) {
-            console.error('\n❌ CRITICAL: Missing columns in "products" table:', missing);
+            console.error('\n❌ CRITICAL: Missing columns in "projects" table:', missing);
             console.log('The migration did NOT apply correctly.');
         } else {
-            console.log('\n✅ SUCCESS: All required columns are present.');
+            console.log('\n✅ SUCCESS: All required columns are present in projects table.');
         }
 
     } catch (err) {
