@@ -19,16 +19,36 @@ import {
     Package
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-
-const projects = [
-    { id: 'proj_live_123', name: 'BinahPay Main', mode: 'live' },
-    { id: 'proj_test_456', name: 'Dev Environment', mode: 'test' },
-];
+import { useAuthToken } from '@/app/hooks/useAuthToken';
 
 export function Sidebar() {
     const pathname = usePathname();
-    const [activeProject, setActiveProject] = useState(projects[1]); // Default to Test Mode
+    const { authFetch } = useAuthToken();
+    const [projects, setProjects] = useState<any[]>([]);
+    const [activeProject, setActiveProject] = useState<any>(null);
     const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchProjects();
+    }, []);
+
+    const fetchProjects = async () => {
+        try {
+            const response = await authFetch('/api/projects/create');
+            if (response.ok) {
+                const data = await response.json();
+                setProjects(data.projects);
+                if (data.projects.length > 0) {
+                    setActiveProject(data.projects[0]);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch projects:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const navigation = [
         { name: 'Overview', href: '/dashboard', icon: Home },
@@ -55,7 +75,7 @@ export function Sidebar() {
     return (
         <div className={cn(
             "w-[240px] flex flex-col fixed inset-y-0 left-0 bg-[#0A0A0A] border-r border-border z-50",
-            activeProject.mode === 'test' && "border-r-orange-500/30" // Subtle hint of test mode
+            activeProject?.mode === 'test' && "border-r-orange-500/30" // Subtle hint of test mode
         )}>
             {/* Project Switcher */}
             <div className="p-4">
@@ -64,21 +84,30 @@ export function Sidebar() {
                     className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-zinc-900 transition-colors border border-transparent hover:border-zinc-800 group"
                 >
                     <div className="flex items-center gap-3 overflow-hidden">
-                        <div className={cn(
-                            "w-8 h-8 rounded flex items-center justify-center text-xs font-bold text-white shrink-0",
-                            activeProject.mode === 'live' ? "bg-primary" : "bg-orange-500"
-                        )}>
-                            {activeProject.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div className="flex flex-col items-start truncate">
-                            <span className="text-sm font-medium text-zinc-200 truncate w-full text-left">{activeProject.name}</span>
-                            <span className={cn(
-                                "text-[10px] uppercase font-bold tracking-wider",
-                                activeProject.mode === 'live' ? "text-zinc-500" : "text-orange-500"
-                            )}>
-                                {activeProject.mode}
-                            </span>
-                        </div>
+                        {activeProject ? (
+                            <>
+                                <div className={cn(
+                                    "w-8 h-8 rounded flex items-center justify-center text-xs font-bold text-white shrink-0",
+                                    activeProject.environment === 'live' ? "bg-primary" : "bg-orange-500"
+                                )}>
+                                    {activeProject.name.substring(0, 2).toUpperCase()}
+                                </div>
+                                <div className="flex flex-col items-start truncate">
+                                    <span className="text-sm font-medium text-zinc-200 truncate w-full text-left">{activeProject.name}</span>
+                                    <span className={cn(
+                                        "text-[10px] uppercase font-bold tracking-wider",
+                                        activeProject.environment === 'live' ? "text-zinc-500" : "text-orange-500"
+                                    )}>
+                                        {activeProject.environment}
+                                    </span>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded bg-zinc-800 animate-pulse" />
+                                <div className="h-4 w-20 bg-zinc-800 rounded animate-pulse" />
+                            </div>
+                        )}
                     </div>
                     <ChevronsUpDown className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300" />
                 </button>
@@ -94,7 +123,7 @@ export function Sidebar() {
                             >
                                 <div className={cn(
                                     "w-2 h-2 rounded-full",
-                                    p.mode === 'live' ? "bg-primary" : "bg-orange-500"
+                                    p.environment === 'live' ? "bg-primary" : "bg-orange-500"
                                 )} />
                                 <span className="text-sm text-zinc-300">{p.name}</span>
                             </button>
