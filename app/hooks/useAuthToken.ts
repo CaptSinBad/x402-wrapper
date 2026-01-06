@@ -38,13 +38,19 @@ export function useAuthToken() {
             throw new Error('Not authenticated');
         }
 
+        const headers: Record<string, string> = {
+            ...(options.headers as Record<string, string>),
+            'Authorization': `Bearer ${token}`,
+        };
+
+        // Default to JSON unless it's FormData (browser handles Content-Type boundary for FormData)
+        if (!(options.body instanceof FormData)) {
+            headers['Content-Type'] = 'application/json';
+        }
+
         return fetch(url, {
             ...options,
-            headers: {
-                ...options.headers,
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
+            headers,
         });
     }, [getToken]);
 
