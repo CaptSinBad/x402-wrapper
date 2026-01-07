@@ -51,6 +51,7 @@ module.exports = {
         'pino-pretty': false,
         'pino-elasticsearch': false,
         '@walletconnect/logger': false,
+        '@react-native-async-storage/async-storage': false,
       };
     }
 
