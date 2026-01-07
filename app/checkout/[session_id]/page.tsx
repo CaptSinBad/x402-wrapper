@@ -200,7 +200,7 @@ export default function CheckoutPage() {
     if (loading) {
         return (
             <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7FAFC' }}>
-                <p style={{ color: '#718096' }}>Loading checkout...</p>
+                <p style={{ color: '#4B5563' }}>Loading checkout...</p>
             </div>
         );
     }
@@ -240,7 +240,7 @@ export default function CheckoutPage() {
                     <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px', color: '#2D3748' }}>
                         Payment Successful!
                     </h1>
-                    <p style={{ fontSize: '16px', color: '#718096', marginBottom: '24px' }}>
+                    <p style={{ fontSize: '16px', color: '#4B5563', marginBottom: '24px' }}>
                         Your order has been confirmed
                     </p>
 
@@ -276,7 +276,7 @@ export default function CheckoutPage() {
                 {/* Header */}
                 <div style={{ textAlign: 'center', marginBottom: '40px' }}>
                     <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Checkout</h1>
-                    <p style={{ color: '#718096' }}>Powered by BinahPay</p>
+                    <p style={{ color: '#4B5563' }}>Powered by BinahPay</p>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '32px' }}>
@@ -310,10 +310,10 @@ export default function CheckoutPage() {
                                     <div style={{ flex: 1 }}>
                                         <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>{item.name}</h3>
                                         {item.description && (
-                                            <p style={{ fontSize: '14px', color: '#718096', marginBottom: '8px' }}>{item.description}</p>
+                                            <p style={{ fontSize: '14px', color: '#4B5563', marginBottom: '8px' }}>{item.description}</p>
                                         )}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '14px', color: '#718096' }}>Quantity: {item.quantity}</span>
+                                            <span style={{ fontSize: '14px', color: '#4B5563' }}>Quantity: {item.quantity}</span>
                                             <span style={{ fontSize: '16px', fontWeight: '600' }}>${(item.total_cents / 100).toFixed(2)}</span>
                                         </div>
                                     </div>
@@ -356,7 +356,7 @@ export default function CheckoutPage() {
                             {/* Wallet */}
                             {!isConnected ? (
                                 <div style={{ textAlign: 'center' }}>
-                                    <p style={{ fontSize: '14px', color: '#718096', marginBottom: '16px' }}>
+                                    <p style={{ fontSize: '14px', color: '#4B5563', marginBottom: '16px' }}>
                                         Connect your wallet to pay
                                     </p>
                                     <appkit-button />
@@ -411,7 +411,7 @@ export default function CheckoutPage() {
                                         width: '100%',
                                         padding: '12px',
                                         background: 'transparent',
-                                        color: '#718096',
+                                        color: '#4B5563',
                                         border: 'none',
                                         fontSize: '14px',
                                         cursor: 'pointer',

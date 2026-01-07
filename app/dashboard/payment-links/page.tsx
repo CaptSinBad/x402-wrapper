@@ -77,7 +77,7 @@ export default function PaymentLinksPage() {
     if (loading) {
         return (
             <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ color: '#718096' }}>Loading...</p>
+                <p style={{ color: '#4B5563' }}>Loading...</p>
             </div>
         );
     }
@@ -88,7 +88,7 @@ export default function PaymentLinksPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                     <div>
                         <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Payment Links</h1>
-                        <p style={{ color: '#718096' }}>
+                        <p style={{ color: '#4B5563' }}>
                             Create and manage payment links for your customers
                         </p>
                     </div>
@@ -120,7 +120,7 @@ export default function PaymentLinksPage() {
                     <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
                         No payment links yet
                     </h2>
-                    <p style={{ color: '#718096', marginBottom: '24px' }}>
+                    <p style={{ color: '#4B5563', marginBottom: '24px' }}>
                         Create shareable payment links that your customers can use to pay you
                     </p>
                     <button
@@ -148,7 +148,7 @@ export default function PaymentLinksPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                 <div>
                     <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Payment Links</h1>
-                    <p style={{ color: '#718096' }}>
+                    <p style={{ color: '#4B5563' }}>
                         {links.length} {links.length === 1 ? 'link' : 'links'} created
                     </p>
                 </div>
@@ -204,7 +204,7 @@ export default function PaymentLinksPage() {
                                 {link.name}
                             </h3>
                             {link.description && (
-                                <p style={{ fontSize: '14px', color: '#718096', marginBottom: '16px', lineHeight: '1.5' }}>
+                                <p style={{ fontSize: '14px', color: '#4B5563', marginBottom: '16px', lineHeight: '1.5' }}>
                                     {link.description.length > 80
                                         ? link.description.substring(0, 80) + '...'
                                         : link.description
@@ -312,7 +312,7 @@ export default function PaymentLinksPage() {
                         <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>
                             Delete Payment Link?
                         </h2>
-                        <p style={{ color: '#718096', marginBottom: '24px', lineHeight: '1.6' }}>
+                        <p style={{ color: '#4B5563', marginBottom: '24px', lineHeight: '1.6' }}>
                             This action cannot be undone. The payment link will be permanently deleted.
                         </p>
                         <div style={{ display: 'flex', gap: '12px' }}>

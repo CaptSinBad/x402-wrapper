@@ -112,7 +112,7 @@ export default function ProductEditPage() {
     if (loading) {
         return (
             <div style={{ padding: '40px', textAlign: 'center' }}>
-                <p style={{ color: '#718096' }}>Loading product...</p>
+                <p style={{ color: '#4B5563' }}>Loading product...</p>
             </div>
         );
     }
@@ -122,7 +122,7 @@ export default function ProductEditPage() {
             <div style={{ padding: '40px', textAlign: 'center' }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
                 <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>Product not found</h2>
-                <p style={{ color: '#718096', marginBottom: '24px' }}>{error}</p>
+                <p style={{ color: '#4B5563', marginBottom: '24px' }}>{error}</p>
                 <button
                     onClick={() => router.push('/dashboard/products')}
                     style={{
@@ -160,7 +160,7 @@ export default function ProductEditPage() {
                     ← Back to Products
                 </button>
                 <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Edit Product</h1>
-                <p style={{ color: '#718096' }}>Update product details</p>
+                <p style={{ color: '#4B5563' }}>Update product details</p>
             </div>
 
             <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '32px' }}>

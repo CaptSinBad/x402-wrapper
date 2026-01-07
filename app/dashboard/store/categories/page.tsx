@@ -91,7 +91,7 @@ export default function CategoriesPage() {
     if (loading) {
         return (
             <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ color: '#718096' }}>Loading categories...</p>
+                <p style={{ color: '#4B5563' }}>Loading categories...</p>
             </div>
         );
     }
@@ -101,7 +101,7 @@ export default function CategoriesPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
                     <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Categories</h1>
-                    <p style={{ color: '#718096' }}>
+                    <p style={{ color: '#4B5563' }}>
                         {categories.length} {categories.length === 1 ? 'category' : 'categories'}
                     </p>
                 </div>
@@ -204,7 +204,7 @@ export default function CategoriesPage() {
                     <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
                         No categories yet
                     </h2>
-                    <p style={{ color: '#718096' }}>
+                    <p style={{ color: '#4B5563' }}>
                         Create categories to organize your products
                     </p>
                 </div>
@@ -240,7 +240,7 @@ export default function CategoriesPage() {
                                     </span>
                                 </div>
                                 {category.description && (
-                                    <p style={{ color: '#718096', fontSize: '14px' }}>
+                                    <p style={{ color: '#4B5563', fontSize: '14px' }}>
                                         {category.description}
                                     </p>
                                 )}

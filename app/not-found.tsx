@@ -26,7 +26,7 @@ export default function NotFound() {
                 <h1 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '12px', color: '#2D3748' }}>
                     Page Not Found
                 </h1>
-                <p style={{ fontSize: '16px', color: '#718096', marginBottom: '32px' }}>
+                <p style={{ fontSize: '16px', color: '#4B5563', marginBottom: '32px' }}>
                     The page you're looking for doesn't exist or has been moved.
                 </p>
 

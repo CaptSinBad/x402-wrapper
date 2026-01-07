@@ -39,7 +39,7 @@ export default function PaymentsPage() {
     if (loading) {
         return (
             <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ color: '#718096' }}>Loading payments...</p>
+                <p style={{ color: '#4B5563' }}>Loading payments...</p>
             </div>
         );
     }
@@ -48,7 +48,7 @@ export default function PaymentsPage() {
         return (
             <div style={{ padding: '24px' }}>
                 <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Payments</h1>
-                <p style={{ color: '#718096', marginBottom: '32px' }}>
+                <p style={{ color: '#4B5563', marginBottom: '32px' }}>
                     View and manage all your payment transactions
                 </p>
 
@@ -63,7 +63,7 @@ export default function PaymentsPage() {
                     <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
                         No payments yet
                     </h2>
-                    <p style={{ color: '#718096', marginBottom: '24px' }}>
+                    <p style={{ color: '#4B5563', marginBottom: '24px' }}>
                         Payments made through your payment links will appear here
                     </p>
                 </div>
@@ -74,7 +74,7 @@ export default function PaymentsPage() {
     return (
         <div style={{ padding: '24px' }}>
             <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Payments</h1>
-            <p style={{ color: '#718096', marginBottom: '32px' }}>
+            <p style={{ color: '#4B5563', marginBottom: '32px' }}>
                 {payments.length} {payments.length === 1 ? 'payment' : 'payments'} received
             </p>
 
@@ -87,19 +87,19 @@ export default function PaymentsPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ background: '#F7FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#718096', textTransform: 'uppercase' }}>
+                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>
                                 Date
                             </th>
-                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#718096', textTransform: 'uppercase' }}>
+                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>
                                 Amount
                             </th>
-                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#718096', textTransform: 'uppercase' }}>
+                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>
                                 Purchaser
                             </th>
-                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#718096', textTransform: 'uppercase' }}>
+                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>
                                 Status
                             </th>
-                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#718096', textTransform: 'uppercase' }}>
+                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>
                                 Transaction
                             </th>
                         </tr>
@@ -119,7 +119,7 @@ export default function PaymentsPage() {
                                 <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600', color: '#2D3748' }}>
                                     ${payment.amount} {payment.currency}
                                 </td>
-                                <td style={{ padding: '16px', fontSize: '14px', color: '#718096', fontFamily: 'monospace' }}>
+                                <td style={{ padding: '16px', fontSize: '14px', color: '#4B5563', fontFamily: 'monospace' }}>
                                     {payment.purchaser.slice(0, 6)}...{payment.purchaser.slice(-4)}
                                 </td>
                                 <td style={{ padding: '16px' }}>

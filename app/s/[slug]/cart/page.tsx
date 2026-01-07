@@ -167,7 +167,7 @@ export default function CartPage() {
                         <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
                             Your cart is empty
                         </h2>
-                        <p style={{ color: '#718096', marginBottom: '24px' }}>
+                        <p style={{ color: '#4B5563', marginBottom: '24px' }}>
                             Add some products to get started!
                         </p>
                         <Link
@@ -316,13 +316,13 @@ export default function CartPage() {
 
                                 <div style={{ marginBottom: '16px' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                        <span style={{ color: '#718096' }}>Subtotal</span>
+                                        <span style={{ color: '#4B5563' }}>Subtotal</span>
                                         <span style={{ fontWeight: '600' }}>
                                             ${(subtotal / 100).toFixed(2)} USDC
                                         </span>
                                     </div>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                        <span style={{ color: '#718096' }}>Service Fee (1%)</span>
+                                        <span style={{ color: '#4B5563' }}>Service Fee (1%)</span>
                                         <span style={{ fontWeight: '600' }}>
                                             ${(platformFee / 100).toFixed(2)} USDC
                                         </span>
@@ -362,7 +362,7 @@ export default function CartPage() {
 
                                 <p style={{
                                     fontSize: '12px',
-                                    color: '#718096',
+                                    color: '#4B5563',
                                     textAlign: 'center',
                                     marginTop: '12px'
                                 }}>

@@ -80,7 +80,7 @@ export default function OnboardingStep4() {
                     <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 12px' }}>
                         Your project is ready!
                     </h2>
-                    <p style={{ fontSize: '16px', color: '#718096', marginBottom: '24px' }}>
+                    <p style={{ fontSize: '16px', color: '#4B5563', marginBottom: '24px' }}>
                         Save your API keys now. You won't be able to see the secret key again.
                     </p>
 

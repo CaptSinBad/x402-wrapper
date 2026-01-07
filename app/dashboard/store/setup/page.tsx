@@ -70,7 +70,7 @@ export default function StoreSetupPage() {
                 <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>
                     {isEditing ? 'Edit Store' : 'Create Your Store'}
                 </h1>
-                <p style={{ color: '#718096' }}>
+                <p style={{ color: '#4B5563' }}>
                     {isEditing
                         ? 'Update your store settings'
                         : 'Set up your online store in minutes'
@@ -106,7 +106,7 @@ export default function StoreSetupPage() {
                     {formData.store_name.length > 0 && (
                         <p style={{
                             fontSize: '13px',
-                            color: '#718096',
+                            color: '#4B5563',
                             marginTop: '6px'
                         }}>
                             Your store will be available at: <strong>
@@ -169,7 +169,7 @@ export default function StoreSetupPage() {
                             fontSize: '15px'
                         }}
                     />
-                    <p style={{ fontSize: '13px', color: '#718096', marginTop: '6px' }}>
+                    <p style={{ fontSize: '13px', color: '#4B5563', marginTop: '6px' }}>
                         Optional: Direct URL to your logo image
                     </p>
                 </div>
@@ -197,7 +197,7 @@ export default function StoreSetupPage() {
                             fontSize: '15px'
                         }}
                     />
-                    <p style={{ fontSize: '13px', color: '#718096', marginTop: '6px' }}>
+                    <p style={{ fontSize: '13px', color: '#4B5563', marginTop: '6px' }}>
                         Optional: Direct URL to your banner image (recommended: 1200x400px)
                     </p>
                 </div>

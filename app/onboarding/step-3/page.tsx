@@ -139,7 +139,7 @@ export default function OnboardingStep3() {
                         <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
                             Bank account details (for fiat conversion)
                         </h3>
-                        <p style={{ fontSize: '14px', color: '#718096', marginBottom: '20px' }}>
+                        <p style={{ fontSize: '14px', color: '#4B5563', marginBottom: '20px' }}>
                             Add your bank account to enable automatic conversion from crypto to fiat. This requires KYC verification.
                         </p>
 

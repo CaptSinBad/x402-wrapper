@@ -69,7 +69,7 @@ export default function StorePage() {
                 justifyContent: 'center',
                 background: '#F7FAFC'
             }}>
-                <p style={{ color: '#718096', fontSize: '18px' }}>Loading store...</p>
+                <p style={{ color: '#4B5563', fontSize: '18px' }}>Loading store...</p>
             </div>
         );
     }
@@ -89,7 +89,7 @@ export default function StorePage() {
                 <h1 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>
                     Store Not Found
                 </h1>
-                <p style={{ color: '#718096', marginBottom: '24px' }}>
+                <p style={{ color: '#4B5563', marginBottom: '24px' }}>
                     The store you're looking for doesn't exist or has been deactivated.
                 </p>
                 <Link href="/" style={{
@@ -138,7 +138,7 @@ export default function StorePage() {
                             {store.store_name}
                         </h1>
                     </div>
-                    <div style={{ fontSize: '14px', color: '#718096' }}>
+                    <div style={{ fontSize: '14px', color: '#4B5563' }}>
                         Powered by <strong style={{ color: store.theme_color }}>BinahPay</strong>
                     </div>
                 </div>
@@ -190,7 +190,7 @@ export default function StorePage() {
                         <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
                             No products yet
                         </h2>
-                        <p style={{ color: '#718096' }}>
+                        <p style={{ color: '#4B5563' }}>
                             Check back soon for new products!
                         </p>
                     </div>
@@ -238,7 +238,7 @@ export default function StorePage() {
                                     {product.description && (
                                         <p style={{
                                             fontSize: '14px',
-                                            color: '#718096',
+                                            color: '#4B5563',
                                             marginBottom: '12px',
                                             overflow: 'hidden',
                                             textOverflow: 'ellipsis',
@@ -268,7 +268,7 @@ export default function StorePage() {
                 borderTop: '1px solid #E2E8F0',
                 padding: '24px',
                 textAlign: 'center',
-                color: '#718096',
+                color: '#4B5563',
                 fontSize: '14px'
             }}>
                 <p>Powered by <strong style={{ color: '#2B5FA5' }}>BinahPay</strong> — Accept crypto payments worldwide</p>

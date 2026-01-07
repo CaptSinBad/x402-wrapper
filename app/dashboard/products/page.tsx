@@ -72,7 +72,7 @@ export default function ProductsPage() {
     if (loading) {
         return (
             <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ color: '#718096' }}>Loading products...</p>
+                <p style={{ color: '#4B5563' }}>Loading products...</p>
             </div>
         );
     }
@@ -82,7 +82,7 @@ export default function ProductsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
                     <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Products</h1>
-                    <p style={{ color: '#718096' }}>
+                    <p style={{ color: '#4B5563' }}>
                         {products.length} {products.length === 1 ? 'product' : 'products'}
                     </p>
                 </div>
@@ -114,7 +114,7 @@ export default function ProductsPage() {
                             background: 'none',
                             border: 'none',
                             borderBottom: filter === tab ? '2px solid #2B5FA5' : '2px solid transparent',
-                            color: filter === tab ? '#2B5FA5' : '#718096',
+                            color: filter === tab ? '#2B5FA5' : '#4B5563',
                             fontWeight: filter === tab ? '600' : '400',
                             cursor: 'pointer',
                             textTransform: 'capitalize'
@@ -137,7 +137,7 @@ export default function ProductsPage() {
                     <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
                         No products yet
                     </h2>
-                    <p style={{ color: '#718096', marginBottom: '24px' }}>
+                    <p style={{ color: '#4B5563', marginBottom: '24px' }}>
                         Create your first product to start accepting payments
                     </p>
                     <button
@@ -202,7 +202,7 @@ export default function ProductsPage() {
                                 {product.description && (
                                     <p style={{
                                         fontSize: '14px',
-                                        color: '#718096',
+                                        color: '#4B5563',
                                         marginBottom: '12px',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
@@ -222,11 +222,11 @@ export default function ProductsPage() {
 
                                 <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', paddingTop: '16px', borderTop: '1px solid #E2E8F0' }}>
                                     <div>
-                                        <div style={{ fontSize: '12px', color: '#718096' }}>Orders</div>
+                                        <div style={{ fontSize: '12px', color: '#4B5563' }}>Orders</div>
                                         <div style={{ fontSize: '16px', fontWeight: '600' }}>{product.order_count}</div>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '12px', color: '#718096' }}>Revenue</div>
+                                        <div style={{ fontSize: '12px', color: '#4B5563' }}>Revenue</div>
                                         <div style={{ fontSize: '16px', fontWeight: '600' }}>${product.total_revenue}</div>
                                     </div>
                                 </div>

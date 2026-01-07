@@ -275,7 +275,7 @@ export default function PaymentLinkPage() {
             {productName}
           </h1>
           {productDescription && (
-            <p style={{ fontSize: 16, color: '#718096', marginBottom: 0, lineHeight: '1.6' }}>
+            <p style={{ fontSize: 16, color: '#4B5563', marginBottom: 0, lineHeight: '1.6' }}>
               {productDescription}
             </p>
           )}
@@ -298,7 +298,7 @@ export default function PaymentLinkPage() {
 
           {!isConnected ? (
             <div style={{ textAlign: 'center' }}>
-              <p style={{ fontSize: 15, color: '#718096', marginBottom: 20, lineHeight: '1.6' }}>
+              <p style={{ fontSize: 15, color: '#4B5563', marginBottom: 20, lineHeight: '1.6' }}>
                 Connect your wallet to complete payment
               </p>
               <button

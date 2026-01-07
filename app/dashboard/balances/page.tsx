@@ -44,13 +44,13 @@ export default function BalancesPage() {
     return (
         <div style={{ padding: '24px' }}>
             <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Balances</h1>
-            <p style={{ color: '#718096', marginBottom: '32px' }}>
+            <p style={{ color: '#4B5563', marginBottom: '32px' }}>
                 View your account balances and pending settlements
             </p>
 
             {loading ? (
                 <div style={{ textAlign: 'center', padding: '48px' }}>
-                    <p style={{ color: '#718096' }}>Loading...</p>
+                    <p style={{ color: '#4B5563' }}>Loading...</p>
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
@@ -79,7 +79,7 @@ export default function BalancesPage() {
                         borderRadius: '16px',
                         padding: '32px'
                     }}>
-                        <div style={{ fontSize: '14px', color: '#718096', marginBottom: '8px', fontWeight: '500' }}>
+                        <div style={{ fontSize: '14px', color: '#4B5563', marginBottom: '8px', fontWeight: '500' }}>
                             Available Balance
                         </div>
                         <div style={{ fontSize: '36px', fontWeight: '700', color: '#2D3748', marginBottom: '8px' }}>
@@ -97,7 +97,7 @@ export default function BalancesPage() {
                         borderRadius: '16px',
                         padding: '32px'
                     }}>
-                        <div style={{ fontSize: '14px', color: '#718096', marginBottom: '8px', fontWeight: '500' }}>
+                        <div style={{ fontSize: '14px', color: '#4B5563', marginBottom: '8px', fontWeight: '500' }}>
                             Pending
                         </div>
                         <div style={{ fontSize: '36px', fontWeight: '700', color: '#2D3748', marginBottom: '8px' }}>
@@ -123,7 +123,7 @@ export default function BalancesPage() {
                     <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
                         No balance yet
                     </h2>
-                    <p style={{ color: '#718096', marginBottom: '24px' }}>
+                    <p style={{ color: '#4B5563', marginBottom: '24px' }}>
                         Your balance will appear here once you receive payments
                     </p>
                 </div>

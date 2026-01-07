@@ -102,7 +102,7 @@ export default function WebhooksPage() {
         <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
             <div style={{ marginBottom: '32px' }}>
                 <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>Webhooks</h1>
-                <p style={{ color: '#718096', fontSize: '16px' }}>
+                <p style={{ color: '#4B5563', fontSize: '16px' }}>
                     Configure webhook endpoints to receive real-time payment notifications
                 </p>
             </div>
@@ -197,7 +197,7 @@ export default function WebhooksPage() {
                 </div>
 
                 {subscriptions.length === 0 ? (
-                    <div style={{ padding: '40px', textAlign: 'center', color: '#718096' }}>
+                    <div style={{ padding: '40px', textAlign: 'center', color: '#4B5563' }}>
                         No webhook endpoints configured
                     </div>
                 ) : (
@@ -279,7 +279,7 @@ export default function WebhooksPage() {
                 <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px' }}>
                     Testing Webhooks
                 </h3>
-                <p style={{ color: '#718096', marginBottom: '16px', lineHeight: '1.6' }}>
+                <p style={{ color: '#4B5563', marginBottom: '16px', lineHeight: '1.6' }}>
                     Webhook signatures are generated using HMAC-SHA256. Verify the signature in your endpoint:
                 </p>
                 <pre style={{

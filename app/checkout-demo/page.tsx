@@ -113,7 +113,7 @@ export default function CheckoutDemoPage() {
     if (loading) {
         return (
             <div style={{ padding: '40px', textAlign: 'center' }}>
-                <p style={{ color: '#718096' }}>Loading products...</p>
+                <p style={{ color: '#4B5563' }}>Loading products...</p>
             </div>
         );
     }
@@ -123,7 +123,7 @@ export default function CheckoutDemoPage() {
             <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '12px' }}>
                 Checkout Demo (MVP 2)
             </h1>
-            <p style={{ color: '#718096', marginBottom: '40px' }}>
+            <p style={{ color: '#4B5563', marginBottom: '40px' }}>
                 Add products to cart and checkout - just like Stripe!
             </p>
 
@@ -131,7 +131,7 @@ export default function CheckoutDemoPage() {
                 <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '48px', textAlign: 'center' }}>
                     <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
                     <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>No products yet</h2>
-                    <p style={{ color: '#718096', marginBottom: '24px' }}>
+                    <p style={{ color: '#4B5563', marginBottom: '24px' }}>
                         Create products first to test checkout
                     </p>
                     <button
@@ -183,7 +183,7 @@ export default function CheckoutDemoPage() {
                                             {product.name}
                                         </h3>
                                         {product.description && (
-                                            <p style={{ fontSize: '14px', color: '#718096', marginBottom: '12px' }}>
+                                            <p style={{ fontSize: '14px', color: '#4B5563', marginBottom: '12px' }}>
                                                 {product.description}
                                             </p>
                                         )}
@@ -220,7 +220,7 @@ export default function CheckoutDemoPage() {
                                 {cartItems.length === 0 ? (
                                     <div style={{ padding: '40px', textAlign: 'center' }}>
                                         <div style={{ fontSize: '32px', marginBottom: '8px' }}>🛒</div>
-                                        <p style={{ color: '#718096', fontSize: '14px' }}>Your cart is empty</p>
+                                        <p style={{ color: '#4B5563', fontSize: '14px' }}>Your cart is empty</p>
                                     </div>
                                 ) : (
                                     <>
@@ -240,7 +240,7 @@ export default function CheckoutDemoPage() {
                                                         <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>
                                                             {item.name}
                                                         </div>
-                                                        <div style={{ fontSize: '13px', color: '#718096' }}>
+                                                        <div style={{ fontSize: '13px', color: '#4B5563' }}>
                                                             ${item.price} each
                                                         </div>
                                                     </div>

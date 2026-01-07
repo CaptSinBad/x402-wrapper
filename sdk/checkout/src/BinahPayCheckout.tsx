@@ -235,7 +235,7 @@ export function BinahPayCheckout({
         return (
             <div style={{ textAlign: 'center', padding: '48px', ...style }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
-                <p style={{ color: '#718096' }}>Loading checkout...</p>
+                <p style={{ color: '#4B5563' }}>Loading checkout...</p>
             </div>
         );
     }
@@ -245,7 +245,7 @@ export function BinahPayCheckout({
             <div style={{ textAlign: 'center', padding: '48px', ...style }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
                 <h3 style={{ marginBottom: '8px' }}>Failed to Load</h3>
-                <p style={{ color: '#718096' }}>{error}</p>
+                <p style={{ color: '#4B5563' }}>{error}</p>
             </div>
         );
     }
@@ -255,7 +255,7 @@ export function BinahPayCheckout({
             <div style={{ textAlign: 'center', padding: '48px', ...style }}>
                 <div style={{ fontSize: '64px', marginBottom: '16px' }}>✅</div>
                 <h2 style={{ marginBottom: '8px' }}>Payment Successful!</h2>
-                <p style={{ color: '#718096', marginBottom: '16px' }}>
+                <p style={{ color: '#4B5563', marginBottom: '16px' }}>
                     Your payment has been processed.
                 </p>
                 {txHash && (
@@ -294,7 +294,7 @@ export function BinahPayCheckout({
                     }}>
                         <div>
                             <div style={{ fontWeight: '600' }}>{item.name}</div>
-                            <div style={{ fontSize: '13px', color: '#718096' }}>
+                            <div style={{ fontSize: '13px', color: '#4B5563' }}>
                                 Qty: {item.quantity}
                             </div>
                         </div>

@@ -201,7 +201,7 @@ export function EmbeddedCheckout({
     if (loading) {
         return (
             <div style={{ padding: '40px', textAlign: 'center', ...style }}>
-                <p style={{ color: '#718096' }}>Loading...</p>
+                <p style={{ color: '#4B5563' }}>Loading...</p>
             </div>
         );
     }
@@ -220,7 +220,7 @@ export function EmbeddedCheckout({
             <div style={{ padding: '40px', textAlign: 'center', background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', ...style }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
                 <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>Payment Successful!</h2>
-                <p style={{ color: '#718096', marginBottom: '16px' }}>Your order has been confirmed</p>
+                <p style={{ color: '#4B5563', marginBottom: '16px' }}>Your order has been confirmed</p>
                 {txHash && (
                     <a
                         href={`https://sepolia.basescan.org/tx/${txHash}`}
@@ -271,7 +271,7 @@ export function EmbeddedCheckout({
                         )}
                         <div style={{ flex: 1 }}>
                             <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '4px' }}>{item.name}</h4>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#718096' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#4B5563' }}>
                                 <span>Qty: {item.quantity}</span>
                                 <span>${(item.total_cents / 100).toFixed(2)}</span>
                             </div>
@@ -349,7 +349,7 @@ export function EmbeddedCheckout({
                                     width: '100%',
                                     padding: '10px',
                                     background: 'transparent',
-                                    color: '#718096',
+                                    color: '#4B5563',
                                     border: 'none',
                                     fontSize: '13px',
                                     cursor: 'pointer',

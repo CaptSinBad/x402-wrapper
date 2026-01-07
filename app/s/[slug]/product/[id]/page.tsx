@@ -88,7 +88,7 @@ export default function ProductDetailPage() {
                 justifyContent: 'center',
                 background: '#F7FAFC'
             }}>
-                <p style={{ color: '#718096', fontSize: '18px' }}>Loading product...</p>
+                <p style={{ color: '#4B5563', fontSize: '18px' }}>Loading product...</p>
             </div>
         );
     }
@@ -211,7 +211,7 @@ export default function ProductDetailPage() {
                         {product.description && (
                             <p style={{
                                 fontSize: '16px',
-                                color: '#718096',
+                                color: '#4B5563',
                                 lineHeight: '1.6',
                                 marginBottom: '32px'
                             }}>
