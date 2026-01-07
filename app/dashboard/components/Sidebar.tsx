@@ -74,7 +74,6 @@ export function Sidebar() {
 
     const isActive = (path: string) => pathname === path;
 
-    return (
     const { logout } = usePrivy();
     const router = useRouter();
 
