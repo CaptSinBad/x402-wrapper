@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 // import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount, useWalletClient, useDisconnect } from 'wagmi';
+import { useAccount, useWalletClient, useDisconnect, useSwitchChain, useChainId } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
 import { parseUnits } from 'viem';
 import { baseSepolia } from 'viem/chains';
@@ -25,6 +25,10 @@ export default function PaymentLinkPage() {
   const [paying, setPaying] = useState(false);
   const [success, setSuccess] = useState(false);
   const [txHash, setTxHash] = useState('');
+  const [switchingChain, setSwitchingChain] = useState(false);
+
+  const { switchChain } = useSwitchChain();
+  const chainId = useChainId();
 
   // Fetch payment link details
   useEffect(() => {
@@ -54,8 +58,32 @@ export default function PaymentLinkPage() {
       });
   }, [token]);
 
+  // Auto-switch to Base Sepolia when link loads and wallet is connected
+  useEffect(() => {
+    const autoSwitchChain = async () => {
+      if (link && isConnected && chainId !== 84532) {
+        try {
+          setSwitchingChain(true);
+          await switchChain({ chainId: 84532 });
+        } catch (err: any) {
+          console.error('Auto chain switch failed:', err);
+          setError('Please switch your wallet to Base Sepolia network');
+        } finally {
+          setSwitchingChain(false);
+        }
+      }
+    };
+    autoSwitchChain();
+  }, [link, isConnected, chainId, switchChain]);
+
   const handlePayment = async () => {
     if (!walletClient || !address || !link) return;
+
+    // Check if on correct chain before payment
+    if (chainId !== 84532) {
+      setError('Please switch your wallet to Base Sepolia network');
+      return;
+    }
 
     setPaying(true);
     setError('');
