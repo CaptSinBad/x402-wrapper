@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount, useWalletClient } from 'wagmi';
+import { useAccount, useWalletClient, useSwitchChain, useChainId } from 'wagmi';
 import { parseUnits } from 'viem';
 
 /// <reference path="../../app/components/web-components.d.ts" />
@@ -86,10 +86,23 @@ export function BinahPayCheckout({
     const [paymentSuccess, setPaymentSuccess] = useState(false);
     const [txHash, setTxHash] = useState('');
 
+    const { switchChain } = useSwitchChain();
+    const chainId = useChainId();
+
     useEffect(() => {
         if (!sessionId) return;
         fetchSession();
     }, [sessionId]);
+
+    // Auto-switch chain when session is loaded
+    useEffect(() => {
+        if (session && session.network) {
+            const targetChainId = session.network === 'base-sepolia' ? 84532 : 8453;
+            if (isConnected && chainId !== targetChainId) {
+                switchChain({ chainId: targetChainId });
+            }
+        }
+    }, [session, isConnected, chainId, switchChain]);
 
     const fetchSession = async () => {
         try {
