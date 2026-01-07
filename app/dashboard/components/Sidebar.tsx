@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePrivy } from '@privy-io/react-auth';
+import { useRouter } from 'next/navigation';
 import {
     CreditCard,
     Wallet,
@@ -16,7 +17,8 @@ import {
     Search,
     Store,
     FolderOpen,
-    Package
+    Package,
+    LogOut
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { useAuthToken } from '@/app/hooks/useAuthToken';
@@ -71,6 +73,15 @@ export function Sidebar() {
     ];
 
     const isActive = (path: string) => pathname === path;
+
+    return (
+    const { logout } = usePrivy();
+    const router = useRouter();
+
+    const handleLogout = async () => {
+        await logout();
+        router.push('/login');
+    };
 
     return (
         <div className={cn(
@@ -199,17 +210,24 @@ export function Sidebar() {
                 </div>
             </div>
 
-            {/* User Profile */}
-            <div className="p-4 border-t border-border mt-auto">
-                <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-900 transition-colors">
+            {/* User Profile & Logout */}
+            <div className="p-4 border-t border-border mt-auto space-y-2">
+                <div className="flex items-center gap-3 p-2 rounded-lg bg-zinc-900/50">
                     <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400">
                         <User className="w-4 h-4" />
                     </div>
-                    <div className="flex-1 text-left">
-                        <div className="text-sm font-medium text-zinc-200">Merchant User</div>
-                        <div className="text-xs text-zinc-500">merchant@binahpay.com</div>
+                    <div className="flex-1 text-left overflow-hidden">
+                        <div className="text-sm font-medium text-zinc-200">Merchant</div>
+                        <div className="text-xs text-zinc-500 truncate">merchant@binahpay.com</div>
                     </div>
-                    <Settings className="w-4 h-4 text-zinc-500" />
+                </div>
+
+                <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-zinc-900 hover:text-red-400 text-zinc-400 transition-colors text-sm"
+                >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
                 </button>
             </div>
         </div>
