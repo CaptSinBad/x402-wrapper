@@ -85,6 +85,8 @@ export function BinahPayCheckout({
     const [email, setEmail] = useState('');
     const [paymentSuccess, setPaymentSuccess] = useState(false);
     const [txHash, setTxHash] = useState('');
+    const [switchingChain, setSwitchingChain] = useState(false);
+    const [chainSwitchError, setChainSwitchError] = useState('');
 
     const { switchChain } = useSwitchChain();
     const chainId = useChainId();
@@ -96,12 +98,24 @@ export function BinahPayCheckout({
 
     // Auto-switch chain when session is loaded
     useEffect(() => {
-        if (session && session.network) {
-            const targetChainId = session.network === 'base-sepolia' ? 84532 : 8453;
-            if (isConnected && chainId !== targetChainId) {
-                switchChain({ chainId: targetChainId });
+        const autoSwitchChain = async () => {
+            if (session && session.network && isConnected) {
+                const targetChainId = session.network === 'base-sepolia' ? 84532 : 8453;
+                if (chainId !== targetChainId) {
+                    try {
+                        setSwitchingChain(true);
+                        setChainSwitchError('');
+                        await switchChain({ chainId: targetChainId });
+                    } catch (err: any) {
+                        console.error('Auto chain switch failed:', err);
+                        setChainSwitchError('Please switch your wallet to ' + session.network);
+                    } finally {
+                        setSwitchingChain(false);
+                    }
+                }
             }
-        }
+        };
+        autoSwitchChain();
     }, [session, isConnected, chainId, switchChain]);
 
     const fetchSession = async () => {
@@ -128,6 +142,13 @@ export function BinahPayCheckout({
 
     const handlePayment = async () => {
         if (!session || !walletClient || !address) return;
+
+        // Check chain before payment
+        const targetChainId = session.network === 'base-sepolia' ? 84532 : 8453;
+        if (chainId !== targetChainId) {
+            setError(`Please switch to ${session.network} network`);
+            return;
+        }
 
         setPaying(true);
         setError('');
