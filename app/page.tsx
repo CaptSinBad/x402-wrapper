@@ -28,7 +28,7 @@ export default function Home() {
 
 					<div className="flex items-center justify-center gap-4">
 						<Link
-							href="/dashboard"
+							href="/signup"
 							className="h-12 px-8 rounded-lg bg-primary hover:bg-primary/90 text-white font-medium flex items-center gap-2 transition-all shadow-[0_0_20px_-5px_rgba(0,82,255,0.5)]"
 						>
 							Start Building <ArrowRight className="w-4 h-4" />
