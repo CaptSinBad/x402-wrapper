@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Plus, Package, Edit, Trash2, Power } from 'lucide-react';
+
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+import { Button } from '@/app/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import { Badge } from '@/app/components/ui/badge';
+import { Skeleton } from '@/app/components/ui/skeleton';
 
 interface Product {
     id: string;
@@ -16,8 +23,6 @@ interface Product {
     total_revenue: string;
     created_at: string;
 }
-
-import { useAuthToken } from '@/app/hooks/useAuthToken';
 
 export default function ProductsPage() {
     const router = useRouter();
@@ -71,215 +76,153 @@ export default function ProductsPage() {
 
     if (loading) {
         return (
-            <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ color: '#4B5563' }}>Loading products...</p>
+            <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                    <Skeleton className="h-8 w-48 bg-zinc-800" />
+                    <Skeleton className="h-10 w-32 bg-zinc-800" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-[300px] rounded-xl bg-zinc-800" />
+                    ))}
+                </div>
             </div>
         );
     }
 
     return (
-        <div style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Products</h1>
-                    <p style={{ color: '#4B5563' }}>
-                        {products.length} {products.length === 1 ? 'product' : 'products'}
+                    <h1 className="text-2xl font-bold text-zinc-100">Products</h1>
+                    <p className="text-zinc-400">
+                        Manage your store's inventory ({products.length})
                     </p>
                 </div>
-                <button
+                <Button
                     onClick={() => router.push('/dashboard/products/create')}
-                    style={{
-                        padding: '12px 24px',
-                        background: '#2B5FA5',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '15px',
-                        fontWeight: '600',
-                        cursor: 'pointer'
-                    }}
+                    className="bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20"
                 >
-                    + Add Product
-                </button>
+                    <Plus className="mr-2 h-4 w-4" /> Add Product
+                </Button>
             </div>
 
             {/* Filter Tabs */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', borderBottom: '1px solid #E2E8F0' }}>
+            <div className="flex gap-2 border-b border-zinc-800 pb-1">
                 {(['all', 'active', 'inactive'] as const).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setFilter(tab)}
-                        style={{
-                            padding: '12px 16px',
-                            background: 'none',
-                            border: 'none',
-                            borderBottom: filter === tab ? '2px solid #2B5FA5' : '2px solid transparent',
-                            color: filter === tab ? '#2B5FA5' : '#4B5563',
-                            fontWeight: filter === tab ? '600' : '400',
-                            cursor: 'pointer',
-                            textTransform: 'capitalize'
-                        }}
+                        className={`
+                            px-4 py-2 text-sm font-medium transition-colors relative
+                            ${filter === tab ? 'text-blue-500' : 'text-zinc-400 hover:text-zinc-200'}
+                        `}
                     >
-                        {tab}
+                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        {filter === tab && (
+                            <div className="absolute bottom-[-5px] left-0 w-full h-0.5 bg-blue-500 rounded-t-full" />
+                        )}
                     </button>
                 ))}
             </div>
 
             {products.length === 0 ? (
-                <div style={{
-                    background: 'white',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '12px',
-                    padding: '48px',
-                    textAlign: 'center'
-                }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
-                    <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
-                        No products yet
-                    </h2>
-                    <p style={{ color: '#4B5563', marginBottom: '24px' }}>
-                        Create your first product to start accepting payments
-                    </p>
-                    <button
-                        onClick={() => router.push('/dashboard/products/create')}
-                        style={{
-                            padding: '12px 24px',
-                            background: '#2B5FA5',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '15px',
-                            fontWeight: '600',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Create Product
-                    </button>
-                </div>
-            ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                    {products.map((product) => (
-                        <div
-                            key={product.id}
-                            style={{
-                                background: 'white',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '12px',
-                                overflow: 'hidden',
-                                transition: 'all 0.2s'
-                            }}
+                <Card className="border-dashed border-zinc-800 bg-zinc-900/20 text-center py-16">
+                    <CardContent className="space-y-6">
+                        <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mx-auto">
+                            <Package className="h-10 w-10 text-zinc-500" />
+                        </div>
+                        <div className="space-y-2">
+                            <CardTitle className="text-2xl text-zinc-100">No products yet</CardTitle>
+                            <CardDescription className="text-lg text-zinc-400">
+                                Create your first product to start accepting payments
+                            </CardDescription>
+                        </div>
+                        <Button
+                            size="lg"
+                            onClick={() => router.push('/dashboard/products/create')}
+                            className="bg-blue-600 hover:bg-blue-500 text-white"
                         >
+                            <Plus className="mr-2 h-4 w-4" /> Create Product
+                        </Button>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {products.map((product) => (
+                        <Card key={product.id} className="bg-zinc-900 border-zinc-800 overflow-hidden hover:border-zinc-700 transition-all group">
                             {product.images.length > 0 && (
-                                <img
-                                    src={product.images[0]}
-                                    alt={product.name}
-                                    style={{
-                                        width: '100%',
-                                        height: '200px',
-                                        objectFit: 'cover'
-                                    }}
-                                />
+                                <div className="h-48 w-full overflow-hidden bg-zinc-950 relative border-b border-zinc-800/50">
+                                    <img
+                                        src={product.images[0]}
+                                        alt={product.name}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent opacity-60" />
+                                </div>
                             )}
-                            <div style={{ padding: '16px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#2D3748' }}>
+
+                            <CardContent className="p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <h3 className="text-lg font-semibold text-zinc-100 line-clamp-1" title={product.name}>
                                         {product.name}
                                     </h3>
-                                    <span
-                                        style={{
-                                            padding: '4px 8px',
-                                            background: product.active ? '#C6F6D5' : '#FED7D7',
-                                            color: product.active ? '#22543D' : '#742A2A',
-                                            borderRadius: '12px',
-                                            fontSize: '12px',
-                                            fontWeight: '600'
-                                        }}
-                                    >
+                                    <Badge variant={product.active ? 'success' : 'destructive'} className="uppercase text-[10px]">
                                         {product.active ? 'Active' : 'Inactive'}
-                                    </span>
+                                    </Badge>
                                 </div>
 
                                 {product.description && (
-                                    <p style={{
-                                        fontSize: '14px',
-                                        color: '#4B5563',
-                                        marginBottom: '12px',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: 'vertical'
-                                    }}>
+                                    <p className="text-sm text-zinc-400 mb-4 line-clamp-2 min-h-[40px]">
                                         {product.description}
                                     </p>
                                 )}
 
-                                <div style={{ marginBottom: '16px' }}>
-                                    <div style={{ fontSize: '24px', fontWeight: '700', color: '#2B5FA5' }}>
-                                        ${product.price} {product.currency}
+                                <div className="mb-6">
+                                    <div className="text-2xl font-bold text-zinc-100 tabular-nums">
+                                        ${product.price} <span className="text-sm font-normal text-zinc-500">{product.currency}</span>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', paddingTop: '16px', borderTop: '1px solid #E2E8F0' }}>
+                                <div className="grid grid-cols-2 gap-4 py-4 border-t border-zinc-800 mb-4">
                                     <div>
-                                        <div style={{ fontSize: '12px', color: '#4B5563' }}>Orders</div>
-                                        <div style={{ fontSize: '16px', fontWeight: '600' }}>{product.order_count}</div>
+                                        <div className="text-xs text-zinc-500 uppercase font-medium mb-1">Orders</div>
+                                        <div className="text-lg font-semibold text-zinc-200 tabular-nums">{product.order_count}</div>
                                     </div>
                                     <div>
-                                        <div style={{ fontSize: '12px', color: '#4B5563' }}>Revenue</div>
-                                        <div style={{ fontSize: '16px', fontWeight: '600' }}>${product.total_revenue}</div>
+                                        <div className="text-xs text-zinc-500 uppercase font-medium mb-1">Revenue</div>
+                                        <div className="text-lg font-semibold text-zinc-200 tabular-nums">${product.total_revenue}</div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 bg-zinc-950 border-zinc-800 hover:bg-zinc-800 text-zinc-300"
                                         onClick={() => router.push(`/dashboard/products/${product.id}`)}
-                                        style={{
-                                            flex: 1,
-                                            padding: '8px',
-                                            background: '#F7FAFC',
-                                            border: '1px solid #E2E8F0',
-                                            borderRadius: '6px',
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            cursor: 'pointer'
-                                        }}
                                     >
-                                        Edit
-                                    </button>
-                                    <button
+                                        <Edit className="h-3 w-3 mr-2" /> Edit
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 bg-zinc-950 border-zinc-800 hover:bg-zinc-800 text-zinc-300"
                                         onClick={() => toggleActive(product.id, product.active)}
-                                        style={{
-                                            flex: 1,
-                                            padding: '8px',
-                                            background: '#F7FAFC',
-                                            border: '1px solid #E2E8F0',
-                                            borderRadius: '6px',
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            cursor: 'pointer'
-                                        }}
                                     >
-                                        {product.active ? 'Deactivate' : 'Activate'}
-                                    </button>
-                                    <button
+                                        <Power className="h-3 w-3 mr-2" /> {product.active ? 'Disable' : 'Enable'}
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-zinc-500 hover:text-red-400 hover:bg-red-400/10"
                                         onClick={() => deleteProduct(product.id)}
-                                        style={{
-                                            padding: '8px',
-                                            background: '#FED7D7',
-                                            border: '1px solid #FC8181',
-                                            borderRadius: '6px',
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            cursor: 'pointer',
-                                            color: '#742A2A'
-                                        }}
                                     >
-                                        Delete
-                                    </button>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
                                 </div>
-                            </div>
-                        </div>
+                            </CardContent>
+                        </Card>
                     ))}
                 </div>
             )}

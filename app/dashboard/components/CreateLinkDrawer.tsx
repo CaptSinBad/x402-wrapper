@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFo
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
+import { useAuthToken } from '@/app/hooks/useAuthToken';
 
 interface CreateLinkDrawerProps {
     isOpen: boolean;
@@ -15,6 +16,7 @@ interface CreateLinkDrawerProps {
 }
 
 export function CreateLinkDrawer({ isOpen, onClose }: CreateLinkDrawerProps) {
+    const { authFetch } = useAuthToken();
     const [step, setStep] = useState<'form' | 'success'>('form');
     const [loading, setLoading] = useState(false);
 
@@ -47,16 +49,31 @@ export function CreateLinkDrawer({ isOpen, onClose }: CreateLinkDrawerProps) {
         setLoading(true);
 
         try {
-            // Mock API call for visual flow demo
-            // In real app: POST /api/payment-links/create
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const data = new FormData();
+            data.append('name', formData.productName);
+            data.append('price', formData.price);
+            data.append('currency', 'USDC');
+            data.append('network', 'base-sepolia');
+            // Mock boolean via form data string for this simple example, 
+            // though the API currently expects specific strings/booleans from FormData
+            // We'll stick to the required fields `name` and `price` primarily.
 
-            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-            const mockLink = `${baseUrl}/link/${Math.random().toString(36).substr(2, 9)}`;
-            setCreatedLink(mockLink);
+            const response = await authFetch('/api/payment-links/create', {
+                method: 'POST',
+                body: data,
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to create payment link');
+            }
+
+            const linkUrl = result.url;
+            setCreatedLink(linkUrl);
 
             // Generate QR
-            const qrData = await QRCode.toDataURL(mockLink, {
+            const qrData = await QRCode.toDataURL(linkUrl, {
                 color: { dark: '#000000', light: '#ffffff' },
                 width: 256,
                 margin: 2
@@ -66,6 +83,7 @@ export function CreateLinkDrawer({ isOpen, onClose }: CreateLinkDrawerProps) {
             setStep('success');
         } catch (error) {
             console.error('Failed to create link', error);
+            // In a real app we'd show a toast error here
         } finally {
             setLoading(false);
         }

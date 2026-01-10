@@ -91,7 +91,7 @@ export default function PaymentLinkPage() {
       const sellerWallet = metadata?.sellerWallet || process.env.NEXT_PUBLIC_SELLER_ADDRESS;
       const priceUSDC = (link.price_cents / 100).toFixed(2);
 
-      // Generate EIP-712 signature (simplified for brevity)
+      // Generate EIP-712 signature
       const now = Math.floor(Date.now() / 1000);
       const validBefore = now + 3600;
       const validAfter = 0;
@@ -176,13 +176,13 @@ export default function PaymentLinkPage() {
   // Loading State
   if (loading) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-gray-50/50 p-6">
-        <Card className="max-w-md w-full border-border">
+      <div className="flex h-dvh items-center justify-center bg-zinc-950 p-6">
+        <Card className="max-w-md w-full bg-zinc-900 border-zinc-800">
           <div className="flex flex-col items-center p-12 text-center space-y-4">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
             <div className="space-y-2 w-full">
-              <Skeleton className="h-4 w-3/4 mx-auto" />
-              <Skeleton className="h-4 w-1/2 mx-auto" />
+              <Skeleton className="h-4 w-3/4 mx-auto bg-zinc-800" />
+              <Skeleton className="h-4 w-1/2 mx-auto bg-zinc-800" />
             </div>
           </div>
         </Card>
@@ -193,14 +193,14 @@ export default function PaymentLinkPage() {
   // Error State
   if (error && !link) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-gray-50/50 p-6">
-        <Card className="max-w-md w-full border-destructive/20">
+      <div className="flex h-dvh items-center justify-center bg-zinc-950 p-6">
+        <Card className="max-w-md w-full bg-zinc-900 border-red-900/50">
           <CardHeader className="text-center">
-            <div className="mx-auto bg-destructive/10 p-3 rounded-full mb-4 w-fit">
-              <AlertCircle className="h-8 w-8 text-destructive" />
+            <div className="mx-auto bg-red-900/20 p-3 rounded-full mb-4 w-fit">
+              <AlertCircle className="h-8 w-8 text-red-500" />
             </div>
-            <CardTitle>Link Not Found</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <CardTitle className="text-zinc-100">Link Not Found</CardTitle>
+            <CardDescription className="text-zinc-400">{error}</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -210,37 +210,45 @@ export default function PaymentLinkPage() {
   // Success State
   if (success) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-gray-50/50 p-6">
-        <Card className="max-w-[500px] w-full border-border shadow-lg">
+      <div className="flex h-dvh items-center justify-center bg-zinc-950 p-6">
+        <Card className="max-w-[500px] w-full bg-zinc-900 border-zinc-800 shadow-2xl">
           <CardHeader className="text-center">
-            <div className="mx-auto bg-green-100 p-3 rounded-full mb-4 w-fit">
-              <CheckCircle className="h-12 w-12 text-green-600" />
+            <div className="mx-auto bg-green-500/10 p-3 rounded-full mb-4 w-fit">
+              <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
-            <CardTitle className="text-2xl text-green-700">Payment Successful!</CardTitle>
-            <CardDescription className="text-lg">
+            <CardTitle className="text-2xl text-zinc-100">Payment Successful!</CardTitle>
+            <CardDescription className="text-lg text-zinc-400">
               Your payment has been confirmed on the blockchain.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {txHash && (
-              <div className="bg-muted p-4 rounded-lg border border-border">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+              <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800">
+                <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-1">
                   Transaction Hash
                 </div>
                 <a
                   href={`https://sepolia.basescan.org/tx/${txHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm font-mono text-primary hover:underline break-all flex items-center gap-2"
+                  className="text-sm font-mono text-blue-400 hover:text-blue-300 hover:underline break-all flex items-center gap-2"
                 >
                   {txHash}
                   <ExternalLink className="h-3 w-3 flex-shrink-0" />
                 </a>
               </div>
             )}
-            <div className="bg-blue-50/50 p-4 rounded-lg text-center">
-              <p className="text-sm text-blue-700 font-medium">Thank you for your purchase! ✨</p>
+            <div className="bg-blue-900/20 p-4 rounded-lg text-center border border-blue-900/30">
+              <p className="text-sm text-blue-200 font-medium">Thank you for your purchase! ✨</p>
             </div>
+
+            <Button
+              variant="outline"
+              className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+              onClick={() => window.location.reload()}
+            >
+              Make Another Payment
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -256,85 +264,99 @@ export default function PaymentLinkPage() {
   const network = link?.network || 'base-sepolia';
 
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-gray-50/50 p-6">
-      <Card className="max-w-[550px] w-full border-border shadow-xl overflow-hidden">
+    <div className="min-h-dvh flex items-center justify-center bg-zinc-950 p-6 selection:bg-blue-500/30">
+      {/* Background Gradient Effect */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-zinc-950 to-zinc-950 pointer-events-none" />
+
+      <Card className="max-w-[500px] w-full bg-zinc-900/80 border-zinc-800 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+        {/* Top Accent Line */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-indigo-600" />
+
         {/* Product Image */}
         {productImage && (
-          <div className="w-full h-64 bg-muted/30 flex items-center justify-center p-6 border-b border-border">
+          <div className="w-full h-64 bg-zinc-950/50 flex items-center justify-center p-6 border-b border-zinc-800/50">
             <img
               src={productImage}
               alt={productName}
-              className="w-full h-full object-contain rounded-lg"
+              className="w-full h-full object-contain rounded-lg shadow-sm"
             />
           </div>
         )}
 
-        <CardHeader className="text-center pb-2">
+        <CardHeader className="text-center pb-4 pt-8">
           {!productImage && (
-            <div className="mx-auto bg-primary/10 p-4 rounded-full mb-4 w-fit">
-              <CreditCard className="h-10 w-10 text-primary" />
+            <div className="mx-auto bg-zinc-800/80 p-4 rounded-2xl mb-6 w-fit ring-1 ring-inset ring-white/5">
+              <CreditCard className="h-8 w-8 text-zinc-100" />
             </div>
           )}
-          <CardTitle className="text-3xl font-bold text-balance leading-tight">{productName}</CardTitle>
+          <CardTitle className="text-3xl font-bold text-white text-balance tracking-tight">{productName}</CardTitle>
           {productDescription && (
-            <CardDescription className="text-balance text-base mt-2">
+            <CardDescription className="text-zinc-400 text-balance text-base mt-3 leading-relaxed">
               {productDescription}
             </CardDescription>
           )}
         </CardHeader>
 
         {/* Price Section */}
-        <div className="px-6 py-8 text-center bg-primary text-primary-foreground mx-6 rounded-xl my-4">
-          <div className="text-sm font-medium opacity-90 mb-1">Total Amount</div>
-          <div className="text-5xl font-bold tracking-tight">${priceUSDC}</div>
-          <div className="text-sm opacity-90 mt-2">
-            ≈ {priceUSDC} {currency} on {network}
+        <div className="px-6 pb-8">
+          <div className="py-6 text-center bg-zinc-950/50 border border-zinc-800 rounded-xl">
+            <div className="text-xs font-medium text-zinc-500 uppercase tracking-widest mb-2">Total Amount</div>
+            <div className="text-5xl font-bold tracking-tighter text-white tabular-nums">${priceUSDC}</div>
+            <div className="flex items-center justify-center gap-2 mt-2 text-sm text-zinc-500">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              {priceUSDC} {currency} on {network}
+            </div>
           </div>
         </div>
 
-        <CardContent className="space-y-6 pt-2">
+        <CardContent className="space-y-6 pt-0">
           {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Payment Error</AlertTitle>
+            <Alert variant="destructive" className="bg-red-900/10 border-red-900/30 text-red-200">
+              <AlertCircle className="h-4 w-4 text-red-400" />
+              <AlertTitle className="text-red-400">Payment Error</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           {!isConnected ? (
             <div className="text-center space-y-4">
-              <p className="text-muted-foreground">Connect your wallet to complete payment</p>
               <Button
                 size="lg"
-                className="w-full max-w-sm"
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold h-12 shadow-[0_0_20px_-5px_rgba(37,99,235,0.4)] transition-all hover:scale-[1.02]"
                 onClick={() => open()}
               >
                 <Wallet className="mr-2 h-5 w-5" />
                 Connect Wallet
               </Button>
+              <p className="text-xs text-zinc-500">Connect your crypto wallet to securely complete this payment</p>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-muted/50 border border-border rounded-lg p-4 flex items-center justify-between">
+              <div className="bg-zinc-950/50 border border-zinc-800 rounded-lg p-4 flex items-center justify-between group hover:border-zinc-700 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="bg-green-100 p-2 rounded-full">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  <div className="bg-green-500/10 p-2 rounded-full ring-1 ring-green-500/20">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
                   </div>
                   <div className="text-sm">
-                    <div className="font-semibold text-foreground">Wallet Connected</div>
-                    <div className="font-mono text-muted-foreground text-xs">
+                    <div className="font-medium text-zinc-200">Wallet Connected</div>
+                    <div className="font-mono text-zinc-500 text-xs">
                       {address?.slice(0, 6)}...{address?.slice(-4)}
                     </div>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => disconnect()}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => disconnect()}
+                  className="text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                >
                   Change
                 </Button>
               </div>
 
               <Button
                 size="lg"
-                className="w-full py-6 text-lg"
+                className="w-full h-14 text-lg bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_30px_-5px_rgba(37,99,235,0.3)] transition-all hover:scale-[1.01]"
                 onClick={handlePayment}
                 disabled={paying}
               >
@@ -348,9 +370,9 @@ export default function PaymentLinkPage() {
                 )}
               </Button>
 
-              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center justify-center gap-2 text-[10px] text-zinc-600 uppercase tracking-widest pt-2">
                 <Lock className="h-3 w-3" />
-                <span>Secured by x402 • Powered by BinahPay</span>
+                <span>Secured by x402</span>
               </div>
             </div>
           )}

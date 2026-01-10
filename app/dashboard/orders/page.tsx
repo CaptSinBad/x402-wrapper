@@ -1,6 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ShoppingBag, Eye, Calendar, User, Package as PackageIcon } from 'lucide-react';
+
+import { Button } from '@/app/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from '@/app/components/ui/table';
+import { Badge } from '@/app/components/ui/badge';
 
 interface Order {
     id: string;
@@ -24,13 +37,11 @@ export default function OrdersPage() {
 
     const fetchOrders = async () => {
         try {
-            // TODO: Create this API endpoint
+            // Placeholder: Connect to real API when ready
             // const response = await fetch('/api/orders/list');
             // const data = await response.json();
             // setOrders(data.orders || []);
-
-            // For now, show empty state
-            setOrders([]);
+            setOrders([]); // Explicitly empty for now to show correct empty state
         } catch (error) {
             console.error('Failed to fetch orders:', error);
         } finally {
@@ -40,109 +51,99 @@ export default function OrdersPage() {
 
     if (loading) {
         return (
-            <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ color: '#4B5563' }}>Loading orders...</p>
+            <div className="space-y-6">
+                <div className="h-8 w-32 bg-zinc-800 rounded animate-pulse" />
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl h-96 animate-pulse" />
             </div>
         );
     }
 
     return (
-        <div style={{ padding: '24px' }}>
-            <div style={{ marginBottom: '24px' }}>
-                <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Orders</h1>
-                <p style={{ color: '#4B5563' }}>
-                    {orders.length} {orders.length === 1 ? 'order' : 'orders'}
+        <div className="space-y-8">
+            <div>
+                <h1 className="text-2xl font-bold text-zinc-100">Orders</h1>
+                <p className="text-zinc-400">
+                    Track and manage customer orders ({orders.length})
                 </p>
             </div>
 
             {orders.length === 0 ? (
-                <div style={{
-                    background: 'white',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '12px',
-                    padding: '48px',
-                    textAlign: 'center'
-                }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
-                    <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
-                        No orders yet
-                    </h2>
-                    <p style={{ color: '#4B5563' }}>
-                        Orders from your store will appear here
-                    </p>
-                </div>
+                <Card className="border-dashed border-zinc-800 bg-zinc-900/20 text-center py-16">
+                    <CardContent className="space-y-6">
+                        <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mx-auto">
+                            <ShoppingBag className="h-10 w-10 text-zinc-500" />
+                        </div>
+                        <div className="space-y-2">
+                            <CardTitle className="text-2xl text-zinc-100">No orders yet</CardTitle>
+                            <CardDescription className="text-lg text-zinc-400">
+                                Orders from your store will appear here once customers make a purchase.
+                            </CardDescription>
+                        </div>
+                    </CardContent>
+                </Card>
             ) : (
-                <div style={{
-                    background: 'white',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '12px',
-                    overflow: 'hidden'
-                }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                            <tr style={{ background: '#F7FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>Order</th>
-                                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>Customer</th>
-                                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>Items</th>
-                                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>Total</th>
-                                <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>Status</th>
-                                <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {orders.map((order) => (
-                                <tr key={order.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
-                                    <td style={{ padding: '16px' }}>
-                                        <div style={{ fontWeight: '500' }}>#{order.session_id.substring(0, 8)}</div>
-                                        <div style={{ fontSize: '13px', color: '#4B5563' }}>
-                                            {new Date(order.created_at).toLocaleDateString()}
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '16px' }}>
-                                        <div style={{ fontSize: '14px' }}>
-                                            {order.customer_email || 'Guest'}
-                                        </div>
-                                        <div style={{ fontSize: '12px', color: '#4B5563', fontFamily: 'monospace' }}>
-                                            {order.customer_wallet ? `${order.customer_wallet.substring(0, 6)}...${order.customer_wallet.substring(38)}` : '—'}
-                                        </div>
-                                    </td>
-                                    <td style={{ padding: '16px' }}>
-                                        {order.line_items.length} {order.line_items.length === 1 ? 'item' : 'items'}
-                                    </td>
-                                    <td style={{ padding: '16px', fontWeight: '600' }}>
-                                        ${(order.total_cents / 100).toFixed(2)} {order.currency}
-                                    </td>
-                                    <td style={{ padding: '16px' }}>
-                                        <span style={{
-                                            padding: '4px 12px',
-                                            borderRadius: '12px',
-                                            fontSize: '12px',
-                                            fontWeight: '600',
-                                            background: order.status === 'shipped' ? '#C6F6D5' : order.status === 'delivered' ? '#B2F5EA' : '#FED7D7',
-                                            color: order.status === 'shipped' ? '#22543D' : order.status === 'delivered' ? '#234E52' : '#742A2A'
-                                        }}>
-                                            {order.status}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                                        <button
-                                            style={{
-                                                padding: '6px 12px',
-                                                background: '#F7FAFC',
-                                                border: '1px solid #E2E8F0',
-                                                borderRadius: '6px',
-                                                fontSize: '13px',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            View
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <Card className="bg-zinc-900 border-zinc-800 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="border-zinc-800 hover:bg-transparent">
+                                    <TableHead className="text-zinc-400">Order</TableHead>
+                                    <TableHead className="text-zinc-400">Customer</TableHead>
+                                    <TableHead className="text-zinc-400">Items</TableHead>
+                                    <TableHead className="text-zinc-400">Total</TableHead>
+                                    <TableHead className="text-zinc-400">Status</TableHead>
+                                    <TableHead className="text-zinc-400 text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {orders.map((order) => (
+                                    <TableRow key={order.id} className="border-zinc-800 hover:bg-zinc-800/50">
+                                        <TableCell>
+                                            <div className="font-medium text-zinc-200">#{order.session_id.substring(0, 8)}</div>
+                                            <div className="flex items-center text-xs text-zinc-500 mt-0.5">
+                                                <Calendar className="w-3 h-3 mr-1" />
+                                                {new Date(order.created_at).toLocaleDateString()}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="text-sm text-zinc-300">
+                                                {order.customer_email || 'Guest'}
+                                            </div>
+                                            <div className="flex items-center text-xs text-zinc-500 font-mono mt-0.5">
+                                                <User className="w-3 h-3 mr-1" />
+                                                {order.customer_wallet ? `${order.customer_wallet.substring(0, 6)}...${order.customer_wallet.substring(38)}` : '—'}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center text-sm text-zinc-300">
+                                                <PackageIcon className="w-4 h-4 mr-2 text-zinc-500" />
+                                                {order.line_items.length} {order.line_items.length === 1 ? 'item' : 'items'}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="font-semibold text-zinc-100">
+                                                ${(order.total_cents / 100).toFixed(2)} <span className="text-xs font-normal text-zinc-500">{order.currency}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={
+                                                order.status === 'shipped' ? 'success' :
+                                                    order.status === 'delivered' ? 'outline' : 'secondary'
+                                            }>
+                                                {order.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="sm" className="text-zinc-400 hover:text-white hover:bg-zinc-800">
+                                                <Eye className="w-4 h-4 mr-2" /> View
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </Card>
             )}
         </div>
     );
