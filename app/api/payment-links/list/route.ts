@@ -34,18 +34,24 @@ export async function GET(req: NextRequest) {
     try {
         const user = await requireAuth(req);
 
-        // First get user's project IDs
+        // Get user's project IDs
         const projectResult = await pgPool.query(
             `SELECT id FROM projects WHERE user_id = $1`,
             [user.id]
         );
 
-        if (projectResult.rows.length === 0) {
-            // No projects = no payment links
-            return NextResponse.json({ links: [] });
-        }
+        // Build all possible seller_id formats for backward compatibility:
+        // - user.id (old format)
+        // - project.id (UUID)
+        // - project-{project.id} (legacy format)
+        const allSellerIds: string[] = [user.id];
 
-        const projectIds = projectResult.rows.map((r: any) => r.id);
+        if (projectResult.rows.length > 0) {
+            projectResult.rows.forEach((p: any) => {
+                allSellerIds.push(p.id);                    // UUID format
+                allSellerIds.push(`project-${p.id}`);       // Legacy format
+            });
+        }
 
         const result = await pgPool.query(
             `SELECT 
@@ -54,10 +60,10 @@ export async function GET(req: NextRequest) {
                 COALESCE(SUM(s.amount_cents), 0) as total_revenue_cents
              FROM payment_links pl
              LEFT JOIN sales s ON s.metadata->>'payment_link_token' = pl.token
-             WHERE pl.seller_id = ANY($1::uuid[])
+             WHERE pl.seller_id = ANY($1)
              GROUP BY pl.id
              ORDER BY pl.created_at DESC`,
-            [projectIds]
+            [allSellerIds]
         );
 
         const links = result.rows.map((row: PaymentLinkRow) => ({
