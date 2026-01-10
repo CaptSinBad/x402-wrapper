@@ -62,216 +62,154 @@ export default function StorePage() {
 
     if (loading) {
         return (
-            <div style={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#F7FAFC'
-            }}>
-                <p style={{ color: '#4B5563', fontSize: '18px' }}>Loading store...</p>
+            <div className="min-h-screen bg-zinc-900 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-zinc-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-zinc-400">Loading store...</p>
+                </div>
             </div>
         );
     }
 
     if (error || !store) {
         return (
-            <div style={{
-                minHeight: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                background: '#F7FAFC',
-                padding: '24px'
-            }}>
-                <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏪</div>
-                <h1 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>
-                    Store Not Found
-                </h1>
-                <p style={{ color: '#4B5563', marginBottom: '24px' }}>
-                    The store you're looking for doesn't exist or has been deactivated.
-                </p>
-                <Link href="/" style={{
-                    padding: '12px 24px',
-                    background: '#2B5FA5',
-                    color: 'white',
-                    borderRadius: '8px',
-                    textDecoration: 'none',
-                    fontWeight: '600'
-                }}>
-                    Go Home
-                </Link>
+            <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-6">
+                <div className="text-center max-w-md">
+                    <div className="text-6xl mb-4">🏪</div>
+                    <h1 className="text-2xl font-bold text-white mb-2">Store Not Found</h1>
+                    <p className="text-zinc-400 mb-6">
+                        The store you're looking for doesn't exist or has been deactivated.
+                    </p>
+                    <Link
+                        href="/"
+                        className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                    >
+                        Go Home
+                    </Link>
+                </div>
             </div>
         );
     }
 
     return (
-        <div style={{ minHeight: '100vh', background: '#F7FAFC' }}>
+        <div className="min-h-screen bg-zinc-900">
             {/* Header */}
-            <header style={{
-                background: 'white',
-                borderBottom: '1px solid #E2E8F0',
-                padding: '16px 24px'
-            }}>
-                <div style={{
-                    maxWidth: '1200px',
-                    margin: '0 auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <header className="bg-zinc-800 border-b border-zinc-700">
+                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
                         {store.logo_url && (
                             <img
                                 src={store.logo_url}
                                 alt={store.store_name}
-                                style={{
-                                    width: '40px',
-                                    height: '40px',
-                                    borderRadius: '8px',
-                                    objectFit: 'cover'
-                                }}
+                                className="w-12 h-12 rounded-lg object-cover ring-2 ring-zinc-700"
                             />
                         )}
-                        <h1 style={{ fontSize: '20px', fontWeight: '700' }}>
+                        <h1 className="text-2xl font-bold text-white">
                             {store.store_name}
                         </h1>
                     </div>
-                    <div style={{ fontSize: '14px', color: '#4B5563' }}>
-                        Powered by <strong style={{ color: store.theme_color }}>BinahPay</strong>
+                    <div className="text-sm text-zinc-400">
+                        Powered by <span style={{ color: store.theme_color }} className="font-semibold">BinahPay</span>
                     </div>
                 </div>
             </header>
 
             {/* Banner */}
             {store.banner_url && (
-                <div style={{
-                    height: '300px',
-                    backgroundImage: `url(${store.banner_url})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center'
-                }} />
+                <div
+                    className="h-80 bg-cover bg-center relative"
+                    style={{ backgroundImage: `url(${store.banner_url})` }}
+                >
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-zinc-900/50"></div>
+                </div>
             )}
 
             {/* Content */}
-            <main style={{
-                maxWidth: '1200px',
-                margin: '0 auto',
-                padding: '48px 24px'
-            }}>
+            <main className="max-w-7xl mx-auto px-6 py-12">
                 {/* Store Description */}
                 {store.description && (
-                    <div style={{
-                        textAlign: 'center',
-                        marginBottom: '48px'
-                    }}>
-                        <p style={{
-                            fontSize: '18px',
-                            color: '#4A5568',
-                            maxWidth: '600px',
-                            margin: '0 auto'
-                        }}>
+                    <div className="text-center mb-16">
+                        <p className="text-xl text-zinc-300 max-w-3xl mx-auto leading-relaxed">
                             {store.description}
                         </p>
                     </div>
                 )}
 
-                {/* Products Grid */}
-                {products.length === 0 ? (
-                    <div style={{
-                        background: 'white',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '12px',
-                        padding: '64px 24px',
-                        textAlign: 'center'
-                    }}>
-                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
-                        <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
-                            No products yet
-                        </h2>
-                        <p style={{ color: '#4B5563' }}>
-                            Check back soon for new products!
-                        </p>
-                    </div>
-                ) : (
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                        gap: '24px'
-                    }}>
-                        {products.map((product) => (
-                            <Link
-                                key={product.id}
-                                href={`/s/${slug}/product/${product.id}`}
-                                style={{
-                                    background: 'white',
-                                    border: '1px solid #E2E8F0',
-                                    borderRadius: '12px',
-                                    overflow: 'hidden',
-                                    transition: 'all 0.2s',
-                                    textDecoration: 'none',
-                                    color: 'inherit',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                {product.images.length > 0 && (
-                                    <img
-                                        src={product.images[0]}
-                                        alt={product.name}
-                                        style={{
-                                            width: '100%',
-                                            height: '220px',
-                                            objectFit: 'cover'
-                                        }}
-                                    />
-                                )}
-                                <div style={{ padding: '16px' }}>
-                                    <h3 style={{
-                                        fontSize: '18px',
-                                        fontWeight: '600',
-                                        marginBottom: '8px',
-                                        color: '#2D3748'
-                                    }}>
-                                        {product.name}
-                                    </h3>
-                                    {product.description && (
-                                        <p style={{
-                                            fontSize: '14px',
-                                            color: '#4B5563',
-                                            marginBottom: '12px',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            display: '-webkit-box',
-                                            WebkitLineClamp: 2,
-                                            WebkitBoxOrient: 'vertical' as any
-                                        }}>
-                                            {product.description}
-                                        </p>
-                                    )}
-                                    <div style={{
-                                        fontSize: '20px',
-                                        fontWeight: '700',
-                                        color: store.theme_color
-                                    }}>
-                                        ${product.price} {product.currency}
+                {/* Products Section */}
+                <div>
+                    <h2 className="text-2xl font-bold text-white mb-8">Products</h2>
+
+                    {products.length === 0 ? (
+                        <div className="bg-zinc-800 border border-zinc-700 rounded-2xl p-16 text-center">
+                            <div className="text-6xl mb-4">📦</div>
+                            <h3 className="text-xl font-semibold text-white mb-2">
+                                No products yet
+                            </h3>
+                            <p className="text-zinc-400">
+                                Check back soon for new products!
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {products.map((product) => (
+                                <Link
+                                    key={product.id}
+                                    href={`/s/${slug}/product/${product.id}`}
+                                    className="group bg-zinc-800 border border-zinc-700 rounded-xl overflow-hidden hover:border-zinc-600 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1"
+                                >
+                                    {/* Product Image */}
+                                    <div className="relative aspect-square bg-zinc-900 overflow-hidden">
+                                        {product.images.length > 0 ? (
+                                            <img
+                                                src={product.images[0]}
+                                                alt={product.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                )}
+
+                                    {/* Product Info */}
+                                    <div className="p-5">
+                                        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-blue-400 transition-colors line-clamp-2">
+                                            {product.name}
+                                        </h3>
+                                        {product.description && (
+                                            <p className="text-sm text-zinc-400 mb-4 line-clamp-2">
+                                                {product.description}
+                                            </p>
+                                        )}
+                                        <div className="flex items-center justify-between">
+                                            <div
+                                                className="text-2xl font-bold"
+                                                style={{ color: store.theme_color }}
+                                            >
+                                                ${product.price}
+                                            </div>
+                                            <div className="text-xs text-zinc-500 uppercase tracking-wide">
+                                                {product.currency}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </main>
 
             {/* Footer */}
-            <footer style={{
-                borderTop: '1px solid #E2E8F0',
-                padding: '24px',
-                textAlign: 'center',
-                color: '#4B5563',
-                fontSize: '14px'
-            }}>
-                <p>Powered by <strong style={{ color: '#2B5FA5' }}>BinahPay</strong> — Accept crypto payments worldwide</p>
+            <footer className="border-t border-zinc-800 mt-20">
+                <div className="max-w-7xl mx-auto px-6 py-8 text-center">
+                    <p className="text-zinc-500 text-sm">
+                        Powered by <span className="text-blue-500 font-semibold">BinahPay</span> — Accept crypto payments worldwide
+                    </p>
+                </div>
             </footer>
         </div>
     );
