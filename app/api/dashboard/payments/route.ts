@@ -14,6 +14,19 @@ export async function GET(req: NextRequest) {
     try {
         const user = await requireAuth(req);
 
+        // First get user's project IDs
+        const projectResult = await pgPool.query(
+            `SELECT id FROM projects WHERE user_id = $1`,
+            [user.id]
+        );
+
+        if (projectResult.rows.length === 0) {
+            // No projects = no payments
+            return NextResponse.json({ payments: [] });
+        }
+
+        const projectIds = projectResult.rows.map((r: any) => r.id);
+
         const result = await pgPool.query(
             `SELECT 
                 id,
@@ -23,10 +36,10 @@ export async function GET(req: NextRequest) {
                 metadata,
                 created_at
              FROM sales
-             WHERE seller_id = $1
+             WHERE seller_id = ANY($1::uuid[])
              ORDER BY created_at DESC
              LIMIT 100`,
-            [user.id]
+            [projectIds]
         );
 
         const payments = result.rows.map((row: any) => ({

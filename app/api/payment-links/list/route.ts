@@ -34,6 +34,19 @@ export async function GET(req: NextRequest) {
     try {
         const user = await requireAuth(req);
 
+        // First get user's project IDs
+        const projectResult = await pgPool.query(
+            `SELECT id FROM projects WHERE user_id = $1`,
+            [user.id]
+        );
+
+        if (projectResult.rows.length === 0) {
+            // No projects = no payment links
+            return NextResponse.json({ links: [] });
+        }
+
+        const projectIds = projectResult.rows.map((r: any) => r.id);
+
         const result = await pgPool.query(
             `SELECT 
                 pl.*,
@@ -41,10 +54,10 @@ export async function GET(req: NextRequest) {
                 COALESCE(SUM(s.amount_cents), 0) as total_revenue_cents
              FROM payment_links pl
              LEFT JOIN sales s ON s.metadata->>'payment_link_token' = pl.token
-             WHERE pl.seller_id = $1
+             WHERE pl.seller_id = ANY($1::uuid[])
              GROUP BY pl.id
              ORDER BY pl.created_at DESC`,
-            [user.id]
+            [projectIds]
         );
 
         const links = result.rows.map((row: PaymentLinkRow) => ({
