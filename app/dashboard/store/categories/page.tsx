@@ -1,7 +1,32 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { Plus, Pencil, Trash2, Folder, Loader2 } from 'lucide-react';
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
+import { Button } from '@/app/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Textarea } from '@/app/components/ui/textarea';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetDescription,
+    SheetFooter
+} from '@/app/components/ui/sheet';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from '@/app/components/ui/table';
+import { Skeleton } from '@/app/components/ui/skeleton';
 
 interface Category {
     id: string;
@@ -13,8 +38,6 @@ interface Category {
     product_count: number;
 }
 
-import { useAuthToken } from '@/app/hooks/useAuthToken';
-
 export default function CategoriesPage() {
     const { authFetch } = useAuthToken();
     const router = useRouter();
@@ -22,7 +45,9 @@ export default function CategoriesPage() {
     const [storeId, setStoreId] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [isSheetOpen, setIsSheetOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -74,9 +99,10 @@ export default function CategoriesPage() {
         }
     };
 
-    const handleCreate = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!storeId) return;
+        setIsSubmitting(true);
 
         try {
             const response = await authFetch(`/api/stores/${storeId}/categories/create`, {
@@ -93,201 +119,164 @@ export default function CategoriesPage() {
             }
 
             setFormData({ name: '', description: '', display_order: 0 });
-            setShowCreateForm(false);
+            setIsSheetOpen(false);
             fetchCategories();
         } catch (error) {
             console.error('Failed to create category:', error);
             alert('Failed to create category');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    if (!storeId) {
+    if (loading) {
         return (
-            <div style={{ padding: '24px' }}>
-                <p style={{ color: '#E53E3E' }}>Error: No store ID provided. Please create a store first.</p>
+            <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                    <Skeleton className="h-8 w-48 bg-zinc-800" />
+                    <Skeleton className="h-10 w-32 bg-zinc-800" />
+                </div>
+                <Skeleton className="h-[400px] w-full rounded-xl bg-zinc-800" />
             </div>
         );
     }
 
-    if (loading) {
-        return (
-            <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ color: '#4B5563' }}>Loading categories...</p>
-            </div>
-        );
+    if (!storeId) {
+        // Should have redirected, but just in case
+        return null;
     }
 
     return (
-        <div style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Categories</h1>
-                    <p style={{ color: '#4B5563' }}>
-                        {categories.length} {categories.length === 1 ? 'category' : 'categories'}
-                    </p>
+                    <h1 className="text-2xl font-bold text-zinc-100">Categories</h1>
+                    <p className="text-zinc-400">Organize your products into categories</p>
                 </div>
-                <button
-                    onClick={() => setShowCreateForm(!showCreateForm)}
-                    style={{
-                        padding: '12px 24px',
-                        background: showCreateForm ? '#E2E8F0' : '#2B5FA5',
-                        color: showCreateForm ? '#2D3748' : 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '15px',
-                        fontWeight: '600',
-                        cursor: 'pointer'
-                    }}
+                <Button
+                    onClick={() => setIsSheetOpen(true)}
+                    className="bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20"
                 >
-                    {showCreateForm ? 'Cancel' : '+ Add Category'}
-                </button>
+                    <Plus className="mr-2 h-4 w-4" /> Add Category
+                </Button>
             </div>
 
-            {/* Create Form */}
-            {showCreateForm && (
-                <div style={{
-                    background: 'white',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '12px',
-                    padding: '24px',
-                    marginBottom: '24px'
-                }}>
-                    <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>New Category</h2>
-                    <form onSubmit={handleCreate}>
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-                                Name *
-                            </label>
-                            <input
-                                type="text"
-                                required
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="e.g., Electronics"
-                                style={{
-                                    width: '100%',
-                                    padding: '12px',
-                                    border: '1px solid #E2E8F0',
-                                    borderRadius: '8px',
-                                    fontSize: '15px'
-                                }}
-                            />
+            {categories.length === 0 ? (
+                <Card className="border-dashed border-zinc-800 bg-zinc-900/20 text-center py-16">
+                    <CardContent className="space-y-6">
+                        <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mx-auto">
+                            <Folder className="w-10 h-10 text-zinc-500" />
                         </div>
-                        <div style={{ marginBottom: '16px' }}>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-                                Description
-                            </label>
-                            <textarea
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                placeholder="Optional description..."
-                                rows={3}
-                                style={{
-                                    width: '100%',
-                                    padding: '12px',
-                                    border: '1px solid #E2E8F0',
-                                    borderRadius: '8px',
-                                    fontSize: '15px',
-                                    resize: 'vertical',
-                                    fontFamily: 'inherit'
-                                }}
-                            />
+                        <div className="space-y-2">
+                            <CardTitle className="text-xl">No categories yet</CardTitle>
+                            <CardDescription className="text-lg">
+                                Create your first category to start organizing your store.
+                            </CardDescription>
                         </div>
-                        <button
-                            type="submit"
-                            style={{
-                                padding: '12px 24px',
-                                background: '#2B5FA5',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontSize: '15px',
-                                fontWeight: '600',
-                                cursor: 'pointer'
-                            }}
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsSheetOpen(true)}
+                            className="text-zinc-300 border-zinc-800 hover:bg-zinc-800 hover:text-white"
                         >
                             Create Category
-                        </button>
-                    </form>
+                        </Button>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
+                    <Table>
+                        <TableHeader className="bg-zinc-900 border-zinc-800">
+                            <TableRow className="border-zinc-800 hover:bg-zinc-900/50">
+                                <TableHead className="text-zinc-400">Name</TableHead>
+                                <TableHead className="text-zinc-400">Description</TableHead>
+                                <TableHead className="text-zinc-400">Slug</TableHead>
+                                <TableHead className="text-right text-zinc-400">Products</TableHead>
+                                <TableHead className="text-right text-zinc-400">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {categories.map((category) => (
+                                <TableRow key={category.id} className="border-zinc-800 hover:bg-zinc-800/50">
+                                    <TableCell className="font-medium text-white">
+                                        {category.name}
+                                    </TableCell>
+                                    <TableCell className="text-zinc-400 max-w-[300px] truncate">
+                                        {category.description || '—'}
+                                    </TableCell>
+                                    <TableCell className="text-zinc-500 font-mono text-xs">
+                                        {category.slug}
+                                    </TableCell>
+                                    <TableCell className="text-right tabular-nums text-zinc-300">
+                                        {category.product_count}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800">
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
             )}
 
-            {/* Categories List */}
-            {categories.length === 0 ? (
-                <div style={{
-                    background: 'white',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '12px',
-                    padding: '64px 24px',
-                    textAlign: 'center'
-                }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
-                    <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
-                        No categories yet
-                    </h2>
-                    <p style={{ color: '#4B5563' }}>
-                        Create categories to organize your products
-                    </p>
-                </div>
-            ) : (
-                <div style={{ display: 'grid', gap: '16px' }}>
-                    {categories.map((category) => (
-                        <div
-                            key={category.id}
-                            style={{
-                                background: 'white',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '12px',
-                                padding: '20px',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center'
-                            }}
-                        >
-                            <div style={{ flex: 1 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                                    <h3 style={{ fontSize: '18px', fontWeight: '600' }}>
-                                        {category.name}
-                                    </h3>
-                                    <span style={{
-                                        padding: '4px 12px',
-                                        background: '#EDF2F7',
-                                        color: '#4A5568',
-                                        borderRadius: '12px',
-                                        fontSize: '13px',
-                                        fontWeight: '600'
-                                    }}>
-                                        {category.product_count} {category.product_count === 1 ? 'product' : 'products'}
-                                    </span>
-                                </div>
-                                {category.description && (
-                                    <p style={{ color: '#4B5563', fontSize: '14px' }}>
-                                        {category.description}
-                                    </p>
-                                )}
-                                <p style={{ color: '#A0AEC0', fontSize: '13px', marginTop: '4px' }}>
-                                    Slug: {category.slug}
-                                </p>
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                <SheetContent className="bg-zinc-950 border-l border-zinc-800 sm:max-w-md">
+                    <SheetHeader className="text-left mb-6">
+                        <SheetTitle className="text-zinc-100">New Category</SheetTitle>
+                        <SheetDescription className="text-zinc-400">
+                            Create a new category to group your products.
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    <form id="create-category-form" onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name" className="text-zinc-300">Name</Label>
+                                <Input
+                                    id="name"
+                                    required
+                                    value={formData.name}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                                    placeholder="e.g. Electronics"
+                                    className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-blue-600"
+                                />
                             </div>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <button
-                                    style={{
-                                        padding: '8px 16px',
-                                        background: '#F7FAFC',
-                                        border: '1px solid #E2E8F0',
-                                        borderRadius: '6px',
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Edit
-                                </button>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="description" className="text-zinc-300">Description</Label>
+                                <Textarea
+                                    id="description"
+                                    value={formData.description}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                    placeholder="Optional description..."
+                                    className="bg-zinc-900 border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus-visible:ring-blue-600 min-h-[100px]"
+                                />
                             </div>
                         </div>
-                    ))}
-                </div>
-            )}
+                    </form>
+
+                    <SheetFooter className="mt-8">
+                        <Button
+                            type="submit"
+                            form="create-category-form"
+                            disabled={isSubmitting || !formData.name}
+                            className="w-full bg-blue-600 hover:bg-blue-500 text-white"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating...
+                                </>
+                            ) : (
+                                'Create Category'
+                            )}
+                        </Button>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

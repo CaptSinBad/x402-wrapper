@@ -17,7 +17,7 @@ export default function Home() {
 						<span className="text-xs font-mono text-zinc-400">v2.0 Now Available</span>
 					</div>
 
-					<h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
+					<h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent text-balance">
 						Payments for the <br />
 						<span className="text-white">Next Generation</span>
 					</h1>

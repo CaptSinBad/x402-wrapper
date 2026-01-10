@@ -2,6 +2,37 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Plus, Copy, Check, Trash2, ExternalLink, MoreVertical, Loader2 } from 'lucide-react';
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+
+import { Button } from '@/app/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from '@/app/components/ui/table';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger
+} from '@/app/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu"
+import { Skeleton } from '@/app/components/ui/skeleton';
 
 interface PaymentLink {
     id: string;
@@ -19,16 +50,14 @@ interface PaymentLink {
     createdAt: string;
 }
 
-import { useAuthToken } from '@/app/hooks/useAuthToken';
-
 export default function PaymentLinksPage() {
     const router = useRouter();
     const { authFetch } = useAuthToken();
     const [links, setLinks] = useState<PaymentLink[]>([]);
     const [loading, setLoading] = useState(true);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
-    const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-    const [deleting, setDeleting] = useState<string | null>(null);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         fetchLinks();
@@ -52,308 +81,197 @@ export default function PaymentLinksPage() {
         setTimeout(() => setCopiedToken(null), 2000);
     };
 
-    const handleDelete = async (id: string) => {
-        setDeleting(id);
+    const handleDelete = async () => {
+        if (!deleteId) return;
+        setDeleting(true);
         try {
-            const response = await authFetch(`/api/payment-links/${id}`, {
+            const response = await authFetch(`/api/payment-links/${deleteId}`, {
                 method: 'DELETE',
             });
 
             if (response.ok) {
-                // Remove from list
-                setLinks(links.filter(link => link.id !== id));
-                setDeleteConfirm(null);
-            } else {
-                alert('Failed to delete payment link');
+                setLinks(links.filter(link => link.id !== deleteId));
+                setDeleteId(null);
             }
         } catch (error) {
             console.error('Failed to delete:', error);
-            alert('Failed to delete payment link');
         } finally {
-            setDeleting(null);
+            setDeleting(false);
         }
     };
 
     if (loading) {
         return (
-            <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ color: '#4B5563' }}>Loading...</p>
+            <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                    <Skeleton className="h-8 w-48 bg-zinc-800" />
+                    <Skeleton className="h-10 w-32 bg-zinc-800" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3].map(i => <Skeleton key={i} className="h-64 rounded-xl bg-zinc-800" />)}
+                </div>
             </div>
         );
     }
 
     if (links.length === 0) {
         return (
-            <div style={{ padding: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                    <div>
-                        <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Payment Links</h1>
-                        <p style={{ color: '#4B5563' }}>
-                            Create and manage payment links for your customers
-                        </p>
-                    </div>
-                    <button
-                        onClick={() => router.push('/dashboard/payment-links/create')}
-                        style={{
-                            padding: '12px 24px',
-                            background: '#2B5FA5',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        + Create Payment Link
-                    </button>
-                </div>
-
-                <div style={{
-                    background: 'white',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '12px',
-                    padding: '48px',
-                    textAlign: 'center'
-                }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔗</div>
-                    <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
-                        No payment links yet
-                    </h2>
-                    <p style={{ color: '#4B5563', marginBottom: '24px' }}>
-                        Create shareable payment links that your customers can use to pay you
-                    </p>
-                    <button
-                        onClick={() => router.push('/dashboard/payment-links/create')}
-                        style={{
-                            padding: '12px 24px',
-                            background: '#2B5FA5',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Create Payment Link
-                    </button>
-                </div>
+            <div className="container max-w-4xl mx-auto py-12">
+                <Card className="border-dashed border-zinc-800 bg-zinc-900/20 text-center py-16">
+                    <CardContent className="space-y-6">
+                        <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center mx-auto">
+                            <span className="text-4xl">🔗</span>
+                        </div>
+                        <div className="space-y-2">
+                            <CardTitle className="text-2xl">No payment links yet</CardTitle>
+                            <CardDescription className="text-lg">
+                                Create shareable payment links to accept crypto payments instantly.
+                            </CardDescription>
+                        </div>
+                        <Button
+                            size="lg"
+                            onClick={() => router.push('/dashboard/payment-links/create')}
+                            className="bg-blue-600 hover:bg-blue-500 text-white"
+                        >
+                            <Plus className="mr-2 h-4 w-4" /> Create Payment Link
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     return (
-        <div style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+        <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Payment Links</h1>
-                    <p style={{ color: '#4B5563' }}>
-                        {links.length} {links.length === 1 ? 'link' : 'links'} created
-                    </p>
+                    <h1 className="text-2xl font-bold text-zinc-100">Payment Links</h1>
+                    <p className="text-zinc-400">Manage your active payment links</p>
                 </div>
-                <button
+                <Button
                     onClick={() => router.push('/dashboard/payment-links/create')}
-                    style={{
-                        padding: '12px 24px',
-                        background: '#2B5FA5',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        cursor: 'pointer'
-                    }}
+                    className="bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20"
                 >
-                    + Create Payment Link
-                </button>
+                    <Plus className="mr-2 h-4 w-4" /> Create Link
+                </Button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '24px' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {links.map((link) => (
-                    <div
-                        key={link.id}
-                        style={{
-                            background: 'white',
-                            border: '1px solid #E2E8F0',
-                            borderRadius: '12px',
-                            overflow: 'hidden',
-                            transition: 'box-shadow 0.2s',
-                            cursor: 'pointer'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.boxShadow = '0 8px 16px rgba(0,0,0,0.1)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.boxShadow = 'none';
-                        }}
-                    >
+                    <Card key={link.id} className="bg-zinc-900 border-zinc-800 overflow-hidden hover:border-zinc-700 transition-all group">
                         {link.imageUrl && (
-                            <img
-                                src={link.imageUrl}
-                                alt={link.name}
-                                style={{
-                                    width: '100%',
-                                    height: '180px',
-                                    objectFit: 'cover'
-                                }}
-                            />
+                            <div className="h-40 w-full overflow-hidden bg-zinc-950 relative">
+                                <img
+                                    src={link.imageUrl}
+                                    alt={link.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 to-transparent opacity-60" />
+                            </div>
                         )}
-                        <div style={{ padding: '20px' }}>
-                            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px', color: '#2D3748' }}>
-                                {link.name}
-                            </h3>
-                            {link.description && (
-                                <p style={{ fontSize: '14px', color: '#4B5563', marginBottom: '16px', lineHeight: '1.5' }}>
-                                    {link.description.length > 80
-                                        ? link.description.substring(0, 80) + '...'
-                                        : link.description
-                                    }
-                                </p>
-                            )}
-
-                            <div style={{ fontSize: '24px', fontWeight: '700', color: link.brandColor, marginBottom: '16px' }}>
-                                {link.price.toFixed(2)} {link.currency}
+                        <CardHeader className="relative space-y-1">
+                            <div className="flex justify-between items-start">
+                                <CardTitle className="text-lg line-clamp-1" title={link.name}>
+                                    {link.name}
+                                </CardTitle>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-2 text-zinc-400 hover:text-white">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="bg-zinc-950 border-zinc-800 text-zinc-300">
+                                        <DropdownMenuItem onClick={() => router.push(`/link/${link.token}`)}>
+                                            <ExternalLink className="mr-2 h-4 w-4" /> View Page
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => copyLink(link.url, link.token)}>
+                                            <Copy className="mr-2 h-4 w-4" /> Copy URL
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator className="bg-zinc-800" />
+                                        <DropdownMenuItem
+                                            className="text-red-500 focus:text-red-500 focus:bg-red-500/10"
+                                            onClick={() => setDeleteId(link.id)}
+                                        >
+                                            <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
-
-                            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', fontSize: '14px' }}>
+                            <div className="text-2xl font-bold font-mono text-zinc-100">
+                                ${(link.price || 0).toFixed(2)} <span className="text-sm font-normal text-zinc-500">{link.currency}</span>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 gap-4 py-4 border-t border-zinc-800 mb-4">
                                 <div>
-                                    <div style={{ color: '#A0AEC0', fontSize: '12px', marginBottom: '4px' }}>Payments</div>
-                                    <div style={{ fontWeight: '600', color: '#2D3748' }}>{link.paymentCount}</div>
+                                    <p className="text-xs text-zinc-500 uppercase font-medium">Revenue</p>
+                                    <p className="text-lg font-semibold text-zinc-200 tabular-nums">
+                                        ${(link.totalRevenue || 0).toFixed(2)}
+                                    </p>
                                 </div>
                                 <div>
-                                    <div style={{ color: '#A0AEC0', fontSize: '12px', marginBottom: '4px' }}>Revenue</div>
-                                    <div style={{ fontWeight: '600', color: '#2D3748' }}>
-                                        {link.totalRevenue.toFixed(2)} {link.currency}
-                                    </div>
+                                    <p className="text-xs text-zinc-500 uppercase font-medium">Sales</p>
+                                    <p className="text-lg font-semibold text-zinc-200 tabular-nums">
+                                        {link.paymentCount || 0}
+                                    </p>
                                 </div>
                             </div>
 
-                            <button
-                                onClick={() => copyLink(link.url, link.token)}
-                                style={{
-                                    width: '100%',
-                                    padding: '10px',
-                                    background: copiedToken === link.token ? '#48BB78' : '#EDF2F7',
-                                    color: copiedToken === link.token ? 'white' : '#2D3748',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '14px',
-                                    fontWeight: '500',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    marginBottom: '8px'
-                                }}
-                            >
-                                {copiedToken === link.token ? '✓ Copied!' : '🔗 Copy Link'}
-                            </button>
-
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <button
-                                    onClick={() => router.push(`/link/${link.token}`)}
-                                    style={{
-                                        flex: 1,
-                                        padding: '8px',
-                                        background: 'white',
-                                        color: '#2B5FA5',
-                                        border: '1px solid #2B5FA5',
-                                        borderRadius: '6px',
-                                        fontSize: '13px',
-                                        fontWeight: '500',
-                                        cursor: 'pointer'
-                                    }}
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 bg-zinc-950 border-zinc-800 hover:bg-zinc-800 text-zinc-300"
+                                    onClick={() => copyLink(link.url, link.token)}
                                 >
-                                    View
-                                </button>
-                                <button
-                                    onClick={() => setDeleteConfirm(link.id)}
-                                    disabled={deleting === link.id}
-                                    style={{
-                                        flex: 1,
-                                        padding: '8px',
-                                        background: deleting === link.id ? '#CBD5E0' : 'white',
-                                        color: '#E53E3E',
-                                        border: '1px solid #E53E3E',
-                                        borderRadius: '6px',
-                                        fontSize: '13px',
-                                        fontWeight: '500',
-                                        cursor: deleting === link.id ? 'not-allowed' : 'pointer'
-                                    }}
-                                >
-                                    {deleting === link.id ? 'Deleting...' : 'Delete'}
-                                </button>
+                                    {copiedToken === link.token ? (
+                                        <>
+                                            <Check className="mr-2 h-3 w-3 text-green-500" /> Copied
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Copy className="mr-2 h-3 w-3" /> Copy Link
+                                        </>
+                                    )}
+                                </Button>
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
                 ))}
             </div>
 
-            {/* Delete Confirmation Modal */}
-            {deleteConfirm && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 1000
-                }}>
-                    <div style={{
-                        background: 'white',
-                        borderRadius: '12px',
-                        padding: '32px',
-                        maxWidth: '400px',
-                        width: '90%'
-                    }}>
-                        <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '12px' }}>
-                            Delete Payment Link?
-                        </h2>
-                        <p style={{ color: '#4B5563', marginBottom: '24px', lineHeight: '1.6' }}>
-                            This action cannot be undone. The payment link will be permanently deleted.
-                        </p>
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            <button
-                                onClick={() => setDeleteConfirm(null)}
-                                style={{
-                                    flex: 1,
-                                    padding: '12px',
-                                    background: '#EDF2F7',
-                                    color: '#2D3748',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    fontSize: '14px',
-                                    fontWeight: '500',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={() => handleDelete(deleteConfirm)}
-                                disabled={deleting === deleteConfirm}
-                                style={{
-                                    flex: 1,
-                                    padding: '12px',
-                                    background: '#E53E3E',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    fontSize: '14px',
-                                    fontWeight: '500',
-                                    cursor: deleting === deleteConfirm ? 'not-allowed' : 'pointer',
-                                    opacity: deleting === deleteConfirm ? 0.6 : 1
-                                }}
-                            >
-                                {deleting === deleteConfirm ? 'Deleting...' : 'Delete'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <Dialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+                <DialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100 sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Delete Payment Link?</DialogTitle>
+                        <DialogDescription className="text-zinc-400">
+                            This action cannot be undone. The link will no longer be accessible to your customers.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="flex gap-2 sm:justify-end">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setDeleteId(null)}
+                            className="bg-zinc-900 text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={handleDelete}
+                            disabled={deleting}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                            {deleting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...
+                                </>
+                            ) : (
+                                'Delete Link'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -2,14 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Calendar, DollarSign, Users, Clock, AlertCircle } from 'lucide-react';
-import { DashboardSkeleton } from './components/DashboardSkeleton';
-import { EmptyState } from './components/EmptyState';
+import { Calendar, DollarSign, Users, Clock, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CreateLinkDrawer } from './components/CreateLinkDrawer';
 import { StatusBadge } from './components/StatusBadge';
-
+import { EmptyState } from './components/EmptyState';
 import { useAuthToken } from '@/app/hooks/useAuthToken';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
+import { Skeleton } from '@/app/components/ui/skeleton';
 
 export default function DashboardPage() {
   const { authFetch } = useAuthToken();
@@ -25,7 +28,6 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Parallel fetching
         const [statsRes, paymentsRes] = await Promise.all([
           authFetch('/api/dashboard/stats'),
           authFetch('/api/dashboard/recent-payments')
@@ -44,7 +46,6 @@ export default function DashboardPage() {
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
-        // Minimum loading time for smooth UX
         setTimeout(() => setLoading(false), 800);
       }
     };
@@ -57,17 +58,16 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Drawer */}
+    <div className="space-y-8 p-1">
       <CreateLinkDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
       />
 
-      {/* 1. Greeting Area */}
+      {/* 1. Header Area */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-medium tracking-tight text-white">Overview</h2>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-zinc-900 border border-zinc-800 text-sm text-zinc-400 cursor-not-allowed hover:bg-zinc-800 transition-colors">
+        <h2 className="text-2xl font-bold tracking-tight text-white text-balance">Overview</h2>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-zinc-900 border border-zinc-800 text-sm text-zinc-400">
           <Calendar className="w-4 h-4" />
           <span>Last 7 Days</span>
         </div>
@@ -75,68 +75,88 @@ export default function DashboardPage() {
 
       {/* 2. Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <MetricCard
-          title="Gross Volume"
-          value={stats.grossVolume}
-          formattedValue={`$${stats.grossVolume.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon={DollarSign}
-        />
-        <MetricCard
-          title="Pending Settlements"
-          value={stats.pendingSettlements}
-          formattedValue={`$${stats.pendingSettlements.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon={Clock}
-        />
-        <MetricCard
-          title="Active Subscribers"
-          value={stats.activeSubscribers}
-          formattedValue={stats.activeSubscribers.toString()}
-          icon={Users}
-        />
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-zinc-400">Gross Volume</CardTitle>
+            <DollarSign className="h-4 w-4 text-zinc-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white tabular-nums">
+              ${stats.grossVolume.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-zinc-400">Pending Settlements</CardTitle>
+            <Clock className="h-4 w-4 text-zinc-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white tabular-nums">
+              ${stats.pendingSettlements.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-zinc-900 border-zinc-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-zinc-400">Active Subscribers</CardTitle>
+            <Users className="h-4 w-4 text-zinc-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-white tabular-nums">
+              {stats.activeSubscribers}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* 3. Recent Activity Table */}
       <div className="space-y-4">
         <div className="flex items-center justify-between px-1">
           <h3 className="text-lg font-medium text-white">Recent Payments</h3>
+          {recentPayments.length > 0 && (
+            <Button variant="link" asChild className="text-blue-500 decoration-blue-500/30 hover:decoration-blue-500">
+              <Link href="/dashboard/payments">View All <ArrowUpRight className="ml-1 w-4 h-4" /></Link>
+            </Button>
+          )}
         </div>
 
         {recentPayments.length === 0 ? (
           <EmptyState onAction={() => setIsDrawerOpen(true)} />
         ) : (
-          <div className="rounded-xl border border-border bg-surface overflow-hidden">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-zinc-500 uppercase bg-zinc-900/50 border-b border-border">
-                <tr>
-                  <th className="px-6 py-3 font-medium tracking-wider">Status</th>
-                  <th className="px-6 py-3 font-medium tracking-wider">Amount</th>
-                  <th className="px-6 py-3 font-medium tracking-wider">Customer</th>
-                  <th className="px-6 py-3 font-medium tracking-wider">Date</th>
-                  <th className="px-6 py-3 font-medium tracking-wider text-right">ID</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-zinc-900 border-zinc-800">
+                <TableRow className="border-zinc-800 hover:bg-zinc-900/50">
+                  <TableHead className="text-zinc-400">Status</TableHead>
+                  <TableHead className="text-zinc-400">Amount</TableHead>
+                  <TableHead className="text-zinc-400">Customer</TableHead>
+                  <TableHead className="text-zinc-400">Date</TableHead>
+                  <TableHead className="text-right text-zinc-400">ID</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {recentPayments.map((payment) => (
-                  <tr key={payment.id} className="group hover:bg-zinc-800/30 transition-colors">
-                    <td className="px-6 py-4">
+                  <TableRow key={payment.id} className="border-zinc-800 hover:bg-zinc-800/50">
+                    <TableCell>
                       <StatusBadge status={payment.status} />
-                    </td>
-                    <td className="px-6 py-4 font-medium text-white tabular-nums">
+                    </TableCell>
+                    <TableCell className="font-medium text-white tabular-nums">
                       {payment.amount}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-400">
+                    </TableCell>
+                    <TableCell className="text-zinc-400">
                       {payment.customer || '—'}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-500 tabular-nums">
+                    </TableCell>
+                    <TableCell className="text-zinc-500 tabular-nums text-sm">
                       {payment.date}
-                    </td>
-                    <td className="px-6 py-4 text-right font-mono text-xs text-zinc-600 group-hover:text-zinc-400 transition-colors">
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs text-zinc-600">
                       {payment.id.slice(0, 8)}...
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>
@@ -144,18 +164,19 @@ export default function DashboardPage() {
   );
 }
 
-function MetricCard({ title, value, formattedValue, icon: Icon }: any) {
+function DashboardSkeleton() {
   return (
-    <div className="group relative p-6 bg-[#111111] border border-zinc-800 rounded-xl hover:border-zinc-700 transition-all duration-200">
-      {/* Micro-interaction: glow effect on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl pointer-events-none" />
-
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-medium text-zinc-500">{title}</span>
-        <Icon className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors" />
+    <div className="space-y-8 p-1">
+      <div className="flex justify-between items-center">
+        <Skeleton className="h-8 w-32 bg-zinc-800" />
+        <Skeleton className="h-8 w-32 bg-zinc-800" />
       </div>
-      <div className="text-2xl font-semibold text-white tracking-tight tabular-nums">
-        {formattedValue}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-xl bg-zinc-800" />)}
+      </div>
+      <div className="space-y-4">
+        <Skeleton className="h-6 w-48 bg-zinc-800" />
+        <Skeleton className="h-64 w-full rounded-xl bg-zinc-800" />
       </div>
     </div>
   );

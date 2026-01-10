@@ -3,6 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { Minus, Plus, Trash2, ArrowLeft, Loader2, ShoppingCart } from 'lucide-react';
+
+import { Button } from '@/app/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import { Skeleton } from '@/app/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/app/components/ui/alert';
 
 interface CartItem {
     productId: string;
@@ -25,12 +31,15 @@ export default function CartPage() {
 
     const [cart, setCart] = useState<Cart>({ storeSlug: slug, items: [] });
     const [loading, setLoading] = useState(false);
+    const [pageLoaded, setPageLoaded] = useState(false);
 
     useEffect(() => {
         loadCart();
+        setPageLoaded(true);
     }, []);
 
     const loadCart = () => {
+        if (typeof window === 'undefined') return;
         const cartData = localStorage.getItem('cart');
         if (cartData) {
             const parsedCart = JSON.parse(cartData);
@@ -117,258 +126,169 @@ export default function CartPage() {
     const platformFee = calculatePlatformFee(subtotal);
     const total = subtotal + platformFee;
 
+    if (!pageLoaded) {
+        return (
+            <div className="min-h-dvh bg-zinc-50 dark:bg-zinc-950 p-6">
+                <div className="max-w-4xl mx-auto space-y-8">
+                    <Skeleton className="h-12 w-48" />
+                    <div className="grid md:grid-cols-3 gap-8">
+                        <div className="md:col-span-2 space-y-4">
+                            {[1, 2].map(i => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+                        </div>
+                        <Skeleton className="h-64 w-full rounded-xl" />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div style={{ minHeight: '100vh', background: '#F7FAFC' }}>
+        <div className="min-h-dvh bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
             {/* Header */}
-            <header style={{
-                background: 'white',
-                borderBottom: '1px solid #E2E8F0',
-                padding: '16px 24px'
-            }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-                    <Link
-                        href={`/s/${slug}`}
-                        style={{
-                            color: '#2B5FA5',
-                            textDecoration: 'none',
-                            fontSize: '14px',
-                            fontWeight: '600'
-                        }}
-                    >
-                        ← Continue Shopping
-                    </Link>
+            <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-10">
+                <div className="max-w-7xl mx-auto px-6 py-4">
+                    <Button asChild variant="ghost" size="sm" className="-ml-3 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+                        <Link href={`/s/${slug}`}>
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Continue Shopping
+                        </Link>
+                    </Button>
                 </div>
             </header>
 
-            {/* Cart Content */}
-            <main style={{
-                maxWidth: '1200px',
-                margin: '0 auto',
-                padding: '48px 24px'
-            }}>
-                <h1 style={{
-                    fontSize: '32px',
-                    fontWeight: '700',
-                    marginBottom: '32px',
-                    color: '#2D3748'
-                }}>
+            {/* Main Content */}
+            <main className="max-w-7xl mx-auto px-6 py-12">
+                <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
+                    <ShoppingCart className="w-8 h-8" />
                     Shopping Cart
                 </h1>
 
                 {cart.items.length === 0 ? (
-                    <div style={{
-                        background: 'white',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '12px',
-                        padding: '64px 24px',
-                        textAlign: 'center'
-                    }}>
-                        <div style={{ fontSize: '64px', marginBottom: '16px' }}>🛒</div>
-                        <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
-                            Your cart is empty
-                        </h2>
-                        <p style={{ color: '#4B5563', marginBottom: '24px' }}>
-                            Add some products to get started!
-                        </p>
-                        <Link
-                            href={`/s/${slug}`}
-                            style={{
-                                display: 'inline-block',
-                                padding: '12px 24px',
-                                background: '#2B5FA5',
-                                color: 'white',
-                                borderRadius: '8px',
-                                textDecoration: 'none',
-                                fontWeight: '600'
-                            }}
-                        >
-                            Browse Products
-                        </Link>
-                    </div>
+                    <Card className="text-center py-20 bg-white dark:bg-zinc-900 border-dashed">
+                        <CardContent className="space-y-6">
+                            <div className="text-6xl mx-auto w-fit bg-zinc-100 dark:bg-zinc-800 p-6 rounded-full">🛒</div>
+                            <div className="space-y-2">
+                                <h2 className="text-2xl font-semibold">Your cart is empty</h2>
+                                <p className="text-zinc-500 max-w-sm mx-auto">
+                                    Looks like you haven't added anything to your cart yet.
+                                </p>
+                            </div>
+                            <Button asChild size="lg">
+                                <Link href={`/s/${slug}`}>Browse Products</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
                 ) : (
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: '2fr 1fr',
-                        gap: '24px'
-                    }}>
-                        {/* Cart Items */}
-                        <div>
+                    <div className="grid md:grid-cols-3 gap-8 items-start">
+                        {/* Cart Items List */}
+                        <div className="md:col-span-2 space-y-4">
                             {cart.items.map((item) => (
-                                <div
-                                    key={item.productId}
-                                    style={{
-                                        background: 'white',
-                                        border: '1px solid #E2E8F0',
-                                        borderRadius: '12px',
-                                        padding: '20px',
-                                        marginBottom: '16px',
-                                        display: 'flex',
-                                        gap: '20px'
-                                    }}
-                                >
-                                    {item.image ? (
-                                        <img
-                                            src={item.image}
-                                            alt={item.name}
-                                            style={{
-                                                width: '100px',
-                                                height: '100px',
-                                                objectFit: 'cover',
-                                                borderRadius: '8px'
-                                            }}
-                                        />
-                                    ) : (
-                                        <div style={{
-                                            width: '100px',
-                                            height: '100px',
-                                            background: '#E2E8F0',
-                                            borderRadius: '8px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            fontSize: '32px'
-                                        }}>
-                                            📦
-                                        </div>
-                                    )}
+                                <Card key={item.productId} className="flex flex-col sm:flex-row p-4 gap-4 items-center bg-white dark:bg-zinc-900">
+                                    <div className="w-24 h-24 bg-zinc-100 dark:bg-zinc-800 rounded-md overflow-hidden flex-shrink-0">
+                                        {item.image ? (
+                                            <img
+                                                src={item.image}
+                                                alt={item.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-2xl">📦</div>
+                                        )}
+                                    </div>
 
-                                    <div style={{ flex: 1 }}>
-                                        <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
-                                            {item.name}
-                                        </h3>
-                                        <p style={{ fontSize: '16px', color: '#2B5FA5', fontWeight: '600' }}>
+                                    <div className="flex-1 text-center sm:text-left space-y-1">
+                                        <h3 className="font-semibold text-lg">{item.name}</h3>
+                                        <p className="text-blue-600 dark:text-blue-400 font-mono font-medium">
                                             ${(item.price_cents / 100).toFixed(2)} {item.currency}
                                         </p>
                                     </div>
 
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'flex-end' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <button
+                                    <div className="flex flex-col gap-3 items-center sm:items-end w-full sm:w-auto">
+                                        <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg p-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
                                                 onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                                                style={{
-                                                    width: '32px',
-                                                    height: '32px',
-                                                    background: '#F7FAFC',
-                                                    border: '1px solid #E2E8F0',
-                                                    borderRadius: '6px',
-                                                    cursor: 'pointer',
-                                                    fontSize: '16px'
-                                                }}
+                                                disabled={item.quantity <= 1}
                                             >
-                                                −
-                                            </button>
-                                            <span style={{ width: '40px', textAlign: 'center', fontWeight: '600' }}>
-                                                {item.quantity}
-                                            </span>
-                                            <button
+                                                <Minus className="h-3 w-3" />
+                                            </Button>
+                                            <span className="w-8 text-center font-mono font-medium">{item.quantity}</span>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
                                                 onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                                                style={{
-                                                    width: '32px',
-                                                    height: '32px',
-                                                    background: '#F7FAFC',
-                                                    border: '1px solid #E2E8F0',
-                                                    borderRadius: '6px',
-                                                    cursor: 'pointer',
-                                                    fontSize: '16px'
-                                                }}
                                             >
-                                                +
-                                            </button>
+                                                <Plus className="h-3 w-3" />
+                                            </Button>
                                         </div>
 
-                                        <button
-                                            onClick={() => removeItem(item.productId)}
-                                            style={{
-                                                padding: '6px 12px',
-                                                background: '#FED7D7',
-                                                border: '1px solid #FC8181',
-                                                borderRadius: '6px',
-                                                color: '#742A2A',
-                                                fontSize: '13px',
-                                                fontWeight: '600',
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Remove
-                                        </button>
-
-                                        <div style={{ fontSize: '18px', fontWeight: '700', color: '#2D3748' }}>
-                                            ${((item.price_cents * item.quantity) / 100).toFixed(2)}
+                                        <div className="flex items-center gap-4">
+                                            <div className="font-bold text-lg">
+                                                ${((item.price_cents * item.quantity) / 100).toFixed(2)}
+                                            </div>
+                                            <Button
+                                                variant="destructive"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => removeItem(item.productId)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
                                         </div>
                                     </div>
-                                </div>
+                                </Card>
                             ))}
                         </div>
 
                         {/* Order Summary */}
-                        <div>
-                            <div style={{
-                                background: 'white',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '12px',
-                                padding: '24px',
-                                position: 'sticky',
-                                top: '24px'
-                            }}>
-                                <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px' }}>
-                                    Order Summary
-                                </h2>
-
-                                <div style={{ marginBottom: '16px' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                        <span style={{ color: '#4B5563' }}>Subtotal</span>
-                                        <span style={{ fontWeight: '600' }}>
+                        <div className="sticky top-24">
+                            <Card className="bg-white dark:bg-zinc-900 shadow-lg border-zinc-200 dark:border-zinc-800">
+                                <CardHeader>
+                                    <CardTitle>Order Summary</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
+                                        <span>Subtotal</span>
+                                        <span className="font-mono text-zinc-900 dark:text-zinc-100 font-medium">
                                             ${(subtotal / 100).toFixed(2)} USDC
                                         </span>
                                     </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                                        <span style={{ color: '#4B5563' }}>Service Fee (1%)</span>
-                                        <span style={{ fontWeight: '600' }}>
+                                    <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
+                                        <span>Service Fee (1%)</span>
+                                        <span className="font-mono text-zinc-900 dark:text-zinc-100 font-medium">
                                             ${(platformFee / 100).toFixed(2)} USDC
                                         </span>
                                     </div>
-                                    <div style={{
-                                        borderTop: '1px solid #E2E8F0',
-                                        paddingTop: '12px',
-                                        marginTop: '12px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between'
-                                    }}>
-                                        <span style={{ fontSize: '18px', fontWeight: '700' }}>Total</span>
-                                        <span style={{ fontSize: '18px', fontWeight: '700', color: '#2B5FA5' }}>
+                                    <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-between items-end">
+                                        <span className="font-bold text-lg">Total</span>
+                                        <span className="font-bold text-xl text-blue-600 dark:text-blue-400 font-mono">
                                             ${(total / 100).toFixed(2)} USDC
                                         </span>
                                     </div>
-                                </div>
-
-                                <button
-                                    onClick={handleCheckout}
-                                    disabled={loading}
-                                    style={{
-                                        width: '100%',
-                                        padding: '16px',
-                                        background: loading ? '#CBD5E0' : '#2B5FA5',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        fontSize: '16px',
-                                        fontWeight: '600',
-                                        cursor: loading ? 'not-allowed' : 'pointer',
-                                        marginTop: '16px'
-                                    }}
-                                >
-                                    {loading ? 'Processing...' : 'Proceed to Checkout'}
-                                </button>
-
-                                <p style={{
-                                    fontSize: '12px',
-                                    color: '#4B5563',
-                                    textAlign: 'center',
-                                    marginTop: '12px'
-                                }}>
-                                    Powered by BinahPay — Secure crypto payments
-                                </p>
-                            </div>
+                                </CardContent>
+                                <CardFooter className="flex-col gap-4">
+                                    <Button
+                                        className="w-full py-6 text-lg"
+                                        onClick={handleCheckout}
+                                        disabled={loading}
+                                    >
+                                        {loading ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            'Proceed to Checkout'
+                                        )}
+                                    </Button>
+                                    <p className="text-xs text-center text-zinc-500">
+                                        Powered by BinahPay — Secure crypto payments
+                                    </p>
+                                </CardFooter>
+                            </Card>
                         </div>
                     </div>
                 )}
