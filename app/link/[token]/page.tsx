@@ -284,16 +284,27 @@ export default function PaymentLinkPage() {
 
         {/* Product Image */}
         {productImage && (
-          <img
-            src={productImage}
-            alt={productName}
-            style={{
-              width: '100%',
-              height: 'auto',
-              maxHeight: '300px',
-              objectFit: 'cover'
-            }}
-          />
+          <div style={{
+            width: '100%',
+            maxHeight: '300px',
+            backgroundColor: '#f7fafc',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            borderBottom: '1px solid #E2E8F0'
+          }}>
+            <img
+              src={productImage}
+              alt={productName}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '250px',
+                objectFit: 'contain',  // Prevent stretching
+                borderRadius: '8px'
+              }}
+            />
+          </div>
         )}
 
         {/* Header */}
