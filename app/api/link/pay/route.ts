@@ -1,4 +1,4 @@
-```typescript
+
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
 import { settleCDPPayment } from '../../../../lib/cdp-facilitator';
