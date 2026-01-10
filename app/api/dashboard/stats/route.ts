@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
        FROM sales
        WHERE seller_id = ANY($1)
        AND (metadata->>'status' = 'completed' OR metadata->>'status' IS NULL)`,
-            [sellerIds]
+            [projectIds]
         );
 
         const totalRevenueCents = parseInt(revenueResult.rows[0].total_revenue);
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         // Active endpoints for this merchant
         const endpointsResult = await pgPool.query(
             `SELECT COUNT(*) as count FROM seller_endpoints WHERE seller_id = ANY($1)`,
-            [sellerIds]
+            [projectIds]
         );
         const activeEndpoints = parseInt(endpointsResult.rows[0].count);
 
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
        FROM sales
        WHERE seller_id = ANY($1)
        AND created_at >= date_trunc('month', CURRENT_DATE)`,
-            [sellerIds]
+            [projectIds]
         );
         const totalPayments = parseInt(paymentsResult.rows[0].count);
 
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
        WHERE seller_id = ANY($1)
        ORDER BY created_at DESC
        LIMIT 5`,
-            [sellerIds]
+            [projectIds]
         );
 
         const recentSales = recentSalesResult.rows.map((sale: any) => ({

@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
             RETURNING *`,
             [
                 token,
-                `project-${project.id}`,  // Match the format expected by stats query
+                project.id,  // Store project ID directly as UUID
                 priceCents,
                 currency,
                 network,
