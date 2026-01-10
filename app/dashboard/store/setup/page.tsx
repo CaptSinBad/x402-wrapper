@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthToken } from '@/app/hooks/useAuthToken';
 
 interface Store {
     id: string;
@@ -16,6 +17,7 @@ interface Store {
 
 export default function StoreSetupPage() {
     const router = useRouter();
+    const { authFetch } = useAuthToken();
     const [loading, setLoading] = useState(false);
     const [existingStore, setExistingStore] = useState<Store | null>(null);
     const [formData, setFormData] = useState({
@@ -36,7 +38,7 @@ export default function StoreSetupPage() {
             const url = isEditing ? `/api/stores/${existingStore!.id}` : '/api/stores/create';
             const method = isEditing ? 'PATCH' : 'POST';
 
-            const response = await fetch(url, {
+            const response = await authFetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
