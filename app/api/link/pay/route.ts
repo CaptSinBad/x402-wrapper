@@ -92,7 +92,29 @@ export async function POST(req: NextRequest) {
             ]
         );
 
-        // TODO: Trigger webhook event for merchant
+        // Get user_id for webhook notification
+        const projectResult = await pgPool.query(
+            `SELECT user_id FROM projects WHERE id = $1`,
+            [link.seller_id]
+        );
+
+        // Trigger webhook event for merchant
+        if (projectResult.rows.length > 0) {
+            const { sendWebhook } = await import('../../../lib/webhooks');
+            await sendWebhook({
+                project_id: link.seller_id,
+                event_type: 'payment.succeeded',
+                data: {
+                    amount_cents: amountCents,
+                    currency: 'USDC',
+                    transaction_hash: settlementResult.transaction,
+                    network: settlementResult.network,
+                    payer: settlementResult.payer,
+                    payment_link_token: token,
+                    product_name: metadata?.productName,
+                }
+            });
+        }
 
         return NextResponse.json({
             success: true,

@@ -200,7 +200,9 @@ export default function PaymentLinkPage() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.errorReason || result.error || 'Payment failed');
+        const errorMessage = result.message || result.errorReason || result.error || 'Payment failed';
+        const isRetryable = result.retryable !== false; // Default to retryable
+        throw new Error(JSON.stringify({ message: errorMessage, retryable: isRetryable }));
       }
 
       console.log('[PaymentLink] Payment successful!', result);
@@ -208,7 +210,15 @@ export default function PaymentLinkPage() {
       setSuccess(true);
     } catch (err: any) {
       console.error('[PaymentLink] Payment error:', err);
-      setError(err.message || 'Payment failed');
+
+      // Parse error if it's our formatted error
+      try {
+        const parsedError = JSON.parse(err.message);
+        setError(parsedError.message);
+      } catch {
+        // Fallback to raw error message
+        setError(err.message || 'Payment failed. Please try again.');
+      }
     } finally {
       setPaying(false);
     }
