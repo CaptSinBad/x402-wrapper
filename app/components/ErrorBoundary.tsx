@@ -1,6 +1,10 @@
 'use client';
 
 import React, { Component, ReactNode } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/app/components/ui/alert';
+import { AlertTriangle, RefreshCcw } from 'lucide-react';
 
 interface Props {
     children: ReactNode;
@@ -33,33 +37,41 @@ export class ErrorBoundary extends Component<Props, State> {
             }
 
             return (
-                <div className="min-h-screen bg-zinc-900 flex items-center justify-center p-6">
-                    <div className="max-w-md w-full bg-zinc-800 border border-zinc-700 rounded-xl p-8">
-                        <div className="text-center mb-6">
-                            <div className="text-6xl mb-4">⚠️</div>
-                            <h1 className="text-2xl font-bold text-white mb-2">
-                                Something went wrong
-                            </h1>
-                            <p className="text-zinc-400">
-                                An unexpected error occurred. Please try refreshing the page.
-                            </p>
-                        </div>
-
-                        {this.state.error && (
-                            <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-4 mb-6">
-                                <p className="text-xs font-mono text-red-400 break-all">
-                                    {this.state.error.message}
-                                </p>
+                <div className="flex h-dvh items-center justify-center p-6 bg-background">
+                    <Card className="max-w-md w-full border-border shadow-lg">
+                        <CardHeader className="text-center pb-2">
+                            <div className="flex justify-center mb-4">
+                                <div className="flex bg-destructive/10 p-3 rounded-full">
+                                    <AlertTriangle className="h-8 w-8 text-destructive" aria-hidden="true" />
+                                </div>
                             </div>
-                        )}
-
-                        <button
-                            onClick={() => window.location.reload()}
-                            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
-                        >
-                            Refresh Page
-                        </button>
-                    </div>
+                            <CardTitle className="text-2xl font-bold text-balance">Something went wrong</CardTitle>
+                            <CardDescription className="text-balance">
+                                An unexpected error occurred. Please try refreshing the page.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {this.state.error && (
+                                <Alert variant="destructive" className="mb-4">
+                                    <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                                    <AlertTitle>Error</AlertTitle>
+                                    <AlertDescription className="font-mono text-xs break-all mt-1">
+                                        {this.state.error.message}
+                                    </AlertDescription>
+                                </Alert>
+                            )}
+                        </CardContent>
+                        <CardFooter>
+                            <Button
+                                className="w-full"
+                                size="lg"
+                                onClick={() => window.location.reload()}
+                            >
+                                <RefreshCcw className="mr-2 h-4 w-4" aria-hidden="true" />
+                                Refresh Page
+                            </Button>
+                        </CardFooter>
+                    </Card>
                 </div>
             );
         }

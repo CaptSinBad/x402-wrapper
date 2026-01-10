@@ -1,6 +1,8 @@
+```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { Pool } from 'pg';
 import { settleCDPPayment } from '../../../../lib/cdp-facilitator';
+import { sendWebhook } from '@/lib/webhooks';
 
 const pgPool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -76,7 +78,7 @@ export async function POST(req: NextRequest) {
 
         await pgPool.query(
             `INSERT INTO sales(seller_id, amount_cents, currency, purchaser_address, metadata, created_at)
-       VALUES($1, $2, $3, $4, $5, NOW())`,
+VALUES($1, $2, $3, $4, $5, NOW())`,
             [
                 link.seller_id || 'payment-link',
                 amountCents,
@@ -92,30 +94,32 @@ export async function POST(req: NextRequest) {
             ]
         );
 
-        // TODO: Webhook integration - needs proper setup
-        // Get user_id for webhook notification
-        // const projectResult = await pgPool.query(
-        //     `SELECT user_id FROM projects WHERE id = $1`,
-        //     [link.seller_id]
-        // );
-
         // Trigger webhook event for merchant
-        // if (projectResult.rows.length > 0) {
-        //     const { sendWebhook } = await import('../../../lib/webhooks');
-        //     await sendWebhook({
-        //         project_id: link.seller_id,
-        //         event_type: 'payment.succeeded',
-        //         data: {
-        //             amount_cents: amountCents,
-        //             currency: 'USDC',
-        //             transaction_hash: settlementResult.transaction,
-        //             network: settlementResult.network,
-        //             payer: settlementResult.payer,
-        //             payment_link_token: token,
-        //             product_name: metadata?.productName,
-        //         }
-        //     });
-        // }
+        try {
+            const projectResult = await pgPool.query(
+                `SELECT user_id FROM projects WHERE id = $1`,
+                [link.seller_id]
+            );
+
+            if (projectResult.rows.length > 0) {
+                await sendWebhook({
+                    project_id: link.seller_id,
+                    event_type: 'payment.succeeded',
+                    data: {
+                        amount_cents: amountCents,
+                        currency: 'USDC',
+                        transaction_hash: settlementResult.transaction,
+                        network: settlementResult.network,
+                        payer: settlementResult.payer,
+                        payment_link_token: token,
+                        product_name: metadata?.productName,
+                    }
+                });
+            }
+        } catch (webhookError) {
+            // Don't fail payment if webhook fails
+            console.error('[link/pay] Webhook delivery failed:', webhookError);
+        }
 
         return NextResponse.json({
             success: true,

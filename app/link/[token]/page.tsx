@@ -2,13 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-// import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useWalletClient, useDisconnect, useSwitchChain, useChainId } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
 import { parseUnits } from 'viem';
-import { baseSepolia } from 'viem/chains';
+import { Loader2, CreditCard, Wallet, AlertCircle, CheckCircle, ExternalLink, Lock } from 'lucide-react';
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/app/components/ui/alert';
+import { Skeleton } from '@/app/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 const USDC_ADDRESS = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+const REQUIRED_CHAIN_ID = 84532; // Base Sepolia
 
 export default function PaymentLinkPage() {
   const params = useParams();
@@ -18,6 +24,8 @@ export default function PaymentLinkPage() {
   const { data: walletClient } = useWalletClient();
   const { disconnect } = useDisconnect();
   const { open } = useAppKit();
+  const { switchChain } = useSwitchChain();
+  const chainId = useChainId();
 
   const [link, setLink] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -27,26 +35,17 @@ export default function PaymentLinkPage() {
   const [txHash, setTxHash] = useState('');
   const [switchingChain, setSwitchingChain] = useState(false);
 
-  const { switchChain } = useSwitchChain();
-  const chainId = useChainId();
-
   // Fetch payment link details
   useEffect(() => {
     if (!token) return;
 
-    console.log('[PaymentLink] Fetching link for token:', token);
     fetch(`/api/link/${token}`)
-      .then(res => {
-        console.log('[PaymentLink] Response status:', res.status);
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
-        console.log('[PaymentLink] Response data:', data);
         if (data.error) {
           console.error('[PaymentLink] Error from API:', data.error);
           setError(data.error === 'not_found' ? 'Payment link not found' : 'Failed to load payment link');
         } else {
-          console.log('[PaymentLink] Link loaded successfully:', data.link);
           setLink(data.link);
         }
         setLoading(false);
@@ -58,13 +57,13 @@ export default function PaymentLinkPage() {
       });
   }, [token]);
 
-  // Auto-switch to Base Sepolia when link loads and wallet is connected
+  // Auto-switch to Base Sepolia
   useEffect(() => {
     const autoSwitchChain = async () => {
-      if (link && isConnected && chainId !== 84532) {
+      if (link && isConnected && chainId !== REQUIRED_CHAIN_ID) {
         try {
           setSwitchingChain(true);
-          await switchChain({ chainId: 84532 });
+          await switchChain({ chainId: REQUIRED_CHAIN_ID });
         } catch (err: any) {
           console.error('Auto chain switch failed:', err);
           setError('Please switch your wallet to Base Sepolia network');
@@ -79,8 +78,7 @@ export default function PaymentLinkPage() {
   const handlePayment = async () => {
     if (!walletClient || !address || !link) return;
 
-    // Check if on correct chain before payment
-    if (chainId !== 84532) {
+    if (chainId !== REQUIRED_CHAIN_ID) {
       setError('Please switch your wallet to Base Sepolia network');
       return;
     }
@@ -89,35 +87,24 @@ export default function PaymentLinkPage() {
     setError('');
 
     try {
-      // Get metadata
       const metadata = typeof link.metadata === 'string' ? JSON.parse(link.metadata) : link.metadata;
       const sellerWallet = metadata?.sellerWallet || process.env.NEXT_PUBLIC_SELLER_ADDRESS;
       const priceUSDC = (link.price_cents / 100).toFixed(2);
 
-      // Generate EIP-712 signature
+      // Generate EIP-712 signature (simplified for brevity)
       const now = Math.floor(Date.now() / 1000);
       const validBefore = now + 3600;
       const validAfter = 0;
-
-      // Generate nonce using browser's crypto API
       const nonceBytes = new Uint8Array(32);
-      if (typeof window !== 'undefined' && window.crypto) {
-        window.crypto.getRandomValues(nonceBytes);
-      } else {
-        // Fallback for non-browser environments (shouldn't happen in client component)
-        for (let i = 0; i < 32; i++) {
-          nonceBytes[i] = Math.floor(Math.random() * 256);
-        }
-      }
+      window.crypto.getRandomValues(nonceBytes);
       const nonce = '0x' + Array.from(nonceBytes).map(b => b.toString(16).padStart(2, '0')).join('');
-
       const value = parseUnits(priceUSDC, 6);
       const priceAtomic = value.toString();
 
       const domain = {
         name: 'USDC',
         version: '2',
-        chainId: 84532,
+        chainId: REQUIRED_CHAIN_ID,
         verifyingContract: USDC_ADDRESS as `0x${string}`,
       };
 
@@ -141,82 +128,44 @@ export default function PaymentLinkPage() {
         nonce: nonce as `0x${string}`,
       };
 
-      console.log('[PaymentLink] Signing payment authorization...');
       const signature = await walletClient.signTypedData({
-        account: address,
-        domain,
-        types,
-        primaryType: 'TransferWithAuthorization',
-        message: authorization,
+        account: address, domain, types, primaryType: 'TransferWithAuthorization', message: authorization,
       });
 
-      // Create payment payload
       const paymentPayload = {
-        x402Version: 1,
-        scheme: 'exact',
-        network: 'base-sepolia',
-        payload: {
-          signature,
-          authorization: {
-            from: address,
-            to: sellerWallet,
-            value: priceAtomic,
-            validAfter: validAfter.toString(),
-            validBefore: validBefore.toString(),
-            nonce,
-          }
-        }
+        x402Version: 1, scheme: 'exact', network: 'base-sepolia',
+        payload: { signature, authorization: { from: address, to: sellerWallet, value: priceAtomic, validAfter: validAfter.toString(), validBefore: validBefore.toString(), nonce } }
       };
 
       const paymentRequirements = {
-        scheme: 'exact',
-        network: 'base-sepolia',
-        maxAmountRequired: priceAtomic,
-        resource: `${window.location.origin}/link/${token}`,
-        description: metadata?.productName || 'Payment',
-        mimeType: 'application/json',
-        maxTimeoutSeconds: 300,
-        asset: USDC_ADDRESS,
-        payTo: sellerWallet,
-        extra: {
-          name: 'USDC',
-          version: '2',
-        },
+        scheme: 'exact', network: 'base-sepolia', maxAmountRequired: priceAtomic,
+        resource: `${window.location.origin}/link/${token}`, description: metadata?.productName || 'Payment',
+        mimeType: 'application/json', maxTimeoutSeconds: 300, asset: USDC_ADDRESS, payTo: sellerWallet,
+        extra: { name: 'USDC', version: '2' },
       };
 
-      console.log('[PaymentLink] Submitting payment...');
-
-      // Call payment confirmation API
       const response = await fetch('/api/link/pay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token,
-          paymentPayload,
-          paymentRequirements
-        })
+        body: JSON.stringify({ token, paymentPayload, paymentRequirements })
       });
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
         const errorMessage = result.message || result.errorReason || result.error || 'Payment failed';
-        const isRetryable = result.retryable !== false; // Default to retryable
+        const isRetryable = result.retryable !== false;
         throw new Error(JSON.stringify({ message: errorMessage, retryable: isRetryable }));
       }
 
-      console.log('[PaymentLink] Payment successful!', result);
       setTxHash(result.txHash);
       setSuccess(true);
     } catch (err: any) {
       console.error('[PaymentLink] Payment error:', err);
-
-      // Parse error if it's our formatted error
       try {
         const parsedError = JSON.parse(err.message);
         setError(parsedError.message);
       } catch {
-        // Fallback to raw error message
         setError(err.message || 'Payment failed. Please try again.');
       }
     } finally {
@@ -224,64 +173,82 @@ export default function PaymentLinkPage() {
     }
   };
 
+  // Loading State
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafbfc' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
-          <div style={{ fontSize: 18, color: '#666' }}>Loading payment link...</div>
-        </div>
+      <div className="flex h-dvh items-center justify-center bg-gray-50/50 p-6">
+        <Card className="max-w-md w-full border-border">
+          <div className="flex flex-col items-center p-12 text-center space-y-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <div className="space-y-2 w-full">
+              <Skeleton className="h-4 w-3/4 mx-auto" />
+              <Skeleton className="h-4 w-1/2 mx-auto" />
+            </div>
+          </div>
+        </Card>
       </div>
     );
   }
 
+  // Error State
   if (error && !link) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafbfc' }}>
-        <div style={{ maxWidth: 400, padding: 40, background: '#fff', borderRadius: 12, border: '1px solid #e1e4e8', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>❌</div>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: '#24292f', marginBottom: 8 }}>Link Not Found</h2>
-          <p style={{ color: '#666', marginBottom: 0 }}>{error}</p>
-        </div>
+      <div className="flex h-dvh items-center justify-center bg-gray-50/50 p-6">
+        <Card className="max-w-md w-full border-destructive/20">
+          <CardHeader className="text-center">
+            <div className="mx-auto bg-destructive/10 p-3 rounded-full mb-4 w-fit">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <CardTitle>Link Not Found</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
 
+  // Success State
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafbfc' }}>
-        <div style={{ maxWidth: 500, padding: 40, background: '#fff', borderRadius: 12, border: '1px solid #e1e4e8', textAlign: 'center' }}>
-          <div style={{ fontSize: 64, marginBottom: 20 }}>✅</div>
-          <h2 style={{ fontSize: 28, fontWeight: 700, color: '#28a745', marginBottom: 12 }}>Payment Successful!</h2>
-          <p style={{ fontSize: 16, color: '#666', marginBottom: 24 }}>
-            Your payment has been confirmed on the blockchain.
-          </p>
-
-          {txHash && (
-            <div style={{ background: '#F0F9FF', border: '1px solid #74C0FC', borderRadius: 8, padding: 16, marginBottom: 20 }}>
-              <div style={{ fontSize: 12, color: '#1971C2', fontWeight: 600, marginBottom: 6 }}>Transaction Hash:</div>
-              <a
-                href={`https://sepolia.basescan.org/tx/${txHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ fontSize: 13, color: '#0366D6', wordBreak: 'break-all', textDecoration: 'underline' }}
-              >
-                {txHash}
-              </a>
+      <div className="flex h-dvh items-center justify-center bg-gray-50/50 p-6">
+        <Card className="max-w-[500px] w-full border-border shadow-lg">
+          <CardHeader className="text-center">
+            <div className="mx-auto bg-green-100 p-3 rounded-full mb-4 w-fit">
+              <CheckCircle className="h-12 w-12 text-green-600" />
             </div>
-          )}
-
-          <div style={{ fontSize: 14, color: '#666' }}>
-            Thank you for your purchase! ✨
-          </div>
-        </div>
+            <CardTitle className="text-2xl text-green-700">Payment Successful!</CardTitle>
+            <CardDescription className="text-lg">
+              Your payment has been confirmed on the blockchain.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {txHash && (
+              <div className="bg-muted p-4 rounded-lg border border-border">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                  Transaction Hash
+                </div>
+                <a
+                  href={`https://sepolia.basescan.org/tx/${txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-mono text-primary hover:underline break-all flex items-center gap-2"
+                >
+                  {txHash}
+                  <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                </a>
+              </div>
+            )}
+            <div className="bg-blue-50/50 p-4 rounded-lg text-center">
+              <p className="text-sm text-blue-700 font-medium">Thank you for your purchase! ✨</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   const metadata = typeof link?.metadata === 'string' ? JSON.parse(link.metadata) : link?.metadata || {};
   const priceUSDC = link?.price_cents ? (link.price_cents / 100).toFixed(2) : '0.00';
-  const brandColor = metadata?.brandColor || '#2B5FA5';
   const productName = metadata?.name || 'Payment Required';
   const productDescription = metadata?.description || '';
   const productImage = metadata?.imageUrl;
@@ -289,148 +256,106 @@ export default function PaymentLinkPage() {
   const network = link?.network || 'base-sepolia';
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F7FAFC', padding: '40px 20px' }}>
-      <div style={{ maxWidth: 550, margin: '0 auto', background: '#fff', borderRadius: 16, border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-
+    <div className="min-h-dvh flex items-center justify-center bg-gray-50/50 p-6">
+      <Card className="max-w-[550px] w-full border-border shadow-xl overflow-hidden">
         {/* Product Image */}
         {productImage && (
-          <div style={{
-            width: '100%',
-            maxHeight: '300px',
-            backgroundColor: '#f7fafc',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px',
-            borderBottom: '1px solid #E2E8F0'
-          }}>
+          <div className="w-full h-64 bg-muted/30 flex items-center justify-center p-6 border-b border-border">
             <img
               src={productImage}
               alt={productName}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '250px',
-                objectFit: 'contain',  // Prevent stretching
-                borderRadius: '8px'
-              }}
+              className="w-full h-full object-contain rounded-lg"
             />
           </div>
         )}
 
-        {/* Header */}
-        <div style={{ padding: 40, textAlign: 'center' }}>
-          {!productImage && <div style={{ fontSize: 64, marginBottom: 20 }}>💳</div>}
-          <h1 style={{ fontSize: 32, fontWeight: 700, color: '#2D3748', marginBottom: 12, lineHeight: '1.2' }}>
-            {productName}
-          </h1>
-          {productDescription && (
-            <p style={{ fontSize: 16, color: '#4B5563', marginBottom: 0, lineHeight: '1.6' }}>
-              {productDescription}
-            </p>
-          )}
-        </div>
-
-        {/* Price */}
-        <div style={{ padding: 40, textAlign: 'center', background: `linear-gradient(135deg, ${brandColor} 0%, ${brandColor}dd 100%)`, color: '#fff' }}>
-          <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 8, fontWeight: '500' }}>Total Amount</div>
-          <div style={{ fontSize: 56, fontWeight: 700, letterSpacing: '-1px' }}>${priceUSDC}</div>
-          <div style={{ fontSize: 14, opacity: 0.9, marginTop: 8 }}>≈ {priceUSDC} {currency} on {network}</div>
-        </div>
-
-        {/* Payment Section */}
-        <div style={{ padding: 40 }}>
-          {error && (
-            <div style={{ background: '#FEE', border: '1px solid #F77', borderRadius: 10, padding: 16, marginBottom: 20, color: '#C33', fontSize: 14 }}>
-              <strong>Error:</strong> {error}
+        <CardHeader className="text-center pb-2">
+          {!productImage && (
+            <div className="mx-auto bg-primary/10 p-4 rounded-full mb-4 w-fit">
+              <CreditCard className="h-10 w-10 text-primary" />
             </div>
+          )}
+          <CardTitle className="text-3xl font-bold text-balance leading-tight">{productName}</CardTitle>
+          {productDescription && (
+            <CardDescription className="text-balance text-base mt-2">
+              {productDescription}
+            </CardDescription>
+          )}
+        </CardHeader>
+
+        {/* Price Section */}
+        <div className="px-6 py-8 text-center bg-primary text-primary-foreground mx-6 rounded-xl my-4">
+          <div className="text-sm font-medium opacity-90 mb-1">Total Amount</div>
+          <div className="text-5xl font-bold tracking-tight">${priceUSDC}</div>
+          <div className="text-sm opacity-90 mt-2">
+            ≈ {priceUSDC} {currency} on {network}
+          </div>
+        </div>
+
+        <CardContent className="space-y-6 pt-2">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Payment Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
           {!isConnected ? (
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ fontSize: 15, color: '#4B5563', marginBottom: 20, lineHeight: '1.6' }}>
-                Connect your wallet to complete payment
-              </p>
-              <button
+            <div className="text-center space-y-4">
+              <p className="text-muted-foreground">Connect your wallet to complete payment</p>
+              <Button
+                size="lg"
+                className="w-full max-w-sm"
                 onClick={() => open()}
-                style={{
-                  padding: '14px 32px',
-                  fontSize: 16,
-                  fontWeight: 600,
-                  background: brandColor,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  width: '100%',
-                  maxWidth: 300,
-                }}
               >
+                <Wallet className="mr-2 h-5 w-5" />
                 Connect Wallet
-              </button>
+              </Button>
             </div>
           ) : (
-            <div>
-              <div style={{ background: '#F0F9FF', border: '1px solid #74C0FC', borderRadius: 10, padding: 18, marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <div style={{ fontSize: 14, color: '#1971C2', lineHeight: 1.6 }}>
-                    <strong>✓ Wallet Connected</strong>
-                    <br />
-                    <span style={{ fontFamily: 'monospace', fontSize: 13 }}>
-                      {address?.slice(0, 6)}...{address?.slice(-4)}
-                    </span>
+            <div className="space-y-4">
+              <div className="bg-muted/50 border border-border rounded-lg p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-100 p-2 rounded-full">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
                   </div>
-                  <button
-                    onClick={() => disconnect()}
-                    style={{
-                      padding: '8px 16px',
-                      background: 'white',
-                      border: '1px solid #74C0FC',
-                      borderRadius: 6,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: '#1971C2',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Change Wallet
-                  </button>
+                  <div className="text-sm">
+                    <div className="font-semibold text-foreground">Wallet Connected</div>
+                    <div className="font-mono text-muted-foreground text-xs">
+                      {address?.slice(0, 6)}...{address?.slice(-4)}
+                    </div>
+                  </div>
                 </div>
+                <Button variant="outline" size="sm" onClick={() => disconnect()}>
+                  Change
+                </Button>
               </div>
 
-              <button
+              <Button
+                size="lg"
+                className="w-full py-6 text-lg"
                 onClick={handlePayment}
                 disabled={paying}
-                style={{
-                  width: '100%',
-                  padding: '18px',
-                  background: paying ? '#CBD5E0' : brandColor,
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 10,
-                  fontSize: 17,
-                  fontWeight: 600,
-                  cursor: paying ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  boxShadow: paying ? 'none' : `0 4px 12px ${brandColor}40`
-                }}
-                onMouseEnter={(e) => {
-                  if (!paying) e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
               >
-                {paying ? 'Processing Payment...' : `Pay $${priceUSDC} with ${currency}`}
-              </button>
+                {paying ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  `Pay $${priceUSDC} with ${currency}`
+                )}
+              </Button>
 
-              <div style={{ fontSize: 13, color: '#A0AEC0', textAlign: 'center', marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <span>🔒</span>
+              <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <Lock className="h-3 w-3" />
                 <span>Secured by x402 • Powered by BinahPay</span>
               </div>
             </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
