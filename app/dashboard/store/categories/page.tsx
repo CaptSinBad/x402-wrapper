@@ -18,9 +18,8 @@ import { useAuthToken } from '@/app/hooks/useAuthToken';
 export default function CategoriesPage() {
     const { authFetch } = useAuthToken();
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const storeId = searchParams?.get('store_id');
 
+    const [storeId, setStoreId] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
@@ -30,11 +29,33 @@ export default function CategoriesPage() {
         display_order: 0
     });
 
+    // Fetch user's store on mount
+    useEffect(() => {
+        fetchUserStore();
+    }, []);
+
+    // Fetch categories when store is loaded
     useEffect(() => {
         if (storeId) {
             fetchCategories();
         }
     }, [storeId]);
+
+    const fetchUserStore = async () => {
+        try {
+            const response = await authFetch('/api/stores/my-store');
+            const data = await response.json();
+
+            if (response.ok && data.store) {
+                setStoreId(data.store.id);
+            } else {
+                // No store found, redirect to create one
+                router.push('/dashboard/store/setup');
+            }
+        } catch (error) {
+            console.error('Failed to fetch store:', error);
+        }
+    };
 
     const fetchCategories = async () => {
         if (!storeId) return;
