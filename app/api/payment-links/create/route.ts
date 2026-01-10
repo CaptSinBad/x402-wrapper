@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
             RETURNING *`,
             [
                 token,
-                user.id,
+                `project-${project.id}`,  // Match the format expected by stats query
                 priceCents,
                 currency,
                 network,
