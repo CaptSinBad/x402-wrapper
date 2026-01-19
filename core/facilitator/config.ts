@@ -34,7 +34,7 @@ const KNOWN_FACILITATORS: Record<string, FacilitatorConfig> = {
     },
     timeoutSeconds: 15,
   },
-  
+
   // Public x402 Facilitator (testnet)
   "x402.org": {
     name: "x402.org (Testnet)",
@@ -78,17 +78,26 @@ const KNOWN_FACILITATORS: Record<string, FacilitatorConfig> = {
  * For testnet (Free):
  *   Set FACILITATOR_URL=https://x402.org/facilitator
  */
-export function loadFacilitatorConfig(): FacilitatorConfig {
+/**
+ * Return the primary facilitator config.
+ * Resolution order:
+ *  1. If FACILITATOR_URL env var set, use that with sane defaults.
+ *  2. Else, if KNOWN_FACILITATORS contains FACILITATOR_KEY env var, use it.
+ *  3. Else, attempt to match the requested network ID ('base' or 'base-sepolia').
+ *  4. Else fall back to x402.org for testnet development.
+ */
+export function loadFacilitatorConfig(networkId?: string): FacilitatorConfig {
   const envUrl = process.env.FACILITATOR_URL?.trim();
   const envNetwork = process.env.NETWORK?.trim();
   const envKey = process.env.FACILITATOR_KEY?.trim();
 
-  // Priority 1: Explicit FACILITATOR_URL
+  // Priority 1: Explicit FACILITATOR_URL (Custom / Managed)
+  // This override is powerful and assumes the env var provider knows what they are doing.
   if (envUrl) {
     return {
       name: "Custom Facilitator",
       baseUrl: envUrl,
-      network: envNetwork || "base",
+      network: networkId || envNetwork || "base",
       paths: {
         supported: "/supported",
         test: "/test",
@@ -99,15 +108,27 @@ export function loadFacilitatorConfig(): FacilitatorConfig {
     };
   }
 
-  // Priority 2: Known facilitator key
+  // Priority 2: Known facilitator key (Custom / Managed)
   if (envKey && KNOWN_FACILITATORS[envKey]) {
     return KNOWN_FACILITATORS[envKey];
   }
 
-  // Priority 3: Default to x402.org for local development
+  // Priority 3: Dynamic Network Selection (Standard Use Case)
+  if (networkId) {
+    if (networkId === 'base') {
+      return KNOWN_FACILITATORS["coinbase-cdp"];
+    }
+    if (networkId === 'base-sepolia') {
+      return KNOWN_FACILITATORS["x402.org"];
+    }
+    // Add other networks here if needed
+  }
+
+  // Priority 4: Default to x402.org for local development (Testnet)
+  // We prefer Testnet as a safe default if nothing is specified.
   const defaultFacilitator = KNOWN_FACILITATORS["x402.org"];
   if (!defaultFacilitator) throw new Error("Default facilitator config not found");
-  
+
   return defaultFacilitator;
 }
 

@@ -207,20 +207,20 @@ const link = await binahpay.paymentLinks.create({
 
                 <div className="flex items-center justify-between">
                     <div>
-                        <div className="font-medium text-white mb-1">Roll API Keys</div>
-                        <div className="text-sm text-zinc-500">
-                            Generate new keys and invalidate the old ones
+                        <div className="font-medium text-white mb-1">Regenerate Secret Key</div>
+                        <div className="text-sm text-zinc-400">
+                            Get a new secret key. Your current key will stop working immediately.
                         </div>
                     </div>
                     <button
                         className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-lg text-sm font-medium transition-colors"
                         onClick={() => {
-                            if (confirm('Are you sure? This will invalidate your current API keys and may break existing integrations.')) {
-                                alert('Key rolling is not implemented in this demo');
+                            if (confirm('This will invalidate your current secret key. Any integrations using the old key will break. Are you sure?')) {
+                                alert('Key regeneration coming soon. For now, create a new project to get fresh keys.');
                             }
                         }}
                     >
-                        Roll Keys
+                        Regenerate
                     </button>
                 </div>
             </div>

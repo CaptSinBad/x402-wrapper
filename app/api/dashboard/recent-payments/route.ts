@@ -52,6 +52,8 @@ export async function GET(req: NextRequest) {
             status: payment.metadata?.status || 'completed',
             date: formatDate(payment.created_at),
             txHash: payment.metadata?.transaction_hash,
+            productName: payment.metadata?.product_name || payment.metadata?.name || 'Payment',
+            network: payment.metadata?.network || 'base-sepolia',
         }));
 
         return NextResponse.json({ payments });

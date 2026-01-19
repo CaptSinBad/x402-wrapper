@@ -225,14 +225,15 @@ export default function OnboardingStep4() {
 
                         <div style={{
                             background: '#F0FFF4',
-                            border: '1px solid #9AE6B4',
+                            border: '1px solid #38A169',
                             borderRadius: '10px',
                             padding: '16px',
                             fontSize: '14px',
-                            lineHeight: '1.6'
+                            lineHeight: '1.6',
+                            color: '#22543D'
                         }}>
                             <strong>🔑 What you'll get:</strong>
-                            <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+                            <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', color: '#276749' }}>
                                 <li>Publishable key (use in frontend code)</li>
                                 <li>Secret key (use in backend code, keep private)</li>
                                 <li>Webhook signing secret (verify webhook events)</li>

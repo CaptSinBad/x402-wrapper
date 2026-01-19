@@ -60,8 +60,7 @@ export function Sidebar() {
     ];
 
     const storeNav = [
-        { name: 'Store Setup', href: '/dashboard/store/setup', icon: Store },
-        { name: 'Categories', href: '/dashboard/store/categories', icon: FolderOpen },
+        { name: 'Store Settings', href: '/dashboard/store/setup', icon: Store },
         { name: 'Orders', href: '/dashboard/orders', icon: Package },
         { name: 'Products', href: '/dashboard/products', icon: ShoppingBag },
     ];

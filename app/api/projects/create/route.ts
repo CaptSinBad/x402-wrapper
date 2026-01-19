@@ -36,6 +36,11 @@ export async function POST(req: NextRequest) {
         // Generate x402 tenant ID (you can customize this based on your x402 setup)
         const x402TenantId = `tenant_${crypto.randomBytes(16).toString('hex')}`;
 
+        // Determine network based on environment
+        // live -> base (Mainnet)
+        // test -> base-sepolia (Testnet)
+        const x402Network = env === 'live' ? 'base' : 'base-sepolia';
+
         // Insert project
         const result = await pgPool.query(
             `INSERT INTO projects (
@@ -43,7 +48,7 @@ export async function POST(req: NextRequest) {
         x402_tenant_id, x402_network, created_at, updated_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
       RETURNING id, name, environment, public_key, x402_tenant_id, x402_network, created_at`,
-            [user.id, name, env, publicKey, secretKeyHash, webhookSecret, x402TenantId, 'base-sepolia']
+            [user.id, name, env, publicKey, secretKeyHash, webhookSecret, x402TenantId, x402Network]
         );
 
         const project = result.rows[0];

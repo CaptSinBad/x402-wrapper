@@ -10,14 +10,8 @@ import { useAuthToken } from '@/app/hooks/useAuthToken';
 export default function OnboardingStep3() {
     const router = useRouter();
     const { authFetch } = useAuthToken();
-    const { address } = useAccount();
-    const [formData, setFormData] = useState({
-        stablecoinPreference: 'USDC',
-        bankName: '',
-        bankAccountNumber: '',
-        bankRoutingNumber: '',
-        bankCountry: '',
-    });
+    const { address, isConnected } = useAccount();
+    const [stablecoinPreference, setStablecoinPreference] = useState('USDC');
 
     useEffect(() => {
         // Check if previous steps completed
@@ -28,25 +22,19 @@ export default function OnboardingStep3() {
         }
     }, [router]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
-    };
-
     const handleContinue = async () => {
+        if (!address) {
+            alert('Please connect your wallet to continue');
+            return;
+        }
+
         try {
-            // Save to database
+            // Save settlement preferences to database
             await authFetch('/api/onboarding/save', {
                 method: 'POST',
                 body: JSON.stringify({
                     settlementWallet: address,
-                    stablecoinPreference: formData.stablecoinPreference,
-                    bankName: formData.bankName,
-                    bankAccountNumber: formData.bankAccountNumber,
-                    bankRoutingNumber: formData.bankRoutingNumber,
-                    bankCountry: formData.bankCountry,
+                    stablecoinPreference: stablecoinPreference,
                     currentStep: 4,
                 }),
             });
@@ -58,8 +46,6 @@ export default function OnboardingStep3() {
             alert('Failed to save progress. Please try again.');
         }
     };
-
-    const isBankDetailsValid = true; // Bank details are now optional
 
     return (
         <div className={styles.onboardingPage}>
@@ -91,29 +77,42 @@ export default function OnboardingStep3() {
 
                 {/* Main Card */}
                 <div className={styles.onboardingCard}>
-                    <h1 className={styles.cardTitle}>Settlement preferences</h1>
+                    <h1 className={styles.cardTitle}>Settlement wallet</h1>
                     <p className={styles.cardSubtitle}>
-                        Configure how you'd like to receive payments from BinahPay
+                        Confirm the wallet where you'll receive payments
                     </p>
 
                     <form className={styles.onboardingForm} onSubmit={(e) => { e.preventDefault(); handleContinue(); }}>
-                        {/* Crypto Settlement */}
+                        {/* Wallet Display */}
                         <div className={styles.formGroup}>
                             <label className={styles.label}>
-                                Settlement wallet
+                                Connected wallet
                             </label>
-                            <input
-                                type="text"
-                                className={styles.input}
-                                value={address || 'Not connected'}
-                                disabled
-                                style={{ background: '#F7FAFC' }}
-                            />
-                            <span className={styles.helpText}>
-                                Payments will be settled to your connected wallet: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Please connect wallet'}
-                            </span>
+                            <div style={{
+                                background: isConnected ? '#F0FDF4' : '#FEF2F2',
+                                border: `1px solid ${isConnected ? '#86EFAC' : '#FECACA'}`,
+                                borderRadius: '10px',
+                                padding: '16px',
+                                fontFamily: 'monospace',
+                                fontSize: '14px',
+                                color: isConnected ? '#166534' : '#991B1B',
+                                wordBreak: 'break-all'
+                            }}>
+                                {address || 'No wallet connected'}
+                            </div>
+                            {isConnected && (
+                                <span className={styles.helpText} style={{ color: '#16A34A' }}>
+                                    ✓ All payments will be sent directly to this address
+                                </span>
+                            )}
+                            {!isConnected && (
+                                <span className={styles.helpText} style={{ color: '#DC2626' }}>
+                                    Please connect your wallet using the button in the top right
+                                </span>
+                            )}
                         </div>
 
+                        {/* Stablecoin Preference */}
                         <div className={styles.formGroup}>
                             <label htmlFor="stablecoinPreference" className={styles.label}>
                                 Preferred stablecoin
@@ -122,109 +121,25 @@ export default function OnboardingStep3() {
                                 id="stablecoinPreference"
                                 name="stablecoinPreference"
                                 className={styles.select}
-                                value={formData.stablecoinPreference}
-                                onChange={handleChange}
+                                value={stablecoinPreference}
+                                onChange={(e) => setStablecoinPreference(e.target.value)}
                             >
                                 <option value="USDC">USDC (USD Coin)</option>
                                 <option value="USDT">USDT (Tether)</option>
-                                <option value="DAI">DAI</option>
                             </select>
                             <span className={styles.helpText}>Default currency for receiving payments</span>
                         </div>
 
-                        {/* Divider */}
-                        <div style={{ borderTop: '1px solid #E2E8F0', margin: '24px 0' }}></div>
-
-                        {/* Bank Account for Fiat Conversion */}
-                        <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px' }}>
-                            Bank account details (for fiat conversion)
-                        </h3>
-                        <p style={{ fontSize: '14px', color: '#4B5563', marginBottom: '20px' }}>
-                            Add your bank account to enable automatic conversion from crypto to fiat. This requires KYC verification.
-                        </p>
-
-                        <div className={styles.formGroup}>
-                            <label htmlFor="bankName" className={styles.label}>
-                                Bank name (Optional)
-                            </label>
-                            <input
-                                id="bankName"
-                                name="bankName"
-                                type="text"
-                                className={styles.input}
-                                placeholder="Chase Bank"
-                                value={formData.bankName}
-                                onChange={handleChange}
-                                required
-                            />
-                        </div>
-
-                        <div className={styles.formRow}>
-                            <div className={styles.formGroup}>
-                                <label htmlFor="bankAccountNumber" className={styles.label}>
-                                    Account number (Optional)
-                                </label>
-                                <input
-                                    id="bankAccountNumber"
-                                    name="bankAccountNumber"
-                                    type="text"
-                                    className={styles.input}
-                                    placeholder="123456789"
-                                    value={formData.bankAccountNumber}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label htmlFor="bankRoutingNumber" className={styles.label}>
-                                    Routing number
-                                </label>
-                                <input
-                                    id="bankRoutingNumber"
-                                    name="bankRoutingNumber"
-                                    type="text"
-                                    className={styles.input}
-                                    placeholder="021000021"
-                                    value={formData.bankRoutingNumber}
-                                    onChange={handleChange}
-                                />
-                            </div>
-                        </div>
-
-                        <div className={styles.formGroup}>
-                            <label htmlFor="bankCountry" className={styles.label}>
-                                Bank country (Optional)
-                            </label>
-                            <select
-                                id="bankCountry"
-                                name="bankCountry"
-                                className={styles.select}
-                                value={formData.bankCountry}
-                                onChange={handleChange}
-                                required
-                            >
-                                <option value="">Select country</option>
-                                <option value="US">United States</option>
-                                <option value="GB">United Kingdom</option>
-                                <option value="CA">Canada</option>
-                                <option value="AU">Australia</option>
-                                <option value="DE">Germany</option>
-                                <option value="FR">France</option>
-                                <option value="OTHER">Other</option>
-                            </select>
-                        </div>
-
+                        {/* Info Box */}
                         <div style={{
-                            background: '#FFF5F5',
-                            border: '1px solid #FC8181',
+                            background: '#EFF6FF',
+                            border: '1px solid #BFDBFE',
                             borderRadius: '10px',
                             padding: '16px',
                             fontSize: '14px',
-                            color: '#742A2A'
+                            color: '#1E40AF'
                         }}>
-                            <strong>📋 KYC Required:</strong> Adding bank details requires identity verification.
-                            You'll be able to submit KYC documents in your dashboard after completing onboarding.
+                            <strong>💡 Good to know:</strong> You can change your settlement wallet anytime in Settings.
                         </div>
 
                         <div className={styles.buttonRow}>
@@ -238,7 +153,7 @@ export default function OnboardingStep3() {
                             <button
                                 type="submit"
                                 className={styles.nextButton}
-                                disabled={!isBankDetailsValid}
+                                disabled={!isConnected}
                             >
                                 Continue
                             </button>

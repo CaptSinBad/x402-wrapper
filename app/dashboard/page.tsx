@@ -129,10 +129,10 @@ export default function DashboardPage() {
               <TableHeader className="bg-zinc-900 border-zinc-800">
                 <TableRow className="border-zinc-800 hover:bg-zinc-900/50">
                   <TableHead className="text-zinc-400">Status</TableHead>
+                  <TableHead className="text-zinc-400">Product</TableHead>
                   <TableHead className="text-zinc-400">Amount</TableHead>
                   <TableHead className="text-zinc-400">Customer</TableHead>
                   <TableHead className="text-zinc-400">Date</TableHead>
-                  <TableHead className="text-right text-zinc-400">ID</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -141,17 +141,17 @@ export default function DashboardPage() {
                     <TableCell>
                       <StatusBadge status={payment.status} />
                     </TableCell>
+                    <TableCell className="font-medium text-zinc-100 max-w-[150px] truncate">
+                      {payment.productName || 'Payment'}
+                    </TableCell>
                     <TableCell className="font-medium text-white tabular-nums">
                       {payment.amount}
                     </TableCell>
-                    <TableCell className="text-zinc-400">
+                    <TableCell className="text-zinc-400 font-mono text-xs">
                       {payment.customer || '—'}
                     </TableCell>
                     <TableCell className="text-zinc-500 tabular-nums text-sm">
                       {payment.date}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-xs text-zinc-600">
-                      {payment.id.slice(0, 8)}...
                     </TableCell>
                   </TableRow>
                 ))}

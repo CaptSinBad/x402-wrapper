@@ -90,7 +90,8 @@ export async function settleCDPPayment({
         const jwt = await generateCDPJWT(apiKeyName, apiKeySecret, 'POST', host, path);
 
         const endpoint = `https://${host}${path}`;
-        console.log(`[CDP] Settling payment at ${endpoint}`);
+        const network = paymentPayload.network || 'base-sepolia';
+        console.log(`[CDP] Settling payment on ${network} at ${endpoint}`);
         console.log(`[CDP] JWT URI claim: POST ${host}${path}`);
 
         const response = await axios.post(
@@ -122,7 +123,7 @@ export async function settleCDPPayment({
         return {
             success: true,
             transaction: response.data.transaction_hash || response.data.transactionHash || response.data.transaction, // Handle potential casing
-            network: response.data.network || 'base-sepolia',
+            network: response.data.network || paymentPayload.network || 'base-sepolia',
             payer: paymentPayload.payload.authorization.from,
         };
     } catch (error: any) {

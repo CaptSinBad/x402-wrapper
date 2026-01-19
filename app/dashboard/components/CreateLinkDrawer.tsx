@@ -24,6 +24,7 @@ export function CreateLinkDrawer({ isOpen, onClose }: CreateLinkDrawerProps) {
     const [formData, setFormData] = useState({
         productName: '',
         price: '',
+        network: 'base-sepolia', // Default to testnet
         collectAddress: false,
     });
 
@@ -37,7 +38,7 @@ export function CreateLinkDrawer({ isOpen, onClose }: CreateLinkDrawerProps) {
         if (!isOpen) {
             setTimeout(() => {
                 setStep('form');
-                setFormData({ productName: '', price: '', collectAddress: false });
+                setFormData({ productName: '', price: '', network: 'base-sepolia', collectAddress: false });
                 setCreatedLink('');
                 setQrCodeUrl('');
             }, 300);
@@ -53,7 +54,7 @@ export function CreateLinkDrawer({ isOpen, onClose }: CreateLinkDrawerProps) {
             data.append('name', formData.productName);
             data.append('price', formData.price);
             data.append('currency', 'USDC');
-            data.append('network', 'base-sepolia');
+            data.append('network', formData.network);
             // Mock boolean via form data string for this simple example, 
             // though the API currently expects specific strings/booleans from FormData
             // We'll stick to the required fields `name` and `price` primarily.
@@ -138,6 +139,32 @@ export function CreateLinkDrawer({ isOpen, onClose }: CreateLinkDrawerProps) {
                                             />
                                             <div className="absolute right-3 top-2.5 text-zinc-500 text-sm font-mono">USDC</div>
                                         </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="network" className="text-zinc-400">Network</Label>
+                                        <div className="relative">
+                                            <select
+                                                id="network"
+                                                value={formData.network}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, network: e.target.value }))}
+                                                className="w-full h-10 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-md text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-600 appearance-none"
+                                            >
+                                                <option value="base-sepolia">Base Sepolia (Testnet)</option>
+                                                <option value="base">Base (Mainnet)</option>
+                                            </select>
+                                            {/* Custom arrow icon */}
+                                            <div className="absolute right-3 top-3 pointer-events-none text-zinc-500">
+                                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-zinc-500">
+                                            {formData.network === 'base'
+                                                ? 'Real funds. Ensure you use native USDC on Base.'
+                                                : 'Testnet funds only. No real value.'}
+                                        </p>
                                     </div>
 
                                     <div className="flex items-center justify-between p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
