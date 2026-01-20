@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthToken } from '@/app/hooks/useAuthToken';
+import Link from 'next/link';
+import { Plus, Store as StoreIcon, Folder } from 'lucide-react';
 
 interface Store {
     id: string;
@@ -10,49 +12,74 @@ interface Store {
     store_slug: string;
 }
 
+interface Category {
+    id: string;
+    name: string;
+    product_count: number;
+}
+
 export default function CreateProductPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { authFetch } = useAuthToken();
     const [loading, setLoading] = useState(false);
-    const [stores, setStores] = useState<Store[]>([]);
-    const [categories, setCategories] = useState<any[]>([]);
-    const [loadingStores, setLoadingStores] = useState(true);
+    const [store, setStore] = useState<Store | null>(null);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [loadingStore, setLoadingStore] = useState(true);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         price: '',
         currency: 'USDC',
         images: [] as string[],
-        store_id: '',
         category_id: ''
     });
 
+    // Get category from URL param
+    const categoryFromUrl = searchParams.get('category');
+
+    // Fetch user's store on mount
     useEffect(() => {
-        fetchStores();
+        fetchStore();
     }, []);
 
+    // Fetch categories when store is loaded
     useEffect(() => {
-        if (formData.store_id) {
+        if (store?.id) {
             fetchCategories();
         }
-    }, [formData.store_id]);
+    }, [store?.id]);
 
-    const fetchStores = async () => {
+    // Pre-select category from URL when categories are loaded
+    useEffect(() => {
+        if (categoryFromUrl && categories.length > 0) {
+            const categoryExists = categories.some(c => c.id === categoryFromUrl);
+            if (categoryExists) {
+                setFormData(prev => ({ ...prev, category_id: categoryFromUrl }));
+            }
+        }
+    }, [categoryFromUrl, categories]);
+
+    const fetchStore = async () => {
         try {
-            // For now we'll get store_id from URL or use API to fetch user's stores
-            // Simplified: we'll make it optional for now
-            setLoadingStores(false);
+            const response = await authFetch('/api/stores/my-store');
+            const data = await response.json();
+
+            if (response.ok && data.store) {
+                setStore(data.store);
+            }
         } catch (error) {
-            console.error('Error fetching stores:', error);
-            setLoadingStores(false);
+            console.error('Error fetching store:', error);
+        } finally {
+            setLoadingStore(false);
         }
     };
 
     const fetchCategories = async () => {
-        if (!formData.store_id) return;
+        if (!store?.id) return;
 
         try {
-            const response = await authFetch(`/api/stores/${formData.store_id}/categories/list`);
+            const response = await authFetch(`/api/stores/${store.id}/categories/list`);
             const data = await response.json();
 
             if (response.ok) {
@@ -76,9 +103,9 @@ export default function CreateProductPage() {
                 images: formData.images
             };
 
-            // Include store_id if selected
-            if (formData.store_id) {
-                payload.store_id = formData.store_id;
+            // Include store_id if user has a store
+            if (store?.id) {
+                payload.store_id = store.id;
             }
 
             // Include category_id if selected
@@ -137,6 +164,52 @@ export default function CreateProductPage() {
                     Add a new product to your catalog
                 </p>
             </div>
+
+            {/* Store & Category Setup Prompt */}
+            {!loadingStore && !store && (
+                <div className="mb-8 p-6 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                    <div className="flex items-start gap-4">
+                        <div className="p-2 bg-blue-500/20 rounded-lg">
+                            <StoreIcon className="w-5 h-5 text-blue-400" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-white mb-1">No Store Found</h3>
+                            <p className="text-zinc-400 text-sm mb-4">
+                                Create a store first to organize your products into categories and enable storefront.
+                            </p>
+                            <Link
+                                href="/dashboard/store/setup"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+                            >
+                                <Plus className="w-4 h-4" /> Create Store
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* No Categories Prompt */}
+            {!loadingStore && store && categories.length === 0 && (
+                <div className="mb-8 p-6 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                    <div className="flex items-start gap-4">
+                        <div className="p-2 bg-amber-500/20 rounded-lg">
+                            <Folder className="w-5 h-5 text-amber-400" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-white mb-1">No Categories Yet</h3>
+                            <p className="text-zinc-400 text-sm mb-4">
+                                Add categories to organize your products. You can still create products without categories.
+                            </p>
+                            <Link
+                                href="/dashboard/store/setup"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-sm font-medium transition-colors"
+                            >
+                                <Plus className="w-4 h-4" /> Add Categories
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-8">
                 <div className="bg-[#111] border border-zinc-800 rounded-2xl p-6 lg:p-8 space-y-8">
@@ -232,8 +305,8 @@ export default function CreateProductPage() {
                         </div>
                     </div>
 
-                    {/* Category Section */}
-                    {formData.store_id && (
+                    {/* Category Section - Always show if store exists */}
+                    {store && (
                         <>
                             <div className="h-px bg-zinc-800" />
                             <div className="space-y-6">
@@ -245,27 +318,36 @@ export default function CreateProductPage() {
                                     <label className="block text-sm font-medium text-zinc-300 mb-2">
                                         Category
                                     </label>
-                                    <div className="relative">
-                                        <select
-                                            value={formData.category_id}
-                                            onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                                            className="w-full appearance-none bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
-                                        >
-                                            <option value="">No category</option>
-                                            {categories.map((cat) => (
-                                                <option key={cat.id} value={cat.id}>
-                                                    {cat.name} ({cat.product_count} products)
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-zinc-500">
-                                            <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                                                <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path>
-                                            </svg>
+                                    {categories.length > 0 ? (
+                                        <div className="relative">
+                                            <select
+                                                value={formData.category_id}
+                                                onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                                                className="w-full appearance-none bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+                                            >
+                                                <option value="">No category</option>
+                                                {categories.map((cat) => (
+                                                    <option key={cat.id} value={cat.id}>
+                                                        {cat.name} ({cat.product_count} products)
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-zinc-500">
+                                                <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                                                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" fillRule="evenodd"></path>
+                                                </svg>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-500 text-sm">
+                                            No categories created yet.{' '}
+                                            <Link href="/dashboard/store/setup" className="text-blue-400 hover:underline">
+                                                Add categories →
+                                            </Link>
+                                        </div>
+                                    )}
                                     <p className="text-xs text-zinc-500 mt-2">
-                                        Optional: Organize product into a category for better discovery
+                                        Organize product into a category for better discovery on your storefront
                                     </p>
                                 </div>
                             </div>

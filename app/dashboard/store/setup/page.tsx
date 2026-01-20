@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Pencil, Folder, Loader2, Store, Check, Copy, ExternalLink, Settings, Layers } from 'lucide-react';
+import { Plus, Pencil, Folder, Loader2, Store, Check, Copy, ExternalLink, Settings, Layers, Package } from 'lucide-react';
 import { useAuthToken } from '@/app/hooks/useAuthToken';
 import Link from 'next/link';
 
@@ -410,14 +410,27 @@ export default function StoreSettingsPage() {
 
             {/* Categories Tab */}
             {activeTab === 'categories' && (
-                <div className="space-y-4">
-                    <div className="flex justify-end">
-                        <Button
-                            onClick={() => setIsCategorySheetOpen(true)}
-                            className="bg-blue-600 hover:bg-blue-500 text-white"
-                        >
-                            <Plus className="mr-2 h-4 w-4" /> Add Category
-                        </Button>
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={() => setIsCategorySheetOpen(true)}
+                                className="bg-blue-600 hover:bg-blue-500 text-white"
+                            >
+                                <Plus className="mr-2 h-4 w-4" /> Add Category
+                            </Button>
+                        </div>
+                        {categories.length > 0 && (
+                            <Button
+                                asChild
+                                variant="outline"
+                                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                            >
+                                <Link href="/dashboard/products/create">
+                                    <Package className="mr-2 h-4 w-4" /> Add Product
+                                </Link>
+                            </Button>
+                        )}
                     </div>
 
                     {categories.length === 0 ? (
@@ -441,38 +454,74 @@ export default function StoreSettingsPage() {
                             </CardContent>
                         </Card>
                     ) : (
-                        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
-                            <Table>
-                                <TableHeader className="bg-zinc-900 border-zinc-800">
-                                    <TableRow className="border-zinc-800">
-                                        <TableHead className="text-zinc-400">Name</TableHead>
-                                        <TableHead className="text-zinc-400">Description</TableHead>
-                                        <TableHead className="text-right text-zinc-400">Products</TableHead>
-                                        <TableHead className="text-right text-zinc-400">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {categories.map((category) => (
-                                        <TableRow key={category.id} className="border-zinc-800 hover:bg-zinc-800/50">
-                                            <TableCell className="font-medium text-white">
-                                                {category.name}
-                                            </TableCell>
-                                            <TableCell className="text-zinc-400 max-w-[300px] truncate">
-                                                {category.description || '—'}
-                                            </TableCell>
-                                            <TableCell className="text-right tabular-nums text-zinc-300">
-                                                {category.product_count}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800">
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
+                        <>
+                            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 overflow-hidden">
+                                <Table>
+                                    <TableHeader className="bg-zinc-900 border-zinc-800">
+                                        <TableRow className="border-zinc-800">
+                                            <TableHead className="text-zinc-400">Name</TableHead>
+                                            <TableHead className="text-zinc-400">Description</TableHead>
+                                            <TableHead className="text-right text-zinc-400">Products</TableHead>
+                                            <TableHead className="text-right text-zinc-400">Actions</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {categories.map((category) => (
+                                            <TableRow key={category.id} className="border-zinc-800 hover:bg-zinc-800/50">
+                                                <TableCell className="font-medium text-white">
+                                                    {category.name}
+                                                </TableCell>
+                                                <TableCell className="text-zinc-400 max-w-[200px] truncate">
+                                                    {category.description || '—'}
+                                                </TableCell>
+                                                <TableCell className="text-right tabular-nums text-zinc-300">
+                                                    {category.product_count}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button
+                                                            asChild
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20"
+                                                        >
+                                                            <Link href={`/dashboard/products/create?category=${category.id}`}>
+                                                                <Plus className="h-3 w-3 mr-1" /> Add Product
+                                                            </Link>
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-zinc-800">
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Next Steps CTA */}
+                            <Card className="bg-green-500/10 border-green-500/30">
+                                <CardContent className="py-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-green-500/20 rounded-lg">
+                                                <Package className="w-5 h-5 text-green-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-white font-medium">Ready to add products!</p>
+                                                <p className="text-zinc-400 text-sm">Start adding products to your categories</p>
+                                            </div>
+                                        </div>
+                                        <Button asChild className="bg-green-600 hover:bg-green-500">
+                                            <Link href="/dashboard/products/create">
+                                                <Plus className="mr-2 h-4 w-4" /> Create Product
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </>
                     )}
                 </div>
             )}
