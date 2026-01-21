@@ -15,10 +15,16 @@ interface DebugData {
         wallet_address: string;
     };
     projects: any[];
-    sellerIdsSearched: string[];
-    paymentLinksCount: number;
-    salesCount: number;
+    sellerIds: {
+        uuidSellerIds: string[];
+        textSellerIds: string[];
+    };
+    counts: {
+        paymentLinks: number;
+        sales: number;
+    };
     allPaymentLinkSellerIds: any[];
+    allSalesSellerIds: any[];
 }
 
 export default function DebugPage() {
@@ -171,25 +177,45 @@ export default function DebugPage() {
                         <CardContent>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="p-4 bg-zinc-800 rounded-lg text-center">
-                                    <p className="text-3xl font-bold text-white">{data.paymentLinksCount}</p>
+                                    <p className="text-3xl font-bold text-white">{data.counts?.paymentLinks ?? 0}</p>
                                     <p className="text-zinc-500 text-sm">Payment Links</p>
                                 </div>
                                 <div className="p-4 bg-zinc-800 rounded-lg text-center">
-                                    <p className="text-3xl font-bold text-white">{data.salesCount}</p>
+                                    <p className="text-3xl font-bold text-white">{data.counts?.sales ?? 0}</p>
                                     <p className="text-zinc-500 text-sm">Sales</p>
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
-                    {/* Seller IDs Searched */}
+                    {/* Seller IDs - UUID */}
                     <Card className="bg-zinc-900 border-zinc-800">
                         <CardHeader>
-                            <CardTitle className="text-lg text-white">Seller IDs Being Searched</CardTitle>
+                            <CardTitle className="text-lg text-white">UUID Seller IDs (for payment_links)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {data.sellerIds?.uuidSellerIds?.length === 0 ? (
+                                <p className="text-zinc-500">No UUID seller IDs (no projects)</p>
+                            ) : (
+                                <div className="space-y-1">
+                                    {data.sellerIds?.uuidSellerIds?.map((id, i) => (
+                                        <code key={i} className="block text-zinc-300 text-sm font-mono bg-zinc-800 px-2 py-1 rounded">
+                                            {id}
+                                        </code>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Seller IDs - TEXT */}
+                    <Card className="bg-zinc-900 border-zinc-800">
+                        <CardHeader>
+                            <CardTitle className="text-lg text-white">TEXT Seller IDs (for sales)</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-1">
-                                {data.sellerIdsSearched.map((id, i) => (
+                                {data.sellerIds?.textSellerIds?.map((id, i) => (
                                     <code key={i} className="block text-zinc-300 text-sm font-mono bg-zinc-800 px-2 py-1 rounded">
                                         {id}
                                     </code>
@@ -198,23 +224,41 @@ export default function DebugPage() {
                         </CardContent>
                     </Card>
 
-                    {/* All Seller IDs in DB */}
+                    {/* All Seller IDs in payment_links DB */}
                     <Card className="bg-zinc-900 border-zinc-800">
                         <CardHeader>
                             <CardTitle className="text-lg text-white">All Seller IDs in payment_links table</CardTitle>
-                            <CardDescription className="text-zinc-400">
-                                These are all unique seller_ids in the database
-                            </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {data.allPaymentLinkSellerIds.length === 0 ? (
+                            {data.allPaymentLinkSellerIds?.length === 0 ? (
                                 <p className="text-zinc-500">No payment links in database</p>
                             ) : (
                                 <div className="space-y-2">
-                                    {data.allPaymentLinkSellerIds.map((item: any, i: number) => (
+                                    {data.allPaymentLinkSellerIds?.map((item: any, i: number) => (
                                         <div key={i} className="flex justify-between items-center p-2 bg-zinc-800 rounded">
                                             <code className="text-zinc-300 text-sm font-mono">{item.seller_id}</code>
                                             <span className="text-zinc-500 text-sm">{item.count} links</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* All Seller IDs in sales DB */}
+                    <Card className="bg-zinc-900 border-zinc-800">
+                        <CardHeader>
+                            <CardTitle className="text-lg text-white">All Seller IDs in sales table</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            {data.allSalesSellerIds?.length === 0 ? (
+                                <p className="text-zinc-500">No sales in database</p>
+                            ) : (
+                                <div className="space-y-2">
+                                    {data.allSalesSellerIds?.map((item: any, i: number) => (
+                                        <div key={i} className="flex justify-between items-center p-2 bg-zinc-800 rounded">
+                                            <code className="text-zinc-300 text-sm font-mono">{item.seller_id}</code>
+                                            <span className="text-zinc-500 text-sm">{item.count} sales</span>
                                         </div>
                                     ))}
                                 </div>
