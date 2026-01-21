@@ -14,9 +14,9 @@ export async function GET(req: NextRequest) {
     try {
         const user = await requireAuth(req);
 
-        // Get user's projects
+        // Get user's projects - user_id is UUID
         const projectsResult = await pgPool.query(
-            `SELECT id, name, environment, x402_network, created_at FROM projects WHERE user_id = $1`,
+            `SELECT id::text, name, environment, x402_network, created_at FROM projects WHERE user_id = $1::uuid`,
             [user.id]
         );
 
@@ -29,35 +29,56 @@ export async function GET(req: NextRequest) {
             textSellerIds.push(`project-${p.id}`);
         });
 
-        // For UUID columns (payment_links): only include valid UUIDs
+        // For UUID columns (payment_links): only include valid UUIDs (project IDs)
         const uuidSellerIds: string[] = projectIds;
 
-        // Get payment links count (UUID column)
+        // Get payment links count (UUID column) - only if we have project IDs
         let linksCount = 0;
         if (uuidSellerIds.length > 0) {
-            const linksResult = await pgPool.query(
-                `SELECT COUNT(*) as count FROM payment_links WHERE seller_id = ANY($1::uuid[])`,
-                [uuidSellerIds]
-            );
-            linksCount = parseInt(linksResult.rows[0].count);
+            try {
+                const linksResult = await pgPool.query(
+                    `SELECT COUNT(*) as count FROM payment_links WHERE seller_id = ANY($1::uuid[])`,
+                    [uuidSellerIds]
+                );
+                linksCount = parseInt(linksResult.rows[0].count);
+            } catch (e) {
+                console.error('Error querying payment_links:', e);
+            }
         }
 
         // Get sales count (TEXT column)
-        const salesResult = await pgPool.query(
-            `SELECT COUNT(*) as count FROM sales WHERE seller_id = ANY($1::text[])`,
-            [textSellerIds]
-        );
-        const salesCount = parseInt(salesResult.rows[0].count);
+        let salesCount = 0;
+        try {
+            const salesResult = await pgPool.query(
+                `SELECT COUNT(*) as count FROM sales WHERE seller_id = ANY($1::text[])`,
+                [textSellerIds]
+            );
+            salesCount = parseInt(salesResult.rows[0].count);
+        } catch (e) {
+            console.error('Error querying sales:', e);
+        }
 
         // Get all payment links seller_ids to debug
-        const allLinksResult = await pgPool.query(
-            `SELECT seller_id::text, COUNT(*) as count FROM payment_links GROUP BY seller_id LIMIT 20`
-        );
+        let allLinksSellerIds: any[] = [];
+        try {
+            const allLinksResult = await pgPool.query(
+                `SELECT seller_id::text, COUNT(*) as count FROM payment_links GROUP BY seller_id LIMIT 20`
+            );
+            allLinksSellerIds = allLinksResult.rows;
+        } catch (e) {
+            console.error('Error getting all payment link seller IDs:', e);
+        }
 
         // Get all sales seller_ids to debug
-        const allSalesResult = await pgPool.query(
-            `SELECT seller_id, COUNT(*) as count FROM sales GROUP BY seller_id LIMIT 20`
-        );
+        let allSalesSellerIds: any[] = [];
+        try {
+            const allSalesResult = await pgPool.query(
+                `SELECT seller_id, COUNT(*) as count FROM sales GROUP BY seller_id LIMIT 20`
+            );
+            allSalesSellerIds = allSalesResult.rows;
+        } catch (e) {
+            console.error('Error getting all sales seller IDs:', e);
+        }
 
         return NextResponse.json({
             user: {
@@ -75,8 +96,8 @@ export async function GET(req: NextRequest) {
                 paymentLinks: linksCount,
                 sales: salesCount,
             },
-            allPaymentLinkSellerIds: allLinksResult.rows,
-            allSalesSellerIds: allSalesResult.rows,
+            allPaymentLinkSellerIds: allLinksSellerIds,
+            allSalesSellerIds: allSalesSellerIds,
         });
     } catch (error: any) {
         console.error('[debug/user-data] Error:', error);
