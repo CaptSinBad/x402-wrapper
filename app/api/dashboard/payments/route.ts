@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
                 metadata,
                 created_at
              FROM sales
-             WHERE seller_id = ANY($1)
+             WHERE seller_id = ANY($1::text[])
              ORDER BY created_at DESC
              LIMIT 100`,
             [allSellerIds]

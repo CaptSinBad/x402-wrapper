@@ -40,19 +40,21 @@ export async function GET(req: NextRequest) {
             [user.id]
         );
 
-        // Build all possible seller_id formats for backward compatibility:
-        // - user.id (old format)
-        // - project.id (UUID)
-        // - project-{project.id} (legacy format)
-        const allSellerIds: string[] = [user.id];
+        const projectIds: string[] = projectResult.rows.map((p: any) => p.id);
 
-        if (projectResult.rows.length > 0) {
-            projectResult.rows.forEach((p: any) => {
-                allSellerIds.push(p.id);                    // UUID format
-                allSellerIds.push(`project-${p.id}`);       // Legacy format
-            });
+        // If no projects, return empty list
+        if (projectIds.length === 0) {
+            return NextResponse.json({ links: [] });
         }
 
+        // For TEXT columns (sales): include user.id and project-{id} formats for revenue calculation
+        const textSellerIds: string[] = [user.id];
+        projectResult.rows.forEach((p: any) => {
+            textSellerIds.push(p.id);
+            textSellerIds.push(`project-${p.id}`);
+        });
+
+        // payment_links.seller_id is UUID type, so only use valid UUIDs
         const result = await pgPool.query(
             `SELECT 
                 pl.*,
@@ -60,10 +62,10 @@ export async function GET(req: NextRequest) {
                 COALESCE(SUM(s.amount_cents), 0) as total_revenue_cents
              FROM payment_links pl
              LEFT JOIN sales s ON s.metadata->>'payment_link_token' = pl.token
-             WHERE pl.seller_id = ANY($1)
+             WHERE pl.seller_id = ANY($1::uuid[])
              GROUP BY pl.id
              ORDER BY pl.created_at DESC`,
-            [allSellerIds]
+            [projectIds]
         );
 
         const links = result.rows.map((row: PaymentLinkRow) => ({
