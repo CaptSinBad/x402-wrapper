@@ -1,6 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import { Badge } from '@/app/components/ui/badge';
+import { Skeleton } from '@/app/components/ui/skeleton';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from '@/app/components/ui/table';
+import { CreditCard, ExternalLink } from 'lucide-react';
 
 interface Payment {
     id: string;
@@ -12,8 +25,6 @@ interface Payment {
     network: string;
     createdAt: string;
 }
-
-import { useAuthToken } from '@/app/hooks/useAuthToken';
 
 export default function PaymentsPage() {
     const { authFetch } = useAuthToken();
@@ -36,78 +47,78 @@ export default function PaymentsPage() {
         }
     };
 
+    const getExplorerUrl = (txHash: string, network: string) => {
+        if (network === 'base' || network === 'base-mainnet') {
+            return `https://basescan.org/tx/${txHash}`;
+        }
+        return `https://sepolia.basescan.org/tx/${txHash}`;
+    };
+
     if (loading) {
         return (
-            <div style={{ padding: '24px', textAlign: 'center' }}>
-                <p style={{ color: '#4B5563' }}>Loading payments...</p>
+            <div className="p-6 lg:p-10 max-w-6xl mx-auto space-y-6">
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-6 w-64" />
+                <Skeleton className="h-96 w-full" />
             </div>
         );
     }
 
     if (payments.length === 0) {
         return (
-            <div style={{ padding: '24px' }}>
-                <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Payments</h1>
-                <p style={{ color: '#4B5563', marginBottom: '32px' }}>
-                    View and manage all your payment transactions
-                </p>
-
-                <div style={{
-                    background: 'white',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '12px',
-                    padding: '48px',
-                    textAlign: 'center'
-                }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>💳</div>
-                    <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>
-                        No payments yet
-                    </h2>
-                    <p style={{ color: '#4B5563', marginBottom: '24px' }}>
-                        Payments made through your payment links will appear here
+            <div className="p-6 lg:p-10 max-w-6xl mx-auto">
+                <div className="mb-8">
+                    <h1 className="text-3xl font-bold text-white mb-2">Payments</h1>
+                    <p className="text-zinc-400">
+                        View and manage all your payment transactions
                     </p>
                 </div>
+
+                <Card className="bg-zinc-900 border-zinc-800">
+                    <CardContent className="py-16">
+                        <div className="text-center">
+                            <div className="w-20 h-20 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <CreditCard className="w-10 h-10 text-zinc-500" />
+                            </div>
+                            <h2 className="text-xl font-semibold text-white mb-2">
+                                No payments yet
+                            </h2>
+                            <p className="text-zinc-400 max-w-md mx-auto">
+                                Payments made through your payment links will appear here.
+                                Create a payment link to start accepting payments.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     return (
-        <div style={{ padding: '24px' }}>
-            <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Payments</h1>
-            <p style={{ color: '#4B5563', marginBottom: '32px' }}>
-                {payments.length} {payments.length === 1 ? 'payment' : 'payments'} received
-            </p>
+        <div className="p-6 lg:p-10 max-w-6xl mx-auto">
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-white mb-2">Payments</h1>
+                <p className="text-zinc-400">
+                    {payments.length} {payments.length === 1 ? 'payment' : 'payments'} received
+                </p>
+            </div>
 
-            <div style={{
-                background: 'white',
-                border: '1px solid #E2E8F0',
-                borderRadius: '12px',
-                overflow: 'hidden'
-            }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                        <tr style={{ background: '#F7FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>
-                                Date
-                            </th>
-                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>
-                                Amount
-                            </th>
-                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>
-                                Purchaser
-                            </th>
-                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>
-                                Status
-                            </th>
-                            <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>
-                                Transaction
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
+            <Card className="bg-zinc-900 border-zinc-800">
+                <Table>
+                    <TableHeader className="bg-zinc-800/50">
+                        <TableRow className="border-zinc-800 hover:bg-transparent">
+                            <TableHead className="text-zinc-400 font-semibold">Date</TableHead>
+                            <TableHead className="text-zinc-400 font-semibold">Amount</TableHead>
+                            <TableHead className="text-zinc-400 font-semibold">Purchaser</TableHead>
+                            <TableHead className="text-zinc-400 font-semibold">Status</TableHead>
+                            <TableHead className="text-zinc-400 font-semibold">Network</TableHead>
+                            <TableHead className="text-zinc-400 font-semibold text-right">Transaction</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
                         {payments.map((payment) => (
-                            <tr key={payment.id} style={{ borderBottom: '1px solid #E2E8F0' }}>
-                                <td style={{ padding: '16px', fontSize: '14px', color: '#2D3748' }}>
+                            <TableRow key={payment.id} className="border-zinc-800 hover:bg-zinc-800/30">
+                                <TableCell className="text-zinc-300">
                                     {new Date(payment.createdAt).toLocaleDateString('en-US', {
                                         month: 'short',
                                         day: 'numeric',
@@ -115,49 +126,50 @@ export default function PaymentsPage() {
                                         hour: '2-digit',
                                         minute: '2-digit'
                                     })}
-                                </td>
-                                <td style={{ padding: '16px', fontSize: '14px', fontWeight: '600', color: '#2D3748' }}>
-                                    ${payment.amount} {payment.currency}
-                                </td>
-                                <td style={{ padding: '16px', fontSize: '14px', color: '#4B5563', fontFamily: 'monospace' }}>
+                                </TableCell>
+                                <TableCell className="text-white font-semibold tabular-nums">
+                                    ${payment.amount} <span className="text-zinc-500">{payment.currency}</span>
+                                </TableCell>
+                                <TableCell className="text-zinc-400 font-mono text-sm">
                                     {payment.purchaser.slice(0, 6)}...{payment.purchaser.slice(-4)}
-                                </td>
-                                <td style={{ padding: '16px' }}>
-                                    <span style={{
-                                        padding: '4px 12px',
-                                        background: '#C6F6D5',
-                                        color: '#22543D',
-                                        borderRadius: '12px',
-                                        fontSize: '12px',
-                                        fontWeight: '600'
-                                    }}>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge
+                                        className={
+                                            payment.status === 'completed' || payment.status === 'settled'
+                                                ? 'bg-green-500/10 text-green-400 border-green-500/20'
+                                                : payment.status === 'pending'
+                                                    ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                        }
+                                    >
                                         {payment.status}
-                                    </span>
-                                </td>
-                                <td style={{ padding: '16px' }}>
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant="outline" className="border-zinc-700 text-zinc-400 text-xs">
+                                        {payment.network}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
                                     {payment.txHash ? (
                                         <a
-                                            href={`https://sepolia.basescan.org/tx/${payment.txHash}`}
+                                            href={getExplorerUrl(payment.txHash, payment.network)}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            style={{
-                                                color: '#2B5FA5',
-                                                textDecoration: 'none',
-                                                fontSize: '14px',
-                                                fontWeight: '500'
-                                            }}
+                                            className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors"
                                         >
-                                            View ↗
+                                            View <ExternalLink className="w-3 h-3" />
                                         </a>
                                     ) : (
-                                        <span style={{ color: '#A0AEC0', fontSize: '14px' }}>-</span>
+                                        <span className="text-zinc-600">—</span>
                                     )}
-                                </td>
-                            </tr>
+                                </TableCell>
+                            </TableRow>
                         ))}
-                    </tbody>
-                </table>
-            </div>
+                    </TableBody>
+                </Table>
+            </Card>
         </div>
     );
 }

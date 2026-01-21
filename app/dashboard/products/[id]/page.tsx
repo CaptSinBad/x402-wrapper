@@ -2,6 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuthToken } from '@/app/hooks/useAuthToken';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Textarea } from '@/app/components/ui/textarea';
+import { Skeleton } from '@/app/components/ui/skeleton';
+import { ArrowLeft, Trash2, Save, AlertTriangle } from 'lucide-react';
 
 interface Product {
     id: string;
@@ -13,8 +21,6 @@ interface Product {
     images: string[];
     active: boolean;
 }
-
-import { useAuthToken } from '@/app/hooks/useAuthToken';
 
 export default function ProductEditPage() {
     const { authFetch } = useAuthToken();
@@ -111,227 +117,168 @@ export default function ProductEditPage() {
 
     if (loading) {
         return (
-            <div style={{ padding: '40px', textAlign: 'center' }}>
-                <p style={{ color: '#4B5563' }}>Loading product...</p>
+            <div className="p-6 lg:p-10 max-w-3xl mx-auto space-y-6">
+                <Skeleton className="h-10 w-36" />
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-[500px] w-full" />
             </div>
         );
     }
 
     if (error && !product) {
         return (
-            <div style={{ padding: '40px', textAlign: 'center' }}>
-                <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-                <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>Product not found</h2>
-                <p style={{ color: '#4B5563', marginBottom: '24px' }}>{error}</p>
-                <button
-                    onClick={() => router.push('/dashboard/products')}
-                    style={{
-                        padding: '12px 24px',
-                        background: '#2B5FA5',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '15px',
-                        fontWeight: '600',
-                        cursor: 'pointer'
-                    }}
-                >
-                    Back to Products
-                </button>
+            <div className="p-6 lg:p-10 max-w-3xl mx-auto">
+                <Card className="bg-zinc-900 border-zinc-800">
+                    <CardContent className="py-16 text-center">
+                        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle className="w-8 h-8 text-red-400" />
+                        </div>
+                        <h2 className="text-xl font-semibold text-white mb-2">Product not found</h2>
+                        <p className="text-zinc-400 mb-6">{error}</p>
+                        <Button
+                            onClick={() => router.push('/dashboard/products')}
+                            className="bg-blue-600 hover:bg-blue-500"
+                        >
+                            Back to Products
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         );
     }
 
     return (
-        <div style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
-            <div style={{ marginBottom: '32px' }}>
-                <button
+        <div className="p-6 lg:p-10 max-w-3xl mx-auto">
+            <div className="mb-8">
+                <Button
+                    variant="ghost"
                     onClick={() => router.push('/dashboard/products')}
-                    style={{
-                        padding: '8px 16px',
-                        background: 'transparent',
-                        border: '1px solid #E2E8F0',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        marginBottom: '20px'
-                    }}
+                    className="text-zinc-400 hover:text-white mb-4 -ml-2"
                 >
-                    ← Back to Products
-                </button>
-                <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Edit Product</h1>
-                <p style={{ color: '#4B5563' }}>Update product details</p>
+                    <ArrowLeft className="w-4 h-4 mr-2" /> Back to Products
+                </Button>
+                <h1 className="text-3xl font-bold text-white mb-2">Edit Product</h1>
+                <p className="text-zinc-400">Update product details</p>
             </div>
 
-            <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '32px' }}>
-                {/* Product Images */}
-                {product?.images && product.images.length > 0 && (
-                    <div style={{ marginBottom: '24px' }}>
-                        <img
-                            src={product.images[0]}
-                            alt={name}
-                            style={{
-                                width: '200px',
-                                height: '200px',
-                                objectFit: 'cover',
-                                borderRadius: '8px',
-                                border: '1px solid #E2E8F0'
-                            }}
+            <Card className="bg-zinc-900 border-zinc-800">
+                <CardContent className="p-6 space-y-6">
+                    {/* Product Images */}
+                    {product?.images && product.images.length > 0 && (
+                        <div>
+                            <img
+                                src={product.images[0]}
+                                alt={name}
+                                className="w-48 h-48 object-cover rounded-xl border border-zinc-700"
+                            />
+                        </div>
+                    )}
+
+                    {/* Name */}
+                    <div className="space-y-2">
+                        <Label htmlFor="name" className="text-zinc-300">Product Name</Label>
+                        <Input
+                            id="name"
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            className="bg-zinc-800 border-zinc-700 text-white"
                         />
                     </div>
-                )}
 
-                {/* Name */}
-                <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-                        Product Name
-                    </label>
-                    <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        style={{
-                            width: '100%',
-                            padding: '12px',
-                            border: '1px solid #E2E8F0',
-                            borderRadius: '8px',
-                            fontSize: '15px'
-                        }}
-                    />
-                </div>
-
-                {/* Description */}
-                <div style={{ marginBottom: '20px' }}>
-                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-                        Description
-                    </label>
-                    <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        rows={4}
-                        style={{
-                            width: '100%',
-                            padding: '12px',
-                            border: '1px solid #E2E8F0',
-                            borderRadius: '8px',
-                            fontSize: '15px',
-                            resize: 'vertical'
-                        }}
-                    />
-                </div>
-
-                {/* Price */}
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-                            Price
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={price}
-                            onChange={(e) => setPrice(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '8px',
-                                fontSize: '15px'
-                            }}
+                    {/* Description */}
+                    <div className="space-y-2">
+                        <Label htmlFor="description" className="text-zinc-300">Description</Label>
+                        <Textarea
+                            id="description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            rows={4}
+                            className="bg-zinc-800 border-zinc-700 text-white resize-y"
                         />
                     </div>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-                            Currency
-                        </label>
-                        <select
-                            value={currency}
-                            onChange={(e) => setCurrency(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '8px',
-                                fontSize: '15px'
-                            }}
-                        >
-                            <option value="USDC">USDC</option>
-                        </select>
-                    </div>
-                </div>
 
-                {/* Active Status */}
-                <div style={{ marginBottom: '32px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                    {/* Price */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="md:col-span-2 space-y-2">
+                            <Label htmlFor="price" className="text-zinc-300">Price</Label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">$</span>
+                                <Input
+                                    id="price"
+                                    type="number"
+                                    step="0.01"
+                                    value={price}
+                                    onChange={(e) => setPrice(e.target.value)}
+                                    className="bg-zinc-800 border-zinc-700 text-white pl-7"
+                                />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="currency" className="text-zinc-300">Currency</Label>
+                            <select
+                                id="currency"
+                                value={currency}
+                                onChange={(e) => setCurrency(e.target.value)}
+                                className="w-full h-10 px-3 bg-zinc-800 border border-zinc-700 rounded-md text-white"
+                            >
+                                <option value="USDC">USDC</option>
+                                <option value="USDT">USDT</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Active Status */}
+                    <div className="flex items-center gap-3 p-4 bg-zinc-800 border border-zinc-700 rounded-lg">
                         <input
                             type="checkbox"
+                            id="active"
                             checked={active}
                             onChange={(e) => setActive(e.target.checked)}
-                            style={{ marginRight: '8px' }}
+                            className="w-4 h-4 accent-blue-500"
                         />
-                        <span style={{ fontSize: '14px', fontWeight: '600' }}>Active (visible to customers)</span>
-                    </label>
-                </div>
-
-                {/* Error */}
-                {error && (
-                    <div style={{ background: '#FED7D7', border: '1px solid #FC8181', borderRadius: '8px', padding: '12px', marginBottom: '20px', color: '#742A2A', fontSize: '14px' }}>
-                        {error}
+                        <label htmlFor="active" className="text-zinc-200 cursor-pointer">
+                            Active (visible to customers)
+                        </label>
                     </div>
-                )}
 
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'space-between' }}>
-                    <button
-                        onClick={handleDelete}
-                        style={{
-                            padding: '12px 24px',
-                            background: '#F56565',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '15px',
-                            fontWeight: '600',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Delete Product
-                    </button>
+                    {/* Error */}
+                    {error && (
+                        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+                            {error}
+                        </div>
+                    )}
 
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                        <button
-                            onClick={() => router.push('/dashboard/products')}
-                            style={{
-                                padding: '12px 24px',
-                                background: 'white',
-                                border: '1px solid #E2E8F0',
-                                borderRadius: '8px',
-                                fontSize: '15px',
-                                fontWeight: '600',
-                                cursor: 'pointer'
-                            }}
+                    {/* Actions */}
+                    <div className="flex items-center justify-between pt-4 border-t border-zinc-800">
+                        <Button
+                            variant="destructive"
+                            onClick={handleDelete}
+                            className="bg-red-600 hover:bg-red-500"
                         >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleUpdate}
-                            disabled={saving || !name || !price}
-                            style={{
-                                padding: '12px 24px',
-                                background: saving || !name || !price ? '#CBD5E0' : '#2B5FA5',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontSize: '15px',
-                                fontWeight: '600',
-                                cursor: saving || !name || !price ? 'not-allowed' : 'pointer'
-                            }}
-                        >
-                            {saving ? 'Saving...' : 'Save Changes'}
-                        </button>
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete Product
+                        </Button>
+
+                        <div className="flex gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={() => router.push('/dashboard/products')}
+                                className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleUpdate}
+                                disabled={saving || !name || !price}
+                                className="bg-blue-600 hover:bg-blue-500"
+                            >
+                                <Save className="w-4 h-4 mr-2" />
+                                {saving ? 'Saving...' : 'Save Changes'}
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
