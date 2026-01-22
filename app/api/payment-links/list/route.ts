@@ -34,27 +34,18 @@ export async function GET(req: NextRequest) {
     try {
         const user = await requireAuth(req);
 
-        // Get user's project IDs
+        // Get user's project IDs - projects.user_id is UUID
         const projectResult = await pgPool.query(
-            `SELECT id FROM projects WHERE user_id = $1`,
+            `SELECT id FROM projects WHERE user_id = $1::uuid`,
             [user.id]
         );
 
         const projectIds: string[] = projectResult.rows.map((p: any) => p.id);
 
-        // If no projects, return empty list
-        if (projectIds.length === 0) {
-            return NextResponse.json({ links: [] });
-        }
+        // Both user.id and project IDs are valid seller IDs (both are UUIDs)
+        const allSellerIds: string[] = [user.id, ...projectIds];
 
-        // For TEXT columns (sales): include user.id and project-{id} formats for revenue calculation
-        const textSellerIds: string[] = [user.id];
-        projectResult.rows.forEach((p: any) => {
-            textSellerIds.push(p.id);
-            textSellerIds.push(`project-${p.id}`);
-        });
-
-        // payment_links.seller_id is UUID type, so only use valid UUIDs
+        // payment_links.seller_id is UUID type
         const result = await pgPool.query(
             `SELECT 
                 pl.*,
@@ -65,7 +56,7 @@ export async function GET(req: NextRequest) {
              WHERE pl.seller_id = ANY($1::uuid[])
              GROUP BY pl.id
              ORDER BY pl.created_at DESC`,
-            [projectIds]
+            [allSellerIds]
         );
 
         const links = result.rows.map((row: PaymentLinkRow) => ({

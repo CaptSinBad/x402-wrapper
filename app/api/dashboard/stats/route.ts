@@ -14,48 +14,70 @@ export async function GET(req: NextRequest) {
     try {
         const user = await requireAuth(req);
 
-        // Get user's projects
+        // Get user's projects - projects.user_id is UUID
         const projectsResult = await pgPool.query(
-            `SELECT id FROM projects WHERE user_id = $1`,
+            `SELECT id FROM projects WHERE user_id = $1::uuid`,
             [user.id]
         );
 
         const projectIds: string[] = projectsResult.rows.map((p: any) => p.id);
 
-        // For TEXT columns (sales): include user.id and project-{id} formats
-        const textSellerIds: string[] = [user.id];
-        projectsResult.rows.forEach((p: any) => {
-            textSellerIds.push(p.id);
-            textSellerIds.push(`project-${p.id}`);
-        });
+        // Both sales.seller_id and payment_links.seller_id are UUID type
+        // Include both user.id and all project IDs as valid seller IDs
+        const allSellerIds: string[] = [user.id, ...projectIds];
+
+        // If no valid seller IDs, return zeros
+        if (allSellerIds.length === 0) {
+            return NextResponse.json({
+                totalRevenue: '0.00',
+                totalRevenueCents: 0,
+                activeEndpoints: 0,
+                totalPayments: 0,
+                recentSales: [],
+            });
+        }
 
         // Total revenue from completed sales (in USDC cents) for this merchant
-        // sales.seller_id is TEXT type
+        // sales.seller_id is UUID type
         const revenueResult = await pgPool.query(
             `SELECT COALESCE(SUM(amount_cents), 0) as total_revenue
              FROM sales
-             WHERE seller_id = ANY($1::text[])
+             WHERE seller_id = ANY($1::uuid[])
              AND (metadata->>'status' = 'completed' OR metadata->>'status' IS NULL)`,
-            [textSellerIds]
+            [allSellerIds]
         );
 
         const totalRevenueCents = parseInt(revenueResult.rows[0].total_revenue);
         const totalRevenueUSDC = (totalRevenueCents / 100).toFixed(2);
 
-        // Active endpoints for this merchant (seller_endpoints.seller_id is likely TEXT)
-        const endpointsResult = await pgPool.query(
-            `SELECT COUNT(*) as count FROM seller_endpoints WHERE seller_id = ANY($1::text[])`,
-            [textSellerIds]
-        );
-        const activeEndpoints = parseInt(endpointsResult.rows[0].count);
+        // Active endpoints for this merchant
+        let activeEndpoints = 0;
+        try {
+            const endpointsResult = await pgPool.query(
+                `SELECT COUNT(*) as count FROM seller_endpoints WHERE seller_id = ANY($1::uuid[])`,
+                [allSellerIds]
+            );
+            activeEndpoints = parseInt(endpointsResult.rows[0].count);
+        } catch (e) {
+            // seller_endpoints might have TEXT type, try with text cast
+            try {
+                const endpointsResult = await pgPool.query(
+                    `SELECT COUNT(*) as count FROM seller_endpoints WHERE seller_id = ANY($1::text[])`,
+                    [allSellerIds]
+                );
+                activeEndpoints = parseInt(endpointsResult.rows[0].count);
+            } catch (e2) {
+                console.error('seller_endpoints query failed:', e2);
+            }
+        }
 
         // Total payments this month for this merchant
         const paymentsResult = await pgPool.query(
             `SELECT COUNT(*) as count
              FROM sales
-             WHERE seller_id = ANY($1::text[])
+             WHERE seller_id = ANY($1::uuid[])
              AND created_at >= date_trunc('month', CURRENT_DATE)`,
-            [textSellerIds]
+            [allSellerIds]
         );
         const totalPayments = parseInt(paymentsResult.rows[0].count);
 
@@ -70,10 +92,10 @@ export async function GET(req: NextRequest) {
                 metadata,
                 created_at
              FROM sales
-             WHERE seller_id = ANY($1::text[])
+             WHERE seller_id = ANY($1::uuid[])
              ORDER BY created_at DESC
              LIMIT 5`,
-            [textSellerIds]
+            [allSellerIds]
         );
 
         const recentSales = recentSalesResult.rows.map((sale: any) => ({

@@ -14,25 +14,18 @@ export async function GET(req: NextRequest) {
     try {
         const user = await requireAuth(req);
 
-        // Get user's project IDs
+        // Get user's project IDs - projects.user_id is UUID
         const projectResult = await pgPool.query(
-            `SELECT id FROM projects WHERE user_id = $1`,
+            `SELECT id FROM projects WHERE user_id = $1::uuid`,
             [user.id]
         );
 
-        // Build all possible seller_id formats for backward compatibility:
-        // - user.id (old format)
-        // - project.id (UUID)
-        // - project-{project.id} (legacy format)
-        const allSellerIds: string[] = [user.id];
+        const projectIds: string[] = projectResult.rows.map((p: any) => p.id);
 
-        if (projectResult.rows.length > 0) {
-            projectResult.rows.forEach((p: any) => {
-                allSellerIds.push(p.id);                    // UUID format
-                allSellerIds.push(`project-${p.id}`);       // Legacy format
-            });
-        }
+        // Both user.id and project IDs are valid seller IDs (both are UUIDs)
+        const allSellerIds: string[] = [user.id, ...projectIds];
 
+        // sales.seller_id is UUID type
         const result = await pgPool.query(
             `SELECT 
                 id,
@@ -42,7 +35,7 @@ export async function GET(req: NextRequest) {
                 metadata,
                 created_at
              FROM sales
-             WHERE seller_id = ANY($1::text[])
+             WHERE seller_id = ANY($1::uuid[])
              ORDER BY created_at DESC
              LIMIT 100`,
             [allSellerIds]

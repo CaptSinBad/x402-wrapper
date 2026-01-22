@@ -22,40 +22,32 @@ export async function GET(req: NextRequest) {
 
         const projectIds: string[] = projectsResult.rows.map((p: any) => p.id);
 
-        // For TEXT columns (sales, etc): include user.id and project-{id} formats
-        const textSellerIds: string[] = [user.id];
-        projectsResult.rows.forEach((p: any) => {
-            textSellerIds.push(p.id);
-            textSellerIds.push(`project-${p.id}`);
-        });
+        // All seller_id columns are now UUID type
+        // Include both user.id and project IDs as valid seller IDs
+        const allSellerIds: string[] = [user.id, ...projectIds];
 
-        // For UUID columns (payment_links): only include valid UUIDs (project IDs)
-        const uuidSellerIds: string[] = projectIds;
-
-        // Get payment links count (UUID column) - only if we have project IDs
+        // Get payment links count (UUID column)
         let linksCount = 0;
-        if (uuidSellerIds.length > 0) {
-            try {
-                const linksResult = await pgPool.query(
-                    `SELECT COUNT(*) as count FROM payment_links WHERE seller_id = ANY($1::uuid[])`,
-                    [uuidSellerIds]
-                );
-                linksCount = parseInt(linksResult.rows[0].count);
-            } catch (e) {
-                console.error('Error querying payment_links:', e);
-            }
+        try {
+            const linksResult = await pgPool.query(
+                `SELECT COUNT(*) as count FROM payment_links WHERE seller_id = ANY($1::uuid[])`,
+                [allSellerIds]
+            );
+            linksCount = parseInt(linksResult.rows[0].count);
+        } catch (e: any) {
+            console.error('Error querying payment_links:', e.message);
         }
 
-        // Get sales count (TEXT column)
+        // Get sales count (UUID column)
         let salesCount = 0;
         try {
             const salesResult = await pgPool.query(
-                `SELECT COUNT(*) as count FROM sales WHERE seller_id = ANY($1::text[])`,
-                [textSellerIds]
+                `SELECT COUNT(*) as count FROM sales WHERE seller_id = ANY($1::uuid[])`,
+                [allSellerIds]
             );
             salesCount = parseInt(salesResult.rows[0].count);
-        } catch (e) {
-            console.error('Error querying sales:', e);
+        } catch (e: any) {
+            console.error('Error querying sales:', e.message);
         }
 
         // Get all payment links seller_ids to debug
@@ -65,19 +57,19 @@ export async function GET(req: NextRequest) {
                 `SELECT seller_id::text, COUNT(*) as count FROM payment_links GROUP BY seller_id LIMIT 20`
             );
             allLinksSellerIds = allLinksResult.rows;
-        } catch (e) {
-            console.error('Error getting all payment link seller IDs:', e);
+        } catch (e: any) {
+            console.error('Error getting all payment link seller IDs:', e.message);
         }
 
         // Get all sales seller_ids to debug
         let allSalesSellerIds: any[] = [];
         try {
             const allSalesResult = await pgPool.query(
-                `SELECT seller_id, COUNT(*) as count FROM sales GROUP BY seller_id LIMIT 20`
+                `SELECT seller_id::text, COUNT(*) as count FROM sales GROUP BY seller_id LIMIT 20`
             );
             allSalesSellerIds = allSalesResult.rows;
-        } catch (e) {
-            console.error('Error getting all sales seller IDs:', e);
+        } catch (e: any) {
+            console.error('Error getting all sales seller IDs:', e.message);
         }
 
         return NextResponse.json({
@@ -88,10 +80,7 @@ export async function GET(req: NextRequest) {
                 wallet_address: user.wallet_address,
             },
             projects: projectsResult.rows,
-            sellerIds: {
-                uuidSellerIds,  // For payment_links (UUID column)
-                textSellerIds,  // For sales (TEXT column)
-            },
+            sellerIds: allSellerIds,
             counts: {
                 paymentLinks: linksCount,
                 sales: salesCount,
