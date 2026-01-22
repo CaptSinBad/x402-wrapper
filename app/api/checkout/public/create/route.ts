@@ -1,0 +1,155 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { Pool } from 'pg';
+import crypto from 'crypto';
+
+const pgPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+});
+
+/**
+ * POST /api/checkout/public/create
+ * Create a checkout session for public store customers (no auth required)
+ */
+export async function POST(req: NextRequest) {
+    try {
+        const body = await req.json();
+
+        const { store_slug, line_items, success_url, cancel_url, customer_email } = body;
+
+        // Validate required fields
+        if (!store_slug) {
+            return NextResponse.json(
+                { error: 'store_slug is required' },
+                { status: 400 }
+            );
+        }
+
+        if (!line_items || !Array.isArray(line_items) || line_items.length === 0) {
+            return NextResponse.json(
+                { error: 'line_items is required and must be a non-empty array' },
+                { status: 400 }
+            );
+        }
+
+        // Get the store and its owner (seller)
+        const storeResult = await pgPool.query(
+            `SELECT s.*, u.id as seller_id 
+             FROM stores s
+             JOIN users u ON s.user_id = u.id
+             WHERE s.store_slug = $1 AND s.active = true`,
+            [store_slug]
+        );
+
+        if (storeResult.rows.length === 0) {
+            return NextResponse.json(
+                { error: 'store_not_found or inactive' },
+                { status: 404 }
+            );
+        }
+
+        const store = storeResult.rows[0];
+        const sellerId = store.seller_id;
+
+        // Fetch products and validate line items
+        const productIds = line_items.map(item => item.product_id);
+        const productsResult = await pgPool.query(
+            `SELECT * FROM products WHERE id = ANY($1::uuid[]) AND store_id = $2::uuid AND active = true`,
+            [productIds, store.id]
+        );
+
+        if (productsResult.rows.length !== productIds.length) {
+            // Find which products are missing
+            const foundIds = new Set(productsResult.rows.map((p: any) => p.id));
+            const missingIds = productIds.filter(id => !foundIds.has(id));
+            return NextResponse.json(
+                { error: 'one or more products not found or inactive', missing: missingIds },
+                { status: 400 }
+            );
+        }
+
+        const productMap = new Map(productsResult.rows.map((p: any) => [p.id, p]));
+
+        // Calculate total and build enriched line items
+        let totalCents = 0;
+        const enrichedLineItems = line_items.map(item => {
+            const product = productMap.get(item.product_id) as any;
+            if (!product) {
+                throw new Error(`Product ${item.product_id} not found`);
+            }
+
+            const quantity = item.quantity || 1;
+            if (quantity < 1) {
+                throw new Error('quantity must be at least 1');
+            }
+
+            const itemTotal = product.price_cents * quantity;
+            totalCents += itemTotal;
+
+            return {
+                product_id: product.id,
+                name: product.name,
+                description: product.description,
+                price_cents: product.price_cents,
+                quantity,
+                total_cents: itemTotal,
+                images: product.images
+            };
+        });
+
+        // Calculate 1% platform fee (round up)
+        const platformFeeCents = Math.ceil(totalCents * 0.01);
+        const totalWithFee = totalCents + platformFeeCents;
+
+        // Generate unique session ID
+        const sessionId = `sess_${crypto.randomBytes(16).toString('hex')}`;
+
+        // Set expiration (default: 24 hours)
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        // Insert checkout session
+        const result = await pgPool.query(
+            `INSERT INTO checkout_sessions (
+                session_id, seller_id, customer_email, line_items, 
+                total_cents, platform_fee_cents, currency, mode, 
+                success_url, cancel_url, metadata, expires_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING *`,
+            [
+                sessionId,
+                sellerId,
+                customer_email || null,
+                JSON.stringify(enrichedLineItems),
+                totalWithFee,
+                platformFeeCents,
+                'USDC',
+                'payment',
+                success_url || null,
+                cancel_url || null,
+                JSON.stringify({ store_slug, store_name: store.store_name }),
+                expiresAt
+            ]
+        );
+
+        const session = result.rows[0];
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+        return NextResponse.json({
+            id: session.session_id,
+            url: `${baseUrl}/checkout/${session.session_id}`,
+            expires_at: session.expires_at,
+            total_cents: session.total_cents,
+            total: (session.total_cents / 100).toFixed(2),
+            platform_fee_cents: session.platform_fee_cents,
+            platform_fee: (session.platform_fee_cents / 100).toFixed(2),
+            currency: session.currency,
+            line_items: enrichedLineItems
+        });
+    } catch (error: any) {
+        console.error('[checkout/public/create] Error:', error);
+
+        return NextResponse.json(
+            { error: 'internal_error', message: error.message },
+            { status: 500 }
+        );
+    }
+}

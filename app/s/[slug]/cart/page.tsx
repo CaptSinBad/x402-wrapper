@@ -87,16 +87,16 @@ export default function CartPage() {
         setLoading(true);
 
         try {
-            // Create checkout session
-            const response = await fetch('/api/checkout/sessions/create', {
+            // Create checkout session using public API (no auth required for customers)
+            const response = await fetch('/api/checkout/public/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    store_slug: slug,
                     line_items: cart.items.map(item => ({
                         product_id: item.productId,
                         quantity: item.quantity
                     })),
-                    mode: 'payment',
                     success_url: `${window.location.origin}/s/${slug}?checkout=success`,
                     cancel_url: `${window.location.origin}/s/${slug}/cart`
                 })
