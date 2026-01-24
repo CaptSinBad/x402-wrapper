@@ -2,17 +2,28 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAccount, useWalletClient } from 'wagmi';
 import { parseUnits } from 'viem';
+import { useAccount, useWalletClient } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
+import Link from 'next/link';
+import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+
+import { CheckoutProgress } from './components/CheckoutProgress';
+import { TrustBadges } from './components/TrustBadges';
+import { OrderSummaryCard } from './components/OrderSummaryCard';
+import { PaymentCard } from './components/PaymentCard';
+import { CheckoutSuccess } from './components/CheckoutSuccess';
+import { Button } from '@/app/components/ui/button';
+import { Skeleton } from '@/app/components/ui/skeleton';
 
 interface LineItem {
     product_id: string;
     name: string;
-    description: string;
+    description?: string;
     price_cents: number;
     quantity: number;
     total_cents: number;
-    images: string[];
+    images?: string[];
 }
 
 interface CheckoutSession {
@@ -37,19 +48,21 @@ export default function CheckoutPage() {
     const router = useRouter();
     const { address, isConnected } = useAccount();
     const { data: walletClient } = useWalletClient();
+    const { open } = useWeb3Modal();
 
     const [session, setSession] = useState<CheckoutSession | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [paying, setPaying] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [email, setEmail] = useState('');
-    const [paymentSuccess, setPaymentSuccess] = useState(false);
+    const [paying, setPaying] = useState(false);
+    const [paymentError, setPaymentError] = useState('');
+    const [connecting, setConnecting] = useState(false);
+    const [success, setSuccess] = useState(false);
     const [txHash, setTxHash] = useState('');
 
-    const sessionId = params.session_id as string;
+    const sessionId = params?.session_id as string;
 
     useEffect(() => {
-        if (!sessionId) return;
         fetchSession();
     }, [sessionId]);
 
@@ -59,33 +72,35 @@ export default function CheckoutPage() {
             const data = await response.json();
 
             if (!response.ok) {
-                setError(data.error === 'session_expired'
-                    ? 'This checkout session has expired'
-                    : 'Checkout session not found');
-                setLoading(false);
-                return;
+                throw new Error(data.error || 'Failed to load checkout session');
             }
 
             setSession(data);
-            setEmail(data.customer_email || '');
-        } catch (err) {
-            console.error('Failed to fetch session:', err);
-            setError('Failed to load checkout session');
+        } catch (err: any) {
+            setError(err.message);
         } finally {
             setLoading(false);
         }
     };
 
-    const handlePayment = async () => {
-        if (!walletClient || !address || !session) return;
+    const handleConnect = async () => {
+        setConnecting(true);
+        try {
+            await open();
+        } finally {
+            setConnecting(false);
+        }
+    };
+
+    const handlePay = async () => {
+        if (!session || !address || !walletClient) return;
 
         setPaying(true);
-        setError('');
+        setPaymentError('');
 
         try {
-            // Generate x402 payment
             const now = Math.floor(Date.now() / 1000);
-            const validBefore = now + 300; // 5 minutes
+            const validBefore = now + 300;
             const validAfter = now - 60;
 
             const nonceBytes = new Uint8Array(32);
@@ -96,15 +111,13 @@ export default function CheckoutPage() {
                 ? '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
                 : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-            // Get seller wallet from session
+            // Get fresh session data with seller wallet
             const sellerResponse = await fetch(`/api/checkout/sessions/${sessionId}`);
             const sessionData = await sellerResponse.json();
 
-            // Use seller's wallet address from the database (not hardcoded!)
             const sellerAddress = sessionData.seller_wallet_address;
-
             if (!sellerAddress) {
-                throw new Error('Merchant wallet address not found. Please contact the seller.');
+                throw new Error('Merchant wallet address not found');
             }
 
             const domain = {
@@ -161,7 +174,6 @@ export default function CheckoutPage() {
                 }
             };
 
-            // Submit payment
             const paymentHeader = Buffer.from(JSON.stringify({
                 scheme: 'exact',
                 network: session.network,
@@ -185,251 +197,169 @@ export default function CheckoutPage() {
                 throw new Error(payResult.error || 'Payment failed');
             }
 
-            setTxHash(payResult.transaction_hash);
-            setPaymentSuccess(true);
-
-            // Redirect to success URL if provided
-            if (session.success_url) {
-                setTimeout(() => {
-                    window.location.href = session.success_url!.replace('{CHECKOUT_SESSION_ID}', sessionId);
-                }, 2000);
-            }
+            setTxHash(payResult.transaction_hash || payResult.txHash || '');
+            setSuccess(true);
         } catch (err: any) {
             console.error('Payment error:', err);
-            setError(err.message || 'Payment failed');
+            setPaymentError(err.message || 'Payment failed. Please try again.');
         } finally {
             setPaying(false);
         }
     };
 
+    const handleReturn = () => {
+        if (session?.success_url) {
+            window.location.href = session.success_url;
+        } else {
+            router.push('/');
+        }
+    };
+
+    const handleCancel = () => {
+        if (session?.cancel_url) {
+            window.location.href = session.cancel_url;
+        } else {
+            router.back();
+        }
+    };
+
+    // Calculate pricing
+    const subtotalCents = session?.line_items?.reduce((sum, item) => sum + item.total_cents, 0) || 0;
+    const feeCents = Math.ceil(subtotalCents * 0.01);
+    const currentStep = success ? 3 : (isConnected ? 2 : 1);
+
+    // Loading State
     if (loading) {
         return (
-            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7FAFC' }}>
-                <p style={{ color: '#4B5563' }}>Loading checkout...</p>
+            <div className="min-h-screen bg-zinc-950 text-white">
+                <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-50">
+                    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600" />
+                            <span className="text-xl font-bold">BinahPay</span>
+                        </div>
+                    </div>
+                </header>
+                <main className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+                    <Skeleton className="h-10 w-64 mx-auto mb-8 bg-zinc-800" />
+                    <div className="grid md:grid-cols-2 gap-8">
+                        <Skeleton className="h-80 rounded-2xl bg-zinc-800" />
+                        <Skeleton className="h-96 rounded-2xl bg-zinc-800" />
+                    </div>
+                </main>
             </div>
         );
     }
 
+    // Error State
     if (error) {
         return (
-            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7FAFC', padding: '20px' }}>
-                <div style={{ maxWidth: '400px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-                    <h1 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '8px' }}>{error}</h1>
-                    <button
-                        onClick={() => router.push('/')}
-                        style={{
-                            marginTop: '24px',
-                            padding: '12px 24px',
-                            background: '#2B5FA5',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '15px',
-                            fontWeight: '600',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Go Home
-                    </button>
+            <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6">
+                <div className="text-center max-w-md">
+                    <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-500/20 flex items-center justify-center">
+                        <AlertCircle className="w-8 h-8 text-red-400" />
+                    </div>
+                    <h1 className="text-2xl font-bold mb-2">Checkout Error</h1>
+                    <p className="text-zinc-400 mb-6">{error}</p>
+                    <Button onClick={() => router.back()} variant="outline">
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Go Back
+                    </Button>
                 </div>
             </div>
         );
     }
 
-    if (paymentSuccess) {
+    // Success State
+    if (success && session) {
         return (
-            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7FAFC', padding: '20px' }}>
-                <div style={{ maxWidth: '500px', background: 'white', borderRadius: '12px', padding: '48px', textAlign: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                    <div style={{ fontSize: '64px', marginBottom: '24px' }}>🎉</div>
-                    <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '16px', color: '#2D3748' }}>
-                        Payment Successful!
-                    </h1>
-                    <p style={{ fontSize: '16px', color: '#4B5563', marginBottom: '24px' }}>
-                        Your order has been confirmed
-                    </p>
-
-                    {txHash && (
-                        <div style={{ background: '#F0F9FF', border: '1px solid #74C0FC', borderRadius: '8px', padding: '16px', marginBottom: '24px' }}>
-                            <div style={{ fontSize: '12px', color: '#1971C2', fontWeight: '600', marginBottom: '6px' }}>Transaction Hash:</div>
-                            <a
-                                href={`https://sepolia.basescan.org/tx/${txHash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{ fontSize: '13px', color: '#0366D6', wordBreak: 'break-all', textDecoration: 'underline' }}
-                            >
-                                {txHash}
-                            </a>
+            <div className="min-h-screen bg-zinc-950 text-white">
+                <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
+                    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600" />
+                            <span className="text-xl font-bold">BinahPay</span>
                         </div>
-                    )}
-
-                    {session?.success_url && (
-                        <p style={{ fontSize: '14px', color: '#A0AEC0' }}>
-                            Redirecting you shortly...
-                        </p>
-                    )}
-                </div>
+                    </div>
+                </header>
+                <main className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+                    <CheckoutProgress currentStep={3} className="mb-12" />
+                    <CheckoutSuccess
+                        txHash={txHash}
+                        amount={session.total}
+                        currency={session.currency}
+                        network={session.network}
+                        productName={session.line_items?.[0]?.name}
+                        onReturn={handleReturn}
+                    />
+                </main>
             </div>
         );
     }
 
-    if (!session) return null;
-
+    // Main Checkout
     return (
-        <div style={{ minHeight: '100vh', background: '#F7FAFC', padding: '40px 20px' }}>
-            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-                {/* Header */}
-                <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-                    <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px' }}>Checkout</h1>
-                    <p style={{ color: '#4B5563' }}>Powered by BinahPay</p>
+        <div className="min-h-screen bg-zinc-950 text-white">
+            {/* Header */}
+            <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-50">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600" />
+                        <span className="text-xl font-bold">BinahPay</span>
+                    </div>
+                    <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-white">
+                        Dashboard
+                    </Link>
                 </div>
+            </header>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '32px' }}>
-                    {/* Order Summary */}
-                    <div>
-                        <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '20px' }}>Order Summary</h2>
-                        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
-                            {session.line_items.map((item, i) => (
-                                <div
-                                    key={i}
-                                    style={{
-                                        padding: '20px',
-                                        borderBottom: i < session.line_items.length - 1 ? '1px solid #E2E8F0' : 'none',
-                                        display: 'flex',
-                                        gap: '16px'
-                                    }}
-                                >
-                                    {item.images.length > 0 && (
-                                        <img
-                                            src={item.images[0]}
-                                            alt={item.name}
-                                            style={{
-                                                width: '80px',
-                                                height: '80px',
-                                                objectFit: 'cover',
-                                                borderRadius: '8px',
-                                                border: '1px solid #E2E8F0'
-                                            }}
-                                        />
-                                    )}
-                                    <div style={{ flex: 1 }}>
-                                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>{item.name}</h3>
-                                        {item.description && (
-                                            <p style={{ fontSize: '14px', color: '#4B5563', marginBottom: '8px' }}>{item.description}</p>
-                                        )}
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ fontSize: '14px', color: '#4B5563' }}>Quantity: {item.quantity}</span>
-                                            <span style={{ fontSize: '16px', fontWeight: '600' }}>${(item.total_cents / 100).toFixed(2)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+            {/* Main Content */}
+            <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+                {/* Progress */}
+                <CheckoutProgress currentStep={currentStep as 1 | 2 | 3} className="mb-8 sm:mb-12" />
 
-                            <div style={{ padding: '20px', background: '#F7FAFC', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '18px', fontWeight: '700' }}>Total</span>
-                                <span style={{ fontSize: '24px', fontWeight: '700', color: '#2B5FA5' }}>
-                                    ${session.total} {session.currency}
-                                </span>
-                            </div>
+                {/* Two Column Layout */}
+                {session && (
+                    <div className="grid md:grid-cols-2 gap-6 sm:gap-8 items-start">
+                        {/* Left: Order Summary */}
+                        <OrderSummaryCard
+                            lineItems={session.line_items || []}
+                            subtotalCents={subtotalCents}
+                            feeCents={feeCents}
+                            totalCents={session.total_cents}
+                            currency={session.currency}
+                        />
+
+                        {/* Right: Payment */}
+                        <div className="space-y-6">
+                            <PaymentCard
+                                email={email}
+                                onEmailChange={setEmail}
+                                isConnected={isConnected}
+                                isConnecting={connecting}
+                                isPaying={paying}
+                                walletAddress={address}
+                                onConnect={handleConnect}
+                                onPay={handlePay}
+                                error={paymentError}
+                            />
+
+                            {/* Cancel Button */}
+                            <button
+                                onClick={handleCancel}
+                                className="w-full py-3 text-sm text-zinc-400 hover:text-zinc-300 transition-colors"
+                            >
+                                Cancel and return to store
+                            </button>
                         </div>
                     </div>
+                )}
 
-                    {/* Payment */}
-                    <div>
-                        <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '20px' }}>Payment</h2>
-                        <div style={{ background: 'white', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '24px' }}>
-                            {/* Email */}
-                            <div style={{ marginBottom: '20px' }}>
-                                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
-                                    Email (Optional)
-                                </label>
-                                <input
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="your@email.com"
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        border: '1px solid #E2E8F0',
-                                        borderRadius: '8px',
-                                        fontSize: '15px'
-                                    }}
-                                />
-                            </div>
-
-                            {/* Wallet */}
-                            {!isConnected ? (
-                                <div style={{ textAlign: 'center' }}>
-                                    <p style={{ fontSize: '14px', color: '#4B5563', marginBottom: '16px' }}>
-                                        Connect your wallet to pay
-                                    </p>
-                                    <appkit-button />
-                                </div>
-                            ) : (
-                                <div>
-                                    <div style={{ background: '#F0F9FF', border: '1px solid #74C0FC', borderRadius: '8px', padding: '16px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <div style={{ fontSize: '12px', color: '#1971C2', fontWeight: '600' }}>✓ Wallet Connected</div>
-                                            <div style={{ fontSize: '13px', color: '#1971C2', fontFamily: 'monospace' }}>
-                                                {address?.slice(0, 6)}...{address?.slice(-4)}
-                                            </div>
-                                        </div>
-                                        <appkit-button />
-                                    </div>
-
-                                    {error && (
-                                        <div style={{ background: '#FED7D7', border: '1px solid #FC8181', borderRadius: '8px', padding: '12px', marginBottom: '16px', color: '#742A2A', fontSize: '14px' }}>
-                                            {error}
-                                        </div>
-                                    )}
-
-                                    <button
-                                        onClick={handlePayment}
-                                        disabled={paying}
-                                        style={{
-                                            width: '100%',
-                                            padding: '16px',
-                                            background: paying ? '#CBD5E0' : '#2B5FA5',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '8px',
-                                            fontSize: '16px',
-                                            fontWeight: '700',
-                                            cursor: paying ? 'not-allowed' : 'pointer',
-                                            marginBottom: '16px'
-                                        }}
-                                    >
-                                        {paying ? 'Processing...' : `Pay $${session.total} ${session.currency}`}
-                                    </button>
-
-                                    <div style={{ fontSize: '12px', color: '#A0AEC0', textAlign: 'center' }}>
-                                        🔒 Secured by x402 Protocol
-                                    </div>
-                                </div>
-                            )}
-
-                            {session.cancel_url && (
-                                <button
-                                    onClick={() => window.location.href = session.cancel_url!}
-                                    style={{
-                                        width: '100%',
-                                        padding: '12px',
-                                        background: 'transparent',
-                                        color: '#4B5563',
-                                        border: 'none',
-                                        fontSize: '14px',
-                                        cursor: 'pointer',
-                                        marginTop: '16px'
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                            )}
-                        </div>
-                    </div>
+                {/* Trust Badges */}
+                <div className="mt-12 pt-8 border-t border-zinc-800">
+                    <TrustBadges network={session?.network} />
                 </div>
-            </div>
+            </main>
         </div>
     );
 }
