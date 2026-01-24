@@ -4,15 +4,15 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { parseUnits } from 'viem';
 import { useAccount, useWalletClient } from 'wagmi';
-import { useWeb3Modal } from '@web3modal/wagmi/react';
+import { useAppKit } from '@reown/appkit/react';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 
-import { CheckoutProgress } from './components/CheckoutProgress';
-import { TrustBadges } from './components/TrustBadges';
-import { OrderSummaryCard } from './components/OrderSummaryCard';
-import { PaymentCard } from './components/PaymentCard';
-import { CheckoutSuccess } from './components/CheckoutSuccess';
+import { CheckoutProgress } from '../components/CheckoutProgress';
+import { TrustBadges } from '../components/TrustBadges';
+import { OrderSummaryCard } from '../components/OrderSummaryCard';
+import { PaymentCard } from '../components/PaymentCard';
+import { CheckoutSuccess } from '../components/CheckoutSuccess';
 import { Button } from '@/app/components/ui/button';
 import { Skeleton } from '@/app/components/ui/skeleton';
 
@@ -48,7 +48,7 @@ export default function CheckoutPage() {
     const router = useRouter();
     const { address, isConnected } = useAccount();
     const { data: walletClient } = useWalletClient();
-    const { open } = useWeb3Modal();
+    const { open } = useAppKit();
 
     const [session, setSession] = useState<CheckoutSession | null>(null);
     const [loading, setLoading] = useState(true);
