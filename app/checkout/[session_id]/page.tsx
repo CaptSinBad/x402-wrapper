@@ -29,6 +29,7 @@ interface CheckoutSession {
     success_url?: string;
     cancel_url?: string;
     expires_at: string;
+    seller_wallet_address?: string;
 }
 
 export default function CheckoutPage() {
