@@ -30,9 +30,12 @@ export function Sidebar() {
     const [activeProject, setActiveProject] = useState<any>(null);
     const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [network, setNetwork] = useState<'base-sepolia' | 'base-mainnet'>('base-sepolia');
+    const [switchingNetwork, setSwitchingNetwork] = useState(false);
 
     useEffect(() => {
         fetchProjects();
+        fetchNetwork();
     }, []);
 
     const fetchProjects = async () => {
@@ -49,6 +52,37 @@ export function Sidebar() {
             console.error('Failed to fetch projects:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchNetwork = async () => {
+        try {
+            const response = await authFetch('/api/projects/network');
+            if (response.ok) {
+                const data = await response.json();
+                setNetwork(data.network || 'base-sepolia');
+            }
+        } catch (error) {
+            console.error('Failed to fetch network:', error);
+        }
+    };
+
+    const toggleNetwork = async () => {
+        const newNetwork = network === 'base-sepolia' ? 'base-mainnet' : 'base-sepolia';
+        setSwitchingNetwork(true);
+        try {
+            const response = await authFetch('/api/projects/network', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ network: newNetwork })
+            });
+            if (response.ok) {
+                setNetwork(newNetwork);
+            }
+        } catch (error) {
+            console.error('Failed to switch network:', error);
+        } finally {
+            setSwitchingNetwork(false);
         }
     };
 
@@ -210,6 +244,34 @@ export function Sidebar() {
 
             {/* User Profile & Logout */}
             <div className="p-4 border-t border-border mt-auto space-y-2">
+                {/* Network Toggle */}
+                <button
+                    onClick={toggleNetwork}
+                    disabled={switchingNetwork}
+                    className={cn(
+                        "w-full flex items-center justify-between p-2 rounded-lg transition-colors text-sm",
+                        network === 'base-mainnet'
+                            ? "bg-green-500/10 hover:bg-green-500/20 border border-green-500/30"
+                            : "bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30"
+                    )}
+                >
+                    <div className="flex items-center gap-2">
+                        <div className={cn(
+                            "w-2 h-2 rounded-full",
+                            network === 'base-mainnet' ? "bg-green-500" : "bg-orange-500"
+                        )} />
+                        <span className={cn(
+                            "font-medium",
+                            network === 'base-mainnet' ? "text-green-400" : "text-orange-400"
+                        )}>
+                            {network === 'base-mainnet' ? 'Mainnet' : 'Testnet'}
+                        </span>
+                    </div>
+                    <span className="text-xs text-zinc-500">
+                        {switchingNetwork ? 'Switching...' : 'Click to toggle'}
+                    </span>
+                </button>
+
                 <div className="flex items-center gap-3 p-2 rounded-lg bg-zinc-900/50">
                     <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400">
                         <User className="w-4 h-4" />

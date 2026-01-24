@@ -14,33 +14,32 @@ export async function GET(req: NextRequest) {
     try {
         const user = await requireAuth(req);
 
-        // Get user's projects
+        // Get user's projects - user_id is UUID
         const projectsResult = await pgPool.query(
-            `SELECT id FROM projects WHERE user_id = $1`,
+            `SELECT id FROM projects WHERE user_id = $1::uuid`,
             [user.id]
         );
 
-        if (projectsResult.rows.length === 0) {
-            return NextResponse.json({ payments: [] });
-        }
+        const projectIds: string[] = projectsResult.rows.map((p: any) => p.id);
 
-        const projectIds = projectsResult.rows.map((p: any) => p.id);
+        // Include both user.id and project IDs as valid seller IDs (all UUIDs)
+        const allSellerIds: string[] = [user.id, ...projectIds];
 
-        // Get recent sales
+        // Get recent sales - sales.seller_id is UUID type
         const result = await pgPool.query(
             `SELECT 
-        s.id,
-        s.purchaser_address,
-        s.amount_cents,
-        s.currency,
-        s.metadata,
-        s.created_at,
-        s.seller_id
-       FROM sales s
-       WHERE s.seller_id = ANY($1)
-       ORDER BY s.created_at DESC
-       LIMIT 10`,
-            [projectIds.map((id: string) => `project-${id}`)]
+                s.id,
+                s.purchaser_address,
+                s.amount_cents,
+                s.currency,
+                s.metadata,
+                s.created_at,
+                s.seller_id
+             FROM sales s
+             WHERE s.seller_id = ANY($1::uuid[])
+             ORDER BY s.created_at DESC
+             LIMIT 10`,
+            [allSellerIds]
         );
 
         const payments = result.rows.map((payment: any) => ({

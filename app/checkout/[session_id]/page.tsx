@@ -95,12 +95,16 @@ export default function CheckoutPage() {
                 ? '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
                 : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-            // Get seller wallet
+            // Get seller wallet from session
             const sellerResponse = await fetch(`/api/checkout/sessions/${sessionId}`);
             const sessionData = await sellerResponse.json();
 
-            // For now, use a placeholder - in production, get from session
-            const sellerAddress = process.env.NEXT_PUBLIC_SELLER_ADDRESS || '0x784590bfCad59C0394f91F1CD1BCBA1e51d09408';
+            // Use seller's wallet address from the database (not hardcoded!)
+            const sellerAddress = sessionData.seller_wallet_address;
+
+            if (!sellerAddress) {
+                throw new Error('Merchant wallet address not found. Please contact the seller.');
+            }
 
             const domain = {
                 name: 'USDC',

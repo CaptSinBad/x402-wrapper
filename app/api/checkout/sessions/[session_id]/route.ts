@@ -7,7 +7,7 @@ const pgPool = new Pool({
 
 /**
  * GET /api/checkout/sessions/[session_id]
- * Get checkout session details
+ * Get checkout session details including seller's wallet address
  */
 export async function GET(
     req: NextRequest,
@@ -17,8 +17,12 @@ export async function GET(
         const params = await context.params;
         const sessionId = params.session_id;
 
+        // Join with users table to get seller's wallet address
         const result = await pgPool.query(
-            `SELECT * FROM checkout_sessions WHERE session_id = $1`,
+            `SELECT cs.*, u.wallet_address as seller_wallet_address
+             FROM checkout_sessions cs
+             LEFT JOIN users u ON cs.seller_id = u.id
+             WHERE cs.session_id = $1`,
             [sessionId]
         );
 
@@ -69,7 +73,9 @@ export async function GET(
             success_url: session.success_url,
             cancel_url: session.cancel_url,
             expires_at: session.expires_at,
-            created_at: session.created_at
+            created_at: session.created_at,
+            // Include seller's wallet address for payment
+            seller_wallet_address: session.seller_wallet_address
         });
     } catch (error: any) {
         console.error('[checkout/sessions/[session_id]] Error:', error);

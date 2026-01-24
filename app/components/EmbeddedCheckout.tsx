@@ -107,7 +107,12 @@ export function EmbeddedCheckout({
                 ? '0x036CbD53842c5426634e7929541eC2318f3dCF7e'
                 : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-            const sellerAddress = process.env.NEXT_PUBLIC_SELLER_ADDRESS || '0x784590bfCad59C0394f91F1CD1BCBA1e51d09408';
+            // Use seller's wallet address from the session (not hardcoded!)
+            const sellerAddress = session.seller_wallet_address;
+
+            if (!sellerAddress) {
+                throw new Error('Merchant wallet address not found. Please contact the seller.');
+            }
 
             const domain = {
                 name: 'USDC',
