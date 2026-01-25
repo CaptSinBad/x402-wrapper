@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { parseUnits } from 'viem';
-import { useAccount, useWalletClient } from 'wagmi';
+import { useAccount, useWalletClient, useSwitchChain, useChainId } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
@@ -49,6 +49,8 @@ export default function CheckoutPage() {
     const { address, isConnected } = useAccount();
     const { data: walletClient } = useWalletClient();
     const { open } = useAppKit();
+    const { switchChain } = useSwitchChain();
+    const chainId = useChainId();
 
     const [session, setSession] = useState<CheckoutSession | null>(null);
     const [loading, setLoading] = useState(true);
@@ -59,12 +61,23 @@ export default function CheckoutPage() {
     const [connecting, setConnecting] = useState(false);
     const [success, setSuccess] = useState(false);
     const [txHash, setTxHash] = useState('');
+    const [switchingChain, setSwitchingChain] = useState(false);
 
     const sessionId = params?.session_id as string;
 
     useEffect(() => {
         fetchSession();
     }, [sessionId]);
+
+    // Auto-switch chain when wallet connects
+    useEffect(() => {
+        if (isConnected && session && chainId) {
+            const requiredChainId = session.network === 'base-sepolia' ? 84532 : 8453;
+            if (chainId !== requiredChainId) {
+                handleSwitchChain(requiredChainId);
+            }
+        }
+    }, [isConnected, session, chainId]);
 
     const fetchSession = async () => {
         try {
@@ -83,6 +96,18 @@ export default function CheckoutPage() {
         }
     };
 
+    const handleSwitchChain = async (targetChainId: number) => {
+        if (!switchChain || switchingChain) return;
+        setSwitchingChain(true);
+        try {
+            await switchChain({ chainId: targetChainId });
+        } catch (err) {
+            console.error('Failed to switch chain:', err);
+        } finally {
+            setSwitchingChain(false);
+        }
+    };
+
     const handleConnect = async () => {
         setConnecting(true);
         try {
@@ -94,6 +119,14 @@ export default function CheckoutPage() {
 
     const handlePay = async () => {
         if (!session || !address || !walletClient) return;
+
+        // Verify we're on the correct chain before payment
+        const requiredChainId = session.network === 'base-sepolia' ? 84532 : 8453;
+        if (chainId !== requiredChainId) {
+            setPaymentError(`Please switch to ${session.network === 'base-sepolia' ? 'Base Sepolia' : 'Base Mainnet'} network`);
+            await handleSwitchChain(requiredChainId);
+            return;
+        }
 
         setPaying(true);
         setPaymentError('');
