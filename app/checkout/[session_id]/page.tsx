@@ -69,15 +69,16 @@ export default function CheckoutPage() {
         fetchSession();
     }, [sessionId]);
 
-    // Auto-switch chain when wallet connects
+    // Auto-switch chain when wallet connects (only once)
     useEffect(() => {
-        if (isConnected && session && chainId) {
+        if (isConnected && session && chainId && !switchingChain && !paying) {
             const requiredChainId = session.network === 'base-sepolia' ? 84532 : 8453;
             if (chainId !== requiredChainId) {
+                console.log(`Auto-switching from chain ${chainId} to ${requiredChainId}`);
                 handleSwitchChain(requiredChainId);
             }
         }
-    }, [isConnected, session, chainId]);
+    }, [isConnected, session?.network, chainId]);
 
     const fetchSession = async () => {
         try {
@@ -90,6 +91,7 @@ export default function CheckoutPage() {
 
             setSession(data);
         } catch (err: any) {
+            console.error('Session fetch error:', err);
             setError(err.message);
         } finally {
             setLoading(false);
@@ -98,11 +100,17 @@ export default function CheckoutPage() {
 
     const handleSwitchChain = async (targetChainId: number) => {
         if (!switchChain || switchingChain) return;
+
         setSwitchingChain(true);
+        setPaymentError(''); // Clear any previous errors
+
         try {
+            console.log('Switching to chain:', targetChainId);
             await switchChain({ chainId: targetChainId });
-        } catch (err) {
-            console.error('Failed to switch chain:', err);
+            console.log('Chain switch successful');
+        } catch (err: any) {
+            console.error('Chain switch error:', err);
+            // Don't set error here as user might manually switch
         } finally {
             setSwitchingChain(false);
         }
