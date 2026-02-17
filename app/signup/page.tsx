@@ -34,7 +34,9 @@ export default function SignupPage() {
                 // Redirect to onboarding
                 router.push('/onboarding/step-1');
             } else {
-                alert('Failed to create account. Please try again.');
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Registration failed:', errorData);
+                alert(`Failed to create account: ${errorData.details || errorData.message || 'Unknown error'}`);
                 setCreating(false);
             }
         } catch (error) {

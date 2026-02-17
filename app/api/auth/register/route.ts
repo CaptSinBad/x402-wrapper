@@ -12,6 +12,14 @@ export async function POST(req: NextRequest) {
         // Validate input (protects against injection)
         const data = await validateBody(req, registerUserSchema);
 
+        console.log('[REGISTER] Attempting registration:', {
+            privyId: data.privyId,
+            walletAddress: data.walletAddress ? `${data.walletAddress.slice(0, 10)}...` : undefined,
+            email: data.email,
+            authMethod: data.authMethod,
+            timestamp: new Date().toISOString(),
+        });
+
         // Create user in database
         const user = await createUserFromPrivy({
             privyId: data.privyId,
@@ -33,6 +41,7 @@ export async function POST(req: NextRequest) {
     } catch (error: any) {
         console.error('[REGISTER ERROR]', {
             error: error.message,
+            stack: error.stack,
             timestamp: new Date().toISOString(),
         });
 
@@ -40,8 +49,7 @@ export async function POST(req: NextRequest) {
             {
                 error: 'REGISTRATION_FAILED',
                 message: 'Failed to create account. Please try again.',
-                // Show validation errors in dev
-                ...(process.env.NODE_ENV === 'development' && { details: error.message })
+                details: error.message,
             },
             { status: 500 }
         );
